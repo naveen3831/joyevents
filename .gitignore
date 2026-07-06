@@ -1,0 +1,11 @@
+node_modules
+.env
+*.local
+dist
+dist-ssr
+npm-debug.log*
+yarn-error.log*
+.DS_Store
+frontend/.env
+backend/.env
+frontend/bun.lockb

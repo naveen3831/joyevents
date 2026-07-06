@@ -1,0 +1,456 @@
+import { motion } from "framer-motion";
+import { formatCurrency } from "@/lib/utils";
+import { ArrowLeft, Calendar, AlertCircle, MapPin, ExternalLink, Check, X, Loader2, CreditCard, Star } from "lucide-react";
+import MerchantLayout from "@/components/MerchantLayout";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiAssignedBookings, apiCompleteBooking, apiUpdateBookingStatus, apiApproveBooking, apiRejectBooking } from "@/lib/api";
+import { API_URL } from "@/lib/config";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const STATUS_BADGE: Record<string, string> = {
+  assigned: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
+  pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
+  pending_approval: "bg-orange-500/15 text-orange-400 border border-orange-500/30",
+  approved: "bg-green-500/15 text-green-400 border border-green-500/30",
+  awaiting_payment: "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30",
+  accepted: "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30",
+  processing: "bg-orange-500/15 text-orange-400 border border-orange-500/30",
+  confirmed: "bg-green-500/15 text-green-400 border border-green-500/30",
+  completed: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
+  cancelled: "bg-red-500/15 text-red-400 border border-red-500/30",
+  paid: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold",
+  awaiting_final_payment: "bg-pink-500/15 text-pink-400 border border-pink-500/30 font-bold",
+};
+
+const MerchantBookings = () => {
+  const { token } = useAuth() as any;
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"active" | "history">("active");
+
+  const [approving, setApproving] = useState<string | null>(null);
+  const [approvalOptions, setApprovalOptions] = useState<{ id: string; show: boolean }>({ id: "", show: false });
+  const [customAdvance, setCustomAdvance] = useState<string>("");
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
+  const load = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await apiAssignedBookings(token);
+      setItems(res.bookings || []);
+    } catch (e) {
+      toast.error("Failed to load bookings");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, [token]);
+
+  const activeItems = items.filter(b => !["completed", "cancelled"].includes(b.status) || b.status === "awaiting_final_payment");
+  const historyItems = items.filter(b => ["completed", "cancelled"].includes(b.status));
+  const displayItems = tab === "active" ? activeItems : historyItems;
+
+  const handleUpdateStatus = async (id: string, status: string) => {
+    try {
+      await apiUpdateBookingStatus(id, status, token);
+      toast.success(`Status updated to ${status}`);
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update status");
+    }
+  };
+
+  const handleApprove = async (id: string, paymentType: "full" | "advance" = "full", customAdvanceAmount?: number) => {
+    setApproving(id);
+    try {
+      const body: any = { paymentType };
+      if (paymentType === "advance" && customAdvanceAmount) {
+        body.customAdvanceAmount = customAdvanceAmount;
+      }
+      const res = await fetch(`${API_URL}/api/bookings/${id}/approve`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error("Failed to approve booking");
+      
+      toast.success(paymentType === "advance" 
+        ? `Booking approved with advance payment of ${formatCurrency(customAdvanceAmount || "30%")}!` 
+        : "Booking approved with full payment requirement!");
+      setApprovalOptions({ id: "", show: false });
+      setCustomAdvance("");
+      setShowCustomInput(false);
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to approve booking");
+    } finally {
+      setApproving(null);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await apiRejectBooking(id, "Rejected by merchant", token);
+      toast.success("Booking rejected");
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to reject booking");
+    }
+  };
+
+  return (
+    <MerchantLayout>
+      <section className="py-2 sm:py-8 lg:py-10">
+        <div className="container mx-auto">
+          {/* Header with Back Button */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="flex items-center gap-3 mb-6">
+              <Link to="/merchant-dashboard">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" /> Back
+                </Button>
+              </Link>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="font-display text-3xl font-bold">
+                  Assigned <span className="text-gradient">Bookings</span>
+                </h1>
+                <p className="text-muted-foreground text-sm">Manage your assigned bookings and track performance history</p>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex items-center gap-4 mt-8 mb-4">
+              <button
+                onClick={() => setTab("active")}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${tab === "active" ? "bg-gradient-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+              >
+                Active ({activeItems.length})
+              </button>
+              <button
+                onClick={() => setTab("history")}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${tab === "history" ? "bg-gradient-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+              >
+                History ({historyItems.length})
+              </button>
+            </div>
+          </motion.div>
+
+          {/* Content */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : displayItems.length === 0 ? (
+              <div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground">
+                <AlertCircle className="mx-auto mb-4 h-12 w-12 opacity-40" />
+                <p className="font-medium text-lg">No {tab} bookings</p>
+                <p className="text-sm mt-2">Your {tab} bookings will appear here</p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
+                <table className="w-full text-sm min-w-[600px]">
+                  <thead>
+                    <tr className="border-b border-border bg-secondary/50">
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Service / Event</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date/Time</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Rating</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayItems.map((b) => (
+                      <tr key={b._id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
+                        <td className="px-4 py-3 font-medium">
+                          <div>
+                            <div>{b.service?.name || b.event?.title || b.serviceName}</div>
+                            <div className="mt-1">
+                              {b.service ? (
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">Service Booking</span>
+                              ) : b.event ? (
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30">Event Booking</span>
+                              ) : null}
+                            </div>
+                            {b.service?.category && (
+                              <div className="text-xs text-muted-foreground mt-0.5">{b.service.category}</div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div>
+                            <div className="font-medium">{b.customer?.name}</div>
+                            <div className="text-xs text-muted-foreground">{b.customer?.email}</div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 max-w-[300px]">
+                          {b.customerLocation && b.customerLocation.address ? (
+                            <div className="space-y-2">
+                              <div className="flex items-start gap-2">
+                                <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium leading-relaxed">{b.customerLocation.address}</p>
+                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                    <p className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+                                      Lat: {b.customerLocation.latitude?.toFixed(4)}, Lng: {b.customerLocation.longitude?.toFixed(4)}
+                                    </p>
+                                    <a
+                                      href={`https://www.google.com/maps?q=${b.customerLocation.latitude},${b.customerLocation.longitude}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-[10px] text-primary hover:underline inline-flex items-center gap-1 whitespace-nowrap"
+                                    >
+                                      View on Maps <ExternalLink className="h-2.5 w-2.5" />
+                                    </a>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ) : b.event?.location ? (
+                            <div className="flex items-start gap-2">
+                              <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium leading-relaxed">{b.event.location}</p>
+                                <a
+                                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.event.location)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[10px] text-primary hover:underline inline-flex items-center gap-1 whitespace-nowrap mt-1"
+                                >
+                                  View on Maps <ExternalLink className="h-2.5 w-2.5" />
+                                </a>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No location provided</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          <div>{new Date(b.datetime).toLocaleDateString()}</div>
+                          <div className="text-xs">{new Date(b.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_BADGE[b.status] || "bg-secondary text-muted-foreground"}`}>
+                            {b.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {b.rating?.score ? (
+                            <div className="flex items-center gap-2">
+                              <div className="flex gap-0.5">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`h-4 w-4 ${
+                                      star <= b.rating.score
+                                        ? "fill-yellow-500 text-yellow-500"
+                                        : "text-muted-foreground/30 fill-none"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-xs font-semibold">{b.rating.score}/5</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No rating</span>
+                          )}
+                          {b.rating?.comment && (
+                            <p className="text-xs text-muted-foreground mt-1 italic">"{b.rating.comment}"</p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {b.service && b.status === "pending_approval" ? (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="bg-green-600 hover:bg-green-700 h-8 px-3"
+                                onClick={() => setApprovalOptions({ id: b._id, show: true })}
+                                disabled={approving === b._id}
+                              >
+                                <Check className="h-4 w-4 mr-1" /> Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="h-8 px-3"
+                                onClick={() => handleReject(b._id)}
+                              >
+                                <X className="h-4 w-4 mr-1" /> Reject
+                              </Button>
+                            </div>
+                          ) : b.status !== "completed" && b.status !== "cancelled" && b.service ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="outline" className="h-8">Update Status</Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {(() => {
+                                  const options = [];
+                                  
+                                  // If not paid, show pre-payment options
+                                  if (b.status !== "paid" && b.status !== "processing" && b.status !== "completed") {
+                                    options.push(
+                                      { status: "pending_approval", label: "Pending Approval", color: "text-orange-500" },
+                                      { status: "approved", label: "Approved", color: "text-blue-500" },
+                                      { status: "awaiting_payment", label: "Awaiting Payment", color: "text-indigo-500" }
+                                    );
+                                  }
+
+                                  // Always show post-payment/general options if not completed
+                                  options.push(
+                                    { status: "paid", label: "Paid", color: "text-emerald-500" },
+                                    { status: "accepted", label: "Accepted", color: "text-cyan-500" },
+                                    { status: "processing", label: "Processing", color: "text-orange-500" },
+                                    { status: "completed", label: "Completed", color: "text-green-500" },
+                                    { status: "cancelled", label: "Cancelled", color: "text-red-500" }
+                                  );
+
+                                  return options.map(({ status, label, color }) => (
+                                    <DropdownMenuItem
+                                      key={status}
+                                      className={`${color} cursor-pointer font-medium`}
+                                      onClick={() => handleUpdateStatus(b._id, status)}
+                                      disabled={b.status === status}
+                                    >
+                                      {label}
+                                    </DropdownMenuItem>
+                                  ));
+                                })()}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic capitalize">{b.status}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Approval Options Modal */}
+      {approvalOptions.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
+            <h3 className="font-display text-xl font-bold mb-4 text-center">Approve Service</h3>
+            <p className="text-sm text-muted-foreground mb-6 text-center">
+              Choose the payment requirement for this service booking:
+            </p>
+            
+            <div className="space-y-3">
+              {/* 30% Advance */}
+              <button
+                className="w-full flex items-center gap-4 p-4 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 transition-all duration-200 group"
+                onClick={() => { setShowCustomInput(false); handleApprove(approvalOptions.id, "advance"); }}
+                disabled={approving === approvalOptions.id}
+              >
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-500/20 group-hover:bg-orange-500/30 transition-colors">
+                  <CreditCard className="w-5 h-5 text-orange-400" />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-orange-400">Require 30% Advance</p>
+                  <p className="text-xs text-orange-400/70">Customer pays 30% now to confirm, remaining 70% after service.</p>
+                </div>
+              </button>
+
+              {/* Custom Advance Amount */}
+              <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 overflow-hidden">
+                <button
+                  className="w-full flex items-center gap-4 p-4 hover:bg-yellow-500/20 transition-all duration-200 group"
+                  onClick={() => { setShowCustomInput(!showCustomInput); setCustomAdvance(""); }}
+                  disabled={approving === approvalOptions.id}
+                >
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-yellow-500/20 group-hover:bg-yellow-500/30 transition-colors">
+                    <CreditCard className="w-5 h-5 text-yellow-400" />
+                  </div>
+                  <div className="text-left flex-1">
+                    <p className="font-semibold text-yellow-400">Custom Advance Amount</p>
+                    <p className="text-xs text-yellow-400/70">Set a specific advance amount for the customer to pay.</p>
+                  </div>
+                  <span className="text-yellow-400 text-lg">{showCustomInput ? "▲" : "▼"}</span>
+                </button>
+                {showCustomInput && (
+                  <div className="px-4 pb-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-400 font-bold text-lg">₹</span>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Enter advance amount"
+                        value={customAdvance}
+                        onChange={(e) => setCustomAdvance(e.target.value)}
+                        className="flex-1 bg-background border border-yellow-500/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
+                      />
+                    </div>
+                    <Button
+                      className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"
+                      disabled={!customAdvance || Number(customAdvance) <= 0 || approving === approvalOptions.id}
+                      onClick={() => handleApprove(approvalOptions.id, "advance", Number(customAdvance))}
+                    >
+                      Confirm {formatCurrency(customAdvance || "0")} Advance
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Full Payment */}
+              <button
+                className="w-full flex items-center gap-4 p-4 rounded-xl bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 transition-all duration-200 group"
+                onClick={() => { setShowCustomInput(false); handleApprove(approvalOptions.id, "full"); }}
+                disabled={approving === approvalOptions.id}
+              >
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
+                  <Check className="w-5 h-5 text-green-400" />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-green-400">Require Full Payment</p>
+                  <p className="text-xs text-green-400/70">Customer pays 100% now to confirm the booking.</p>
+                </div>
+              </button>
+            </div>
+            
+            <div className="mt-6">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => { setApprovalOptions({ id: "", show: false }); setShowCustomInput(false); setCustomAdvance(""); }}
+                disabled={approving === approvalOptions.id}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </MerchantLayout>
+  );
+};
+
+export default MerchantBookings;
+
+

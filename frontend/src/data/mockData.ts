@@ -1,0 +1,133 @@
+import { STATIC_IMAGES } from "@/lib/staticImages";
+
+export interface Event {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  location: string;
+  price: number;
+  category: string;
+  image: string;
+  attendees: number;
+  maxAttendees: number;
+  merchant: string;
+  status: "upcoming" | "ongoing" | "completed";
+}
+
+export const mockEvents: Event[] = [
+  {
+    id: "1",
+    title: "Tech Innovation Summit 2026",
+    description: "Join the biggest tech conference of the year featuring industry leaders and cutting-edge innovations.",
+    date: "2026-04-15",
+    time: "09:00 AM",
+    location: "Convention Center, San Francisco",
+    price: 299,
+    category: "Conference",
+    image: STATIC_IMAGES.eventConference,
+    attendees: 847,
+    maxAttendees: 1200,
+    merchant: "TechEvents Inc.",
+    status: "upcoming",
+  },
+  {
+    id: "2",
+    title: "Enchanted Garden Wedding Expo",
+    description: "Discover the latest wedding trends, meet top vendors, and plan your dream celebration.",
+    date: "2026-03-22",
+    time: "11:00 AM",
+    location: "Botanical Gardens, New York",
+    price: 45,
+    category: "Wedding",
+    image: STATIC_IMAGES.eventWedding,
+    attendees: 320,
+    maxAttendees: 500,
+    merchant: "Dream Weddings Co.",
+    status: "upcoming",
+  },
+  {
+    id: "3",
+    title: "Neon Nights Music Festival",
+    description: "An electrifying night of music, lights, and unforgettable performances by world-class DJs.",
+    date: "2026-05-10",
+    time: "08:00 PM",
+    location: "Pier 39, Los Angeles",
+    price: 150,
+    category: "Party",
+    image: STATIC_IMAGES.eventParty,
+    attendees: 2100,
+    maxAttendees: 3000,
+    merchant: "NightLife Productions",
+    status: "upcoming",
+  },
+  {
+    id: "4",
+    title: "International Food & Wine Festival",
+    description: "Savor cuisines from around the world with live cooking demonstrations and wine tastings.",
+    date: "2026-04-28",
+    time: "12:00 PM",
+    location: "Central Park, Chicago",
+    price: 75,
+    category: "Food",
+    image: STATIC_IMAGES.eventFood,
+    attendees: 1500,
+    maxAttendees: 2000,
+    merchant: "Gourmet Events LLC",
+    status: "upcoming",
+  },
+  {
+    id: "5",
+    title: "Startup Bootcamp Workshop",
+    description: "Intensive 2-day workshop on building, launching, and scaling your startup idea.",
+    date: "2026-03-30",
+    time: "10:00 AM",
+    location: "WeWork Hub, Austin",
+    price: 199,
+    category: "Workshop",
+    image: STATIC_IMAGES.eventWorkshop,
+    attendees: 45,
+    maxAttendees: 60,
+    merchant: "LaunchPad Academy",
+    status: "upcoming",
+  },
+  {
+    id: "6",
+    title: "Summer Beats Pool Party",
+    description: "The hottest pool party of the summer with live DJs, cocktails, and summer vibes.",
+    date: "2026-06-15",
+    time: "02:00 PM",
+    location: "Skyline Rooftop, Miami",
+    price: 85,
+    category: "Party",
+    image: STATIC_IMAGES.eventParty,
+    attendees: 380,
+    maxAttendees: 500,
+    merchant: "NightLife Productions",
+    status: "upcoming",
+  },
+];
+
+export const categories = ["All", "Conference", "Wedding", "Party", "Food", "Workshop"];
+
+export const mockStats = {
+  customer: {
+    eventsAttended: 12,
+    upcomingEvents: 3,
+    totalSpent: 1245,
+    savedEvents: 8,
+  },
+  merchant: {
+    totalEvents: 24,
+    activeEvents: 5,
+    totalRevenue: 45680,
+    totalAttendees: 3450,
+  },
+  admin: {
+    totalUsers: 12450,
+    totalMerchants: 342,
+    totalEvents: 1876,
+    totalRevenue: 892400,
+  },
+};

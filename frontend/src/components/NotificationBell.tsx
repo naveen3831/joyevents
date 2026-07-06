@@ -1,0 +1,187 @@
+import { useState, useEffect } from "react";
+import { Bell, Trash2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { apiGetNotifications, apiMarkNotificationAsRead, apiMarkAllNotificationsAsRead, apiDeleteNotification } from "@/lib/api";
+import { formatDistanceToNow } from "date-fns";
+
+const NotificationBell = () => {
+  const { token } = useAuth();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Load unread count on mount and poll every 30s
+  useEffect(() => {
+    if (!token) return;
+    const fetchCount = async () => {
+      try {
+        const data = await apiGetNotifications(token, { limit: 1 });
+        setUnreadCount(data.unreadCount || 0);
+      } catch {}
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, [token]);
+
+  // Full load when dropdown opens
+  useEffect(() => {
+    if (isOpen && token) {
+      loadNotifications();
+    }
+  }, [isOpen, token]);
+
+ const loadNotifications = async () => {
+    if (!token) return;
+    
+    try {
+      setLoading(true);
+      const data = await apiGetNotifications(token, { limit: 10 });
+      setNotifications(data.notifications);
+      setUnreadCount(data.unreadCount);
+    } catch (error) {
+    } finally {
+      setLoading(false);
+    }
+  };
+
+ const handleMarkAsRead = async (id: string) => {
+    if (!token) return;
+    
+    try {
+      await apiMarkNotificationAsRead(id, token);
+      setNotifications(prev => 
+        prev.map(n => n._id === id ? { ...n, status: "read" as const } : n)
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+    }
+  };
+
+ const handleMarkAllAsRead = async () => {
+    if (!token) return;
+    
+    try {
+      await apiMarkAllNotificationsAsRead(token);
+      setNotifications(prev => prev.map(n => ({ ...n, status: "read" as const })));
+      setUnreadCount(0);
+    } catch (error) {
+    }
+  };
+
+ const handleDelete = async (id: string) => {
+    if (!token) return;
+    
+    try {
+      await apiDeleteNotification(id, token);
+      setNotifications(prev => prev.filter(n => n._id !== id));
+    } catch (error) {
+    }
+  };
+
+ return (
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="relative text-foreground hover:bg-secondary"
+        >
+          <Bell className={`h-5 w-5 transition-colors ${unreadCount > 0 ? "text-primary" : ""}`} />
+          {unreadCount > 0 && (
+            <>
+              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-md z-10">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-400 animate-ping opacity-60 pointer-events-none" />
+            </>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      
+      <DropdownMenuContent align="end" className="w-80 max-h-[520px] overflow-y-auto p-0">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b sticky top-0 bg-card z-10">
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold text-sm">Notifications</h3>
+            {unreadCount > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          {unreadCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={handleMarkAllAsRead} className="h-7 text-xs text-primary">
+              Mark all read
+            </Button>
+          )}
+        </div>
+
+        <AnimatePresence>
+          {loading ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">
+              <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
+              Loading…
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="p-8 text-center">
+              <Bell className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">You're all caught up!</p>
+            </div>
+          ) : (
+            notifications.map((notification) => (
+              <motion.div
+                key={notification._id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, height: 0 }}
+                className={`px-4 py-3 border-b last:border-0 hover:bg-secondary/40 transition-colors cursor-pointer ${
+                  notification.status === "unread" ? "bg-primary/5 border-l-2 border-l-primary" : ""
+                }`}
+                onClick={() => notification.status === "unread" && handleMarkAsRead(notification._id)}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 shrink-0">
+                    {notification.status === "unread"
+                      ? <span className="block h-2 w-2 rounded-full bg-primary mt-1.5" />
+                      : <span className="block h-2 w-2 rounded-full bg-muted-foreground/30 mt-1.5" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className={`text-sm leading-snug ${notification.status === "unread" ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                        {notification.title}
+                      </p>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(notification._id); }}
+                        className="shrink-0 text-muted-foreground/50 hover:text-red-500 transition-colors p-0.5"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                      {notification.message}
+                    </p>
+                    <span className="text-[10px] text-muted-foreground/60 mt-1 block">
+                      {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ))
+          )}
+        </AnimatePresence>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
+export default NotificationBell;
