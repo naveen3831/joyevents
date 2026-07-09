@@ -1209,6 +1209,19 @@ export async function apiCustomerReply(id: string, text: string, token: string) 
   return res.json();
 }
 
+export async function apiSendContactUsToAdmin(params: { name: string; email: string; subject?: string; message: string }) {
+  const res = await fetch(`${API_URL}/api/contact/admin`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to send contact inquiry to admin");
+  }
+  return res.json();
+}
+
 // ── AI Recommendations ───────────────────────────────────────────────────────
 
 export async function apiGetCustomerRecommendations(token: string) {

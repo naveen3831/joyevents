@@ -12,12 +12,14 @@ import { useEffect } from "react";
 import { apiCreateUser, apiListUsers, apiUpdateUser, apiDeleteUser, apiResetPassword } from "@/lib/api";
 import {
   sanitizeEmailInput,
+  sanitizeNameInput,
   validateEmail,
   validateSignupForm,
   validateNewPasswordForm,
   EMAIL_HINT,
   PASSWORD_HINT,
   EMAIL_MAX_LENGTH,
+  NAME_MAX_LENGTH,
 } from "@/lib/validation";
 
 type UserData = { _id: string; name: string; email: string; role: string; createdAt: string; status?: string; events?: number };

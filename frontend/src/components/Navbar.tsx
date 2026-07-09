@@ -247,14 +247,7 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }: { hideDashboard
             <NotificationBell />
           )}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="text-foreground hover:bg-secondary shrink-0"
-          >
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
+
           {isLoggedIn && (
             <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-medium text-foreground whitespace-nowrap shrink-0">
               <RoleIcon className="h-3.5 w-3.5 text-primary" />
@@ -394,15 +387,7 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }: { hideDashboard
               <div className="ml-auto"><NotificationBell /></div>
             </div>
           )}
-          <div className="flex gap-2">
-            <button
-              onClick={() => { setTheme(theme === "dark" ? "light" : "dark"); }}
-              className="flex-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              {theme === "dark" ? t("light_mode") : t("dark_mode")}
-            </button>
-          </div>
+
           {!isAuthPage && (
             isLoggedIn ? (
               <button onClick={handleLogout}
@@ -569,13 +554,7 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }: { hideDashboard
                     <div className="ml-auto"><NotificationBell /></div>
                   </div>
                 )}
-                <button
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-                >
-                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                  {theme === "dark" ? t("light_mode") : t("dark_mode")}
-                </button>
+
           {!isAuthPage && (
             isLoggedIn ? (
               <button onClick={handleLogout}

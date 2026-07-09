@@ -3,6 +3,7 @@ import { Bell, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,10 +14,31 @@ import { formatDistanceToNow } from "date-fns";
 
 const NotificationBell = () => {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const resolvePath = (url: string) => {
+    if (!url) return "/";
+    // Map legacy URLs to modern nested dashboard URLs
+    if (url === "/my-requests") return "/customer-dashboard/bookings";
+    if (url === "/merchant-bookings") return "/merchant-dashboard/bookings";
+    if (url === "/merchant-earnings") return "/merchant-dashboard/earnings";
+    if (url === "/merchant-marketing") return "/merchant-dashboard/marketing";
+    return url;
+  };
+
+  const handleNotificationClick = (notification: any) => {
+    if (notification.status === "unread") {
+      handleMarkAsRead(notification._id);
+    }
+    setIsOpen(false);
+    if (notification.actionUrl) {
+      navigate(resolvePath(notification.actionUrl));
+    }
+  };
 
   // Load unread count on mount and poll every 30s
   useEffect(() => {
@@ -147,7 +169,7 @@ const NotificationBell = () => {
                 className={`px-4 py-3 border-b last:border-0 hover:bg-secondary/40 transition-colors cursor-pointer ${
                   notification.status === "unread" ? "bg-primary/5 border-l-2 border-l-primary" : ""
                 }`}
-                onClick={() => notification.status === "unread" && handleMarkAsRead(notification._id)}
+                onClick={() => handleNotificationClick(notification)}
               >
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 shrink-0">

@@ -1445,6 +1445,8 @@ router.get("/reviews/public", async (req, res) => {
         ratedAt: b.rating?.ratedAt,
         customerName: b.customer?.name || "Customer",
         type: b.event ? "event" : "service",
+        eventId: b.event?._id || null,
+        serviceId: b.service?._id || null,
         title: b.event?.title || b.serviceName || b.service?.name || "—",
         category: b.event?.category || b.service?.category || "",
         image: b.event?.image || b.service?.image || "",

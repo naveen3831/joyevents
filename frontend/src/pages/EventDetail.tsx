@@ -9,7 +9,7 @@ import SimplePayment from "@/components/SimplePayment";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
-import { apiGetEventById, apiCheckFavorite, apiAddFavorite, apiRemoveFavorite, apiValidatePromoCode, apiListEvents } from "@/lib/api";
+import { apiGetEventById, apiCheckFavorite, apiAddFavorite, apiRemoveFavorite, apiValidatePromoCode, apiListEvents, apiGetPublicReviews } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { Input } from "@/components/ui/input";
 import AvailablePromoCodes from "@/components/AvailablePromoCodes";
@@ -35,7 +35,21 @@ const EventDetail = () => {
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
   const [favLoading, setFavLoading] = useState(false);
   const [relatedEvents, setRelatedEvents] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [showAllReviewsModal, setShowAllReviewsModal] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
   const imgSrc = (image: string) => !image ? "" : image.startsWith("http") ? image : `${API_URL}${image}`;
+
+  useEffect(() => {
+    if (!id) return;
+    apiGetPublicReviews()
+      .then((res: any) => {
+        const allReviews = res.reviews || [];
+        const filtered = allReviews.filter((r: any) => r.eventId === id);
+        setReviews(filtered);
+      })
+      .catch((err) => console.error("Failed to load reviews:", err));
+  }, [id]);
 
   useEffect(() => {
     const loadEvent = async () => {
@@ -341,31 +355,43 @@ const EventDetail = () => {
                 {/* Gallery Images Section */}
                 {event.gallery && event.gallery.length > 0 && (
                   <div className="mt-6">
-                    <h3 className="font-display text-xl font-semibold mb-4">Event Gallery</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {event.gallery.map((img: string, idx: number) => (
-                        <motion.div
-                          key={idx}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: idx * 0.1 }}
-                          className="group relative aspect-square overflow-hidden rounded-xl cursor-pointer"
-                          onClick={() => setSelectedImageIndex(idx)}
-                        >
-                          <img
-                            src={imgSrc(img)}
-                            alt={`Gallery ${idx + 1}`}
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all" />
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="bg-white/90 backdrop-blur-sm rounded-full p-2">
-                              <ImageIcon className="h-6 w-6 text-primary" />
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-display text-xl font-semibold">Event Gallery ({event.gallery.length})</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary hover:text-primary/80 font-semibold"
+                        onClick={() => setShowGallery(!showGallery)}
+                      >
+                        {showGallery ? "Hide Gallery" : "View Gallery"}
+                      </Button>
                     </div>
+                    {showGallery && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                        {event.gallery.map((img: string, idx: number) => (
+                          <motion.div
+                            key={idx}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.1 }}
+                            className="group relative aspect-square overflow-hidden rounded-xl cursor-pointer"
+                            onClick={() => setSelectedImageIndex(idx)}
+                          >
+                            <img
+                              src={imgSrc(img)}
+                              alt={`Gallery ${idx + 1}`}
+                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all" />
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="bg-white/90 backdrop-blur-sm rounded-full p-2">
+                                <ImageIcon className="h-6 w-6 text-primary" />
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -391,6 +417,66 @@ const EventDetail = () => {
                   This event features top-tier speakers, interactive sessions, networking opportunities, and much more. 
                   Whether you're a seasoned professional or just starting out, there's something for everyone.
                 </p>
+
+                {/* Reviews Section */}
+                <div className="mt-8 border-t border-border pt-8">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                      Customer Reviews ({reviews.length})
+                    </h3>
+                    {reviews.length > 2 && (
+                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 font-semibold" onClick={() => setShowAllReviewsModal(true)}>
+                        View All
+                      </Button>
+                    )}
+                  </div>
+
+                  {reviews.length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic">No reviews yet for this event.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {reviews.slice(0, 2).map((review) => (
+                        <div key={review._id} className="rounded-xl border border-border bg-card p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-xs font-bold text-white shrink-0">
+                                {review.customerName?.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold">{review.customerName}</p>
+                                <div className="flex gap-0.5 mt-0.5">
+                                  {[1, 2, 3, 4, 5].map((s) => (
+                                    <Star
+                                      key={s}
+                                      className={`h-3 w-3 ${
+                                        s <= review.score ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            {review.ratedAt && (
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(review.ratedAt).toLocaleDateString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </span>
+                            )}
+                          </div>
+                          {review.comment ? (
+                            <p className="text-sm text-muted-foreground pl-10 italic">"{review.comment}"</p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground pl-10 italic">Rated {review.score}/5 stars</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </motion.div>
             </div>
 
@@ -681,9 +767,9 @@ const EventDetail = () => {
 
         {/* Related Events Section */}
         {relatedEvents.length > 0 && (
-          <div className="px-4 sm:px-6 lg:px-8 mt-16 pt-12 border-t border-border w-full relative z-10">
+          <div className="px-3 sm:px-6 lg:px-12 mt-16 pt-12 pb-16 border-t border-border w-full relative z-10">
             <h2 className="font-display text-3xl font-black tracking-tight mb-8">Related Events</h2>
-            <div className="grid grid-cols-2 gap-4 md:gap-8 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:gap-8 lg:grid-cols-4">
               {relatedEvents.map((r) => (
                 <div
                   key={r._id}
@@ -1226,6 +1312,58 @@ const EventDetail = () => {
               />
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View All Reviews Modal */}
+      <Dialog open={showAllReviewsModal} onOpenChange={setShowAllReviewsModal}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+              All Reviews ({reviews.length})
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4 pr-2">
+            {reviews.map((review) => (
+              <div key={review._id} className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-xs font-bold text-white shrink-0">
+                      {review.customerName?.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">{review.customerName}</p>
+                      <div className="flex gap-0.5 mt-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={`h-3 w-3 ${
+                              s <= review.score ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  {review.ratedAt && (
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(review.ratedAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  )}
+                </div>
+                {review.comment ? (
+                  <p className="text-sm text-muted-foreground pl-10 italic">"{review.comment}"</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground pl-10 italic">Rated {review.score}/5 stars</p>
+                )}
+              </div>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
     </Layout>

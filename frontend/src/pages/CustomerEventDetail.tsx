@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import SimplePayment from "@/components/SimplePayment";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiGetEventById, apiCheckFavorite, apiAddFavorite, apiRemoveFavorite, apiValidatePromoCode, apiListEvents } from "@/lib/api";
+import { apiGetEventById, apiCheckFavorite, apiAddFavorite, apiRemoveFavorite, apiValidatePromoCode, apiListEvents, apiGetPublicReviews } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import { savePendingEventBooking, getPendingEventBooking, clearPendingEventBooking } from "@/lib/bookingState";
@@ -26,6 +26,20 @@ const CustomerEventDetail = () => {
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [relatedEvents, setRelatedEvents] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [showAllReviewsModal, setShowAllReviewsModal] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    apiGetPublicReviews()
+      .then((res: any) => {
+        const allReviews = res.reviews || [];
+        const filtered = allReviews.filter((r: any) => r.eventId === id);
+        setReviews(filtered);
+      })
+      .catch((err) => console.error("Failed to load reviews:", err));
+  }, [id]);
 
   // Booking state
   const [selectedTickets, setSelectedTickets] = useState<Record<string, number>>({});
@@ -266,139 +280,153 @@ const CustomerEventDetail = () => {
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-4rem)] px-3 sm:px-6 lg:px-12 gap-4 sm:gap-8 pb-8 sm:pb-12 mt-4 sm:mt-6">
 
           {/* LEFT — Image + Info */}
-          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="lg:w-1/2 relative">
-            <div className="lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] flex flex-col">
-              {/* Image */}
-              <div className="relative flex-1 min-h-72 overflow-hidden bg-secondary">
-                {imgSrc(event.image) ? (
-                  <img src={imgSrc(event.image)} alt={event.title} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <CalendarDays className="h-24 w-24 opacity-10" />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-8">
-                  {event.category && (
-                    <span className="inline-block rounded-full bg-primary/20 border border-primary/40 px-3 py-1 text-xs font-semibold text-primary mb-3">
-                      {event.category}
-                    </span>
-                  )}
-                  <h1 className="font-display text-4xl font-bold text-white leading-tight">{event.title}</h1>
-                  {/* Rating display */}
-                  {event.averageRating && event.averageRating > 0 ? (
-                    <div className="flex items-center gap-1.5 mt-2 text-white">
-                      <Star className="h-4 w-4 fill-yellow-500 text-yellow-500 shrink-0" />
-                      <span className="text-sm font-semibold">
-                        {event.averageRating.toFixed(1)}
-                      </span>
-                      <span className="text-xs text-white/70">
-                        ({event.ratingCount || 0} reviews)
-                      </span>
-                    </div>
-                  ) : null}
-                  {event.createdBy?.name && (
-                    <p className="mt-2 text-white/70 text-sm">
-                      Hosted by <span className="text-white font-medium">{event.createdBy.name}</span>
-                    </p>
-                  )}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="lg:w-1/2 bg-card rounded-2xl border border-border overflow-hidden flex flex-col"
+          >
+            {/* Image */}
+            <div className="relative aspect-[16/10] w-full overflow-hidden bg-secondary shrink-0">
+              {imgSrc(event.image) ? (
+                <img src={imgSrc(event.image)} alt={event.title} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center">
+                  <CalendarDays className="h-24 w-24 opacity-10" />
                 </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-8">
+                {event.category && (
+                  <span className="inline-block rounded-full bg-primary/20 border border-primary/40 px-3 py-1 text-xs font-semibold text-primary mb-3">
+                    {event.category}
+                  </span>
+                )}
+                <h1 className="font-display text-4xl font-bold text-white leading-tight">{event.title}</h1>
+                {/* Rating display */}
+                {event.averageRating && event.averageRating > 0 ? (
+                  <div className="flex items-center gap-1.5 mt-2 text-white">
+                    <Star className="h-4 w-4 fill-yellow-500 text-yellow-500 shrink-0" />
+                    <span className="text-sm font-semibold">
+                      {event.averageRating.toFixed(1)}
+                    </span>
+                    <span className="text-xs text-white/70">
+                      ({event.ratingCount || 0} reviews)
+                    </span>
+                  </div>
+                ) : null}
+                {event.createdBy?.name && (
+                  <p className="mt-2 text-white/70 text-sm">
+                    Hosted by <span className="text-white font-medium">{event.createdBy.name}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Info */}
+            <div className="border-t border-border p-8 flex-1">
+              {/* Meta */}
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {[
+                  { icon: Calendar, label: event.datetime ? new Date(event.datetime).toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : null },
+                  { icon: Clock, label: event.datetime ? new Date(event.datetime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : null },
+                  { icon: MapPin, label: event.location },
+                  { icon: Users, label: maxAttendees > 0 ? `${attendeesCount} / ${maxAttendees} attendees` : `${attendeesCount} attending` },
+                ].map(({ icon: Icon, label }) => label && (
+                  <div key={label} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Icon className="h-4 w-4 text-primary shrink-0" />
+                    <span className="truncate">{label}</span>
+                  </div>
+                ))}
               </div>
 
-              {/* Info */}
-              <div className="bg-card border-t border-border p-8 overflow-y-auto">
-                {/* Meta */}
-                <div className="grid grid-cols-2 gap-3 mb-6">
-                  {[
-                    { icon: Calendar, label: event.datetime ? new Date(event.datetime).toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : null },
-                    { icon: Clock, label: event.datetime ? new Date(event.datetime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : null },
-                    { icon: MapPin, label: event.location },
-                    { icon: Users, label: maxAttendees > 0 ? `${attendeesCount} / ${maxAttendees} attendees` : `${attendeesCount} attending` },
-                  ].map(({ icon: Icon, label }) => label && (
-                    <div key={label} className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Icon className="h-4 w-4 text-primary shrink-0" />
-                      <span className="truncate">{label}</span>
-                    </div>
-                  ))}
+              {/* Attendee progress */}
+              {maxAttendees > 0 && (
+                <div className="mb-6">
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>Seats filled</span>
+                    <span>{progress}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                    <div className="h-full rounded-full bg-gradient-primary transition-all" style={{ width: `${progress}%` }} />
+                  </div>
                 </div>
+              )}
 
-                {/* Attendee progress */}
-                {maxAttendees > 0 && (
-                  <div className="mb-6">
-                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                      <span>Seats filled</span>
-                      <span>{progress}%</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                      <div className="h-full rounded-full bg-gradient-primary transition-all" style={{ width: `${progress}%` }} />
-                    </div>
-                  </div>
-                )}
+              {event.description && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-base mb-2 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary" /> About This Event
+                  </h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{event.description}</p>
+                </div>
+              )}
 
-                {event.description && (
-                  <div className="mb-6">
-                    <h3 className="font-semibold text-base mb-2 flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-primary" /> About This Event
-                    </h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">{event.description}</p>
-                  </div>
-                )}
-
-                {/* Ticket types info */}
-                {event.eventType === "ticketed" && !event.hasMultipleSessions && event.tickets?.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold text-base mb-3 flex items-center gap-2">
-                      <Star className="h-4 w-4 text-primary" /> Ticket Types
-                    </h3>
-                    <div className="space-y-2">
-                      {event.tickets.map((t: any) => {
-                        const rem = (t.available || 0) - (t.sold || 0);
-                        return (
-                          <div key={t.type} className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-2.5">
-                            <div>
-                              <span className="text-sm font-medium capitalize">{t.type}</span>
-                              {rem <= 0 && <span className="ml-2 text-xs text-red-500 font-semibold">SOLD OUT</span>}
-                              {rem > 0 && <span className="ml-2 text-xs text-green-500">{rem} left</span>}
-                            </div>
-                            <span className="text-sm font-semibold text-primary">{formatCurrency(t.price)}</span>
+              {/* Ticket types info */}
+              {event.eventType === "ticketed" && !event.hasMultipleSessions && event.tickets?.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-base mb-3 flex items-center gap-2">
+                    <Star className="h-4 w-4 text-primary" /> Ticket Types
+                  </h3>
+                  <div className="space-y-2">
+                    {event.tickets.map((t: any) => {
+                      const rem = (t.available || 0) - (t.sold || 0);
+                      return (
+                        <div key={t.type} className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-2.5">
+                          <div>
+                            <span className="text-sm font-medium capitalize">{t.type}</span>
+                            {rem <= 0 && <span className="ml-2 text-xs text-red-500 font-semibold">SOLD OUT</span>}
+                            {rem > 0 && <span className="ml-2 text-xs text-green-500">{rem} left</span>}
                           </div>
-                        );
-                      })}
-                    </div>
+                          <span className="text-sm font-semibold text-primary">{formatCurrency(t.price)}</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-
-                {/* Favorite + Share */}
-                <div className="flex gap-3 mt-6">
-                  <Button variant="outline" className="flex-1" onClick={handleToggleFavorite} disabled={favLoading}>
-                    <Heart className={`mr-2 h-4 w-4 ${isFavorited ? "fill-red-500 text-red-500" : ""}`} />
-                    {isFavorited ? "Saved" : "Save"}
-                  </Button>
-                  <Button variant="outline" className="flex-1" onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }}>
-                    <Share2 className="mr-2 h-4 w-4" /> Share
-                  </Button>
                 </div>
+              )}
 
-                {/* Organiser contact */}
-                {event.createdBy && (
-                  <div className="mt-4 rounded-lg bg-card border border-border p-4">
-                    <p className="text-xs text-muted-foreground mb-1">Event Organiser</p>
-                    <p className="font-semibold text-sm">{event.createdBy.name}</p>
-                    {event.createdBy.email && (
-                      <a href={`mailto:${event.createdBy.email}`} className="text-xs text-primary hover:underline mt-1 block">
-                        📧 {event.createdBy.email}
-                      </a>
-                    )}
-                  </div>
-                )}
+              {/* Favorite + Share */}
+              <div className="flex gap-3 mt-6">
+                <Button variant="outline" className="flex-1" onClick={handleToggleFavorite} disabled={favLoading}>
+                  <Heart className={`mr-2 h-4 w-4 ${isFavorited ? "fill-red-500 text-red-500" : ""}`} />
+                  {isFavorited ? "Saved" : "Save"}
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }}>
+                  <Share2 className="mr-2 h-4 w-4" /> Share
+                </Button>
+              </div>
 
-                {/* Gallery */}
-                {event.gallery?.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="font-semibold text-base mb-3 flex items-center gap-2">
-                      <Images className="h-4 w-4 text-primary" /> Gallery
+              {/* Organiser contact */}
+              {event.createdBy && (
+                <div className="mt-4 rounded-lg bg-card border border-border p-4">
+                  <p className="text-xs text-muted-foreground mb-1">Event Organiser</p>
+                  <p className="font-semibold text-sm">{event.createdBy.name}</p>
+                  {event.createdBy.email && (
+                    <a href={`mailto:${event.createdBy.email}`} className="text-xs text-primary hover:underline mt-1 block">
+                      📧 {event.createdBy.email}
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Gallery */}
+              {event.gallery?.length > 0 && (
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-base flex items-center gap-2">
+                      <Images className="h-4 w-4 text-primary" /> Gallery ({event.gallery.length})
                     </h3>
-                    <div className="grid grid-cols-3 gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-primary hover:text-primary/80 font-semibold"
+                      onClick={() => setShowGallery(!showGallery)}
+                    >
+                      {showGallery ? "Hide Gallery" : "View Gallery"}
+                    </Button>
+                  </div>
+                  {showGallery && (
+                    <div className="grid grid-cols-3 gap-2 mt-2">
                       {event.gallery.map((img: string, idx: number) => (
                         <button
                           key={idx}
@@ -409,6 +437,66 @@ const CustomerEventDetail = () => {
                         </button>
                       ))}
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* Reviews Section */}
+              <div className="mt-8 border-t border-border pt-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-semibold text-base flex items-center gap-2">
+                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                    Customer Reviews ({reviews.length})
+                  </h3>
+                  {reviews.length > 2 && (
+                    <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 font-semibold" onClick={() => setShowAllReviewsModal(true)}>
+                      View All
+                    </Button>
+                  )}
+                </div>
+
+                {reviews.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">No reviews yet for this event.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {reviews.slice(0, 2).map((review) => (
+                      <div key={review._id} className="rounded-xl border border-border bg-secondary/20 p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                              {review.customerName?.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">{review.customerName}</p>
+                              <div className="flex gap-0.5 mt-0.5">
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <Star
+                                    key={s}
+                                    className={`h-3 w-3 ${
+                                      s <= review.score ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          {review.ratedAt && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date(review.ratedAt).toLocaleDateString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </span>
+                          )}
+                        </div>
+                        {review.comment ? (
+                          <p className="text-sm text-muted-foreground pl-10 italic">"{review.comment}"</p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground pl-10 italic">Rated {review.score}/5 stars</p>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -666,9 +754,9 @@ const CustomerEventDetail = () => {
 
         {/* Related Events Section */}
         {relatedEvents.length > 0 && (
-          <div className="px-3 sm:px-6 lg:px-12 mt-12 pt-8 border-t border-border">
+          <div className="px-3 sm:px-6 lg:px-12 mt-16 pt-12 pb-16 border-t border-border">
             <h2 className="font-display text-2xl font-bold mb-6">Related Events</h2>
-            <div className="grid grid-cols-2 gap-3 sm:gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:gap-8 lg:grid-cols-4">
               {relatedEvents.map((r) => (
                 <div
                   key={r._id}
@@ -815,6 +903,58 @@ const CustomerEventDetail = () => {
           <p className="absolute bottom-4 text-white/50 text-sm">{lightboxIndex + 1} / {event.gallery.length}</p>
         </div>
       )}
+
+      {/* View All Reviews Modal */}
+      <Dialog open={showAllReviewsModal} onOpenChange={setShowAllReviewsModal}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+              All Reviews ({reviews.length})
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4 pr-2">
+            {reviews.map((review) => (
+              <div key={review._id} className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-xs font-bold text-white shrink-0">
+                      {review.customerName?.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">{review.customerName}</p>
+                      <div className="flex gap-0.5 mt-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={`h-3 w-3 ${
+                              s <= review.score ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  {review.ratedAt && (
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(review.ratedAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  )}
+                </div>
+                {review.comment ? (
+                  <p className="text-sm text-muted-foreground pl-10 italic">"{review.comment}"</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground pl-10 italic">Rated {review.score}/5 stars</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </CustomerLayout>
   );
 };

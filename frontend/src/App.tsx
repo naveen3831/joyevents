@@ -171,7 +171,7 @@ const AppRoutes = () => {
 };
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+  <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

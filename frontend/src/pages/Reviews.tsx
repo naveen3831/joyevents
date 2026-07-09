@@ -4,6 +4,7 @@ import { Star, Quote, Calendar, Loader2, AlertCircle } from "lucide-react";
 import Layout from "@/components/Layout";
 import { apiGetPublicReviews } from "@/lib/api";
 import { API_URL } from "@/lib/config";
+import { Button } from "@/components/ui/button";
 
 const imgSrc = (img: string) => !img ? "" : img.startsWith("http") ? img : `${API_URL}${img}`;
 
@@ -20,6 +21,7 @@ const Reviews = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "event" | "service">("all");
   const [selectedScore, setSelectedScore] = useState(0);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     apiGetPublicReviews()
@@ -120,71 +122,85 @@ const Reviews = () => {
               <p className="text-sm mt-2">Be the first to book and share your experience!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((review, i) => (
-                <motion.div key={review._id}
-                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-                  className="rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/30 transition-colors group">
-                  {/* Service/Event image */}
-                  {imgSrc(review.image) && (
-                    <div className="relative h-36 overflow-hidden bg-secondary">
-                      <img src={imgSrc(review.image)} alt={review.title}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      <div className="absolute bottom-2 left-3 flex items-center gap-2">
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                          review.type === "event" ? "bg-primary/80 text-white" : "bg-orange-500/80 text-white"
-                        }`}>
-                          {review.type === "event" ? "🎫 Event" : "🛠️ Service"}
-                        </span>
-                        {review.category && (
-                          <span className="rounded-full bg-black/50 px-2 py-0.5 text-[10px] text-white">{review.category}</span>
+            <>
+              <div className="grid grid-cols-2 gap-3 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {(showAll ? filtered : filtered.slice(0, 6)).map((review, i) => (
+                  <motion.div key={review._id}
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className="rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/30 transition-colors group">
+                    {/* Service/Event image */}
+                    {imgSrc(review.image) && (
+                      <div className="relative h-36 overflow-hidden bg-secondary">
+                        <img src={imgSrc(review.image)} alt={review.title}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        <div className="absolute bottom-2 left-3 flex items-center gap-2">
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                            review.type === "event" ? "bg-primary/80 text-white" : "bg-orange-500/80 text-white"
+                          }`}>
+                            {review.type === "event" ? "🎫 Event" : "🛠️ Service"}
+                          </span>
+                          {review.category && (
+                            <span className="rounded-full bg-black/50 px-2 py-0.5 text-[10px] text-white">{review.category}</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="p-5">
+                      {/* Title */}
+                      <h3 className="font-display font-semibold text-base mb-1 line-clamp-1">{review.title}</h3>
+
+                      {/* Stars + score */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <StarRating score={review.score} />
+                        <span className="text-sm font-bold text-yellow-400">{review.score}/5</span>
+                      </div>
+
+                      {/* Comment */}
+                      {review.comment ? (
+                        <div className="relative">
+                          <Quote className="absolute -top-1 -left-1 h-5 w-5 text-primary/20" />
+                          <p className="text-sm text-muted-foreground leading-relaxed pl-4 line-clamp-3 italic">
+                            "{review.comment}"
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">No written review</p>
+                      )}
+
+                      {/* Footer */}
+                      <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-gradient-primary flex items-center justify-center text-xs font-bold text-white">
+                            {review.customerName?.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-xs font-medium">{review.customerName}</span>
+                        </div>
+                        {review.ratedAt && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(review.ratedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                          </div>
                         )}
                       </div>
                     </div>
-                  )}
+                  </motion.div>
+                ))}
+              </div>
 
-                  <div className="p-5">
-                    {/* Title */}
-                    <h3 className="font-display font-semibold text-base mb-1 line-clamp-1">{review.title}</h3>
-
-                    {/* Stars + score */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <StarRating score={review.score} />
-                      <span className="text-sm font-bold text-yellow-400">{review.score}/5</span>
-                    </div>
-
-                    {/* Comment */}
-                    {review.comment ? (
-                      <div className="relative">
-                        <Quote className="absolute -top-1 -left-1 h-5 w-5 text-primary/20" />
-                        <p className="text-sm text-muted-foreground leading-relaxed pl-4 line-clamp-3 italic">
-                          "{review.comment}"
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">No written review</p>
-                    )}
-
-                    {/* Footer */}
-                    <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-gradient-primary flex items-center justify-center text-xs font-bold text-white">
-                          {review.customerName?.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="text-xs font-medium">{review.customerName}</span>
-                      </div>
-                      {review.ratedAt && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(review.ratedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+              {filtered.length > 6 && (
+                <div className="mt-8 flex justify-center">
+                  <Button
+                    onClick={() => setShowAll(!showAll)}
+                    variant="outline"
+                    className="px-6 border-primary/20 hover:border-primary/50 text-foreground font-semibold"
+                  >
+                    {showAll ? "Show Less" : "View All"}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>

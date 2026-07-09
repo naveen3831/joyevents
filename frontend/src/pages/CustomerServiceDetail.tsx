@@ -7,7 +7,8 @@ import CustomerLayout from "@/components/CustomerLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiListServices, apiValidatePromoCode } from "@/lib/api";
+import { apiListServices, apiValidatePromoCode, apiGetPublicReviews } from "@/lib/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import { savePendingServiceBooking, getPendingServiceBooking, clearPendingServiceBooking } from "@/lib/bookingState";
@@ -23,6 +24,20 @@ const CustomerServiceDetail = () => {
   const [service, setService] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [relatedServices, setRelatedServices] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [showAllReviewsModal, setShowAllReviewsModal] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    apiGetPublicReviews()
+      .then((res: any) => {
+        const allReviews = res.reviews || [];
+        const filtered = allReviews.filter((r: any) => r.serviceId === id);
+        setReviews(filtered);
+      })
+      .catch((err) => console.error("Failed to load reviews:", err));
+  }, [id]);
 
   // Booking form state
   const [date, setDate] = useState("");
@@ -212,108 +227,117 @@ const CustomerServiceDetail = () => {
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
-            className="lg:w-1/2 relative"
+            className="lg:w-1/2 bg-card rounded-2xl border border-border overflow-hidden flex flex-col"
           >
-            {/* Sticky image panel */}
-            <div className="lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] flex flex-col">
-              {/* Image */}
-              <div className="relative flex-1 min-h-72 overflow-hidden bg-secondary">
-                {imgSrc(service.image) ? (
-                  <img src={imgSrc(service.image)} alt={service.name} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <Briefcase className="h-24 w-24 opacity-10" />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                {/* Overlay text */}
-                <div className="absolute bottom-0 left-0 right-0 p-8">
-                  {service.category && (
-                    <span className="inline-block rounded-full bg-primary/20 border border-primary/40 px-3 py-1 text-xs font-semibold text-primary mb-3">
-                      {service.category}
-                    </span>
-                  )}
-                  <h1 className="font-display text-4xl font-bold text-white leading-tight">{service.name}</h1>
-                  {/* Rating display */}
-                  {service.averageRating && service.averageRating > 0 ? (
-                    <div className="flex items-center gap-1.5 mt-2 text-white">
-                      <Star className="h-4 w-4 fill-yellow-500 text-yellow-500 shrink-0" />
-                      <span className="text-sm font-semibold">
-                        {service.averageRating.toFixed(1)}
-                      </span>
-                      <span className="text-xs text-white/70">
-                        ({service.ratingCount || 0} reviews)
-                      </span>
-                    </div>
-                  ) : null}
-                  <p className="mt-2 text-white/70 text-sm">
-                    Starting from <span className="text-white font-bold text-lg">{formatCurrency(service.price)}</span>
-                  </p>
+            {/* Image */}
+            <div className="relative aspect-[16/10] w-full overflow-hidden bg-secondary shrink-0">
+              {imgSrc(service.image) ? (
+                <img src={imgSrc(service.image)} alt={service.name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center">
+                  <Briefcase className="h-24 w-24 opacity-10" />
                 </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+              {/* Overlay text */}
+              <div className="absolute bottom-0 left-0 right-0 p-8">
+                {service.category && (
+                  <span className="inline-block rounded-full bg-primary/20 border border-primary/40 px-3 py-1 text-xs font-semibold text-primary mb-3">
+                    {service.category}
+                  </span>
+                )}
+                <h1 className="font-display text-4xl font-bold text-white leading-tight">{service.name}</h1>
+                {/* Rating display */}
+                {service.averageRating && service.averageRating > 0 ? (
+                  <div className="flex items-center gap-1.5 mt-2 text-white">
+                    <Star className="h-4 w-4 fill-yellow-500 text-yellow-500 shrink-0" />
+                    <span className="text-sm font-semibold">
+                      {service.averageRating.toFixed(1)}
+                    </span>
+                    <span className="text-xs text-white/70">
+                      ({service.ratingCount || 0} reviews)
+                    </span>
+                  </div>
+                ) : null}
+                <p className="mt-2 text-white/70 text-sm">
+                  Starting from <span className="text-white font-bold text-lg">{formatCurrency(service.price)}</span>
+                </p>
               </div>
+            </div>
 
-              {/* Info below image */}
-              <div className="bg-card border-t border-border p-8 overflow-y-auto">
-                {service.description && (
-                  <div className="mb-6">
-                    <h3 className="font-semibold text-base mb-2 flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-primary" /> About This Service
-                    </h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">{service.description}</p>
+            {/* Info below image */}
+            <div className="border-t border-border p-8 flex-1">
+              {service.description && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-base mb-2 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary" /> About This Service
+                  </h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{service.description}</p>
+                </div>
+              )}
+
+              {service.highlights?.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-base mb-3 flex items-center gap-2">
+                    <Star className="h-4 w-4 text-primary" /> Highlights
+                  </h3>
+                  <ul className="space-y-2">
+                    {service.highlights.map((h: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <span className="text-primary font-bold mt-0.5">✓</span>{h}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {service.addOns?.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-base mb-3 flex items-center gap-2">
+                    <Star className="h-4 w-4 text-primary" /> Available Add-ons
+                  </h3>
+                  <div className="space-y-2">
+                    {service.addOns.map((addon: any) => (
+                      <div key={addon.name} className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-2.5">
+                        <span className="text-sm font-medium">{addon.name}</span>
+                        <span className="text-sm font-semibold text-primary">+{formatCurrency(addon.price)}</span>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
+              )}
 
-                {service.highlights?.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="font-semibold text-base mb-3 flex items-center gap-2">
-                      <Star className="h-4 w-4 text-primary" /> Highlights
+              {service.createdBy && (
+                <div className="rounded-lg bg-card border border-border p-4">
+                  <p className="text-xs text-muted-foreground mb-1">Service Provider</p>
+                  <p className="font-semibold text-sm">{service.createdBy.name || service.createdBy.email}</p>
+                  {service.createdBy.email && (
+                    <a href={`mailto:${service.createdBy.email}`} className="text-xs text-primary hover:underline mt-1 block">
+                      📧 {service.createdBy.email}
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Gallery */}
+              {service.gallery?.length > 0 && (
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-base flex items-center gap-2">
+                      <Images className="h-4 w-4 text-primary" /> Gallery ({service.gallery.length})
                     </h3>
-                    <ul className="space-y-2">
-                      {service.highlights.map((h: string, i: number) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <span className="text-primary font-bold mt-0.5">✓</span>{h}
-                        </li>
-                      ))}
-                    </ul>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-primary hover:text-primary/80 font-semibold"
+                      onClick={() => setShowGallery(!showGallery)}
+                    >
+                      {showGallery ? "Hide Gallery" : "View Gallery"}
+                    </Button>
                   </div>
-                )}
-
-                {service.addOns?.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="font-semibold text-base mb-3 flex items-center gap-2">
-                      <Star className="h-4 w-4 text-primary" /> Available Add-ons
-                    </h3>
-                    <div className="space-y-2">
-                      {service.addOns.map((addon: any) => (
-                        <div key={addon.name} className="flex items-center justify-between rounded-lg border border-border bg-card border border-border px-4 py-2.5">
-                          <span className="text-sm font-medium">{addon.name}</span>
-                          <span className="text-sm font-semibold text-primary">+{formatCurrency(addon.price)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {service.createdBy && (
-                  <div className="rounded-lg bg-card border border-border p-4">
-                    <p className="text-xs text-muted-foreground mb-1">Service Provider</p>
-                    <p className="font-semibold text-sm">{service.createdBy.name || service.createdBy.email}</p>
-                    {service.createdBy.email && (
-                      <a href={`mailto:${service.createdBy.email}`} className="text-xs text-primary hover:underline mt-1 block">
-                        📧 {service.createdBy.email}
-                      </a>
-                    )}
-                  </div>
-                )}
-
-                {/* Gallery */}
-                {service.gallery?.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="font-semibold text-base mb-3 flex items-center gap-2">
-                      <Images className="h-4 w-4 text-primary" /> Gallery
-                    </h3>
-                    <div className="grid grid-cols-3 gap-2">
+                  {showGallery && (
+                    <div className="grid grid-cols-3 gap-2 mt-2">
                       {service.gallery.map((img: string, idx: number) => (
                         <button
                           key={idx}
@@ -324,6 +348,66 @@ const CustomerServiceDetail = () => {
                         </button>
                       ))}
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* Reviews Section */}
+              <div className="mt-8 border-t border-border pt-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-semibold text-base flex items-center gap-2">
+                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                    Customer Reviews ({reviews.length})
+                  </h3>
+                  {reviews.length > 2 && (
+                    <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 font-semibold" onClick={() => setShowAllReviewsModal(true)}>
+                      View All
+                    </Button>
+                  )}
+                </div>
+
+                {reviews.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">No reviews yet for this service.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {reviews.slice(0, 2).map((review) => (
+                      <div key={review._id} className="rounded-xl border border-border bg-secondary/20 p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                              {review.customerName?.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">{review.customerName}</p>
+                              <div className="flex gap-0.5 mt-0.5">
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <Star
+                                    key={s}
+                                    className={`h-3 w-3 ${
+                                      s <= review.score ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          {review.ratedAt && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date(review.ratedAt).toLocaleDateString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </span>
+                          )}
+                        </div>
+                        {review.comment ? (
+                          <p className="text-sm text-muted-foreground pl-10 italic">"{review.comment}"</p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground pl-10 italic">Rated {review.score}/5 stars</p>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -531,9 +615,9 @@ const CustomerServiceDetail = () => {
 
         {/* Related Services Section */}
         {relatedServices.length > 0 && (
-          <div className="px-3 sm:px-6 lg:px-12 mt-12 pt-8 border-t border-border">
+          <div className="px-3 sm:px-6 lg:px-12 mt-16 pt-12 pb-16 border-t border-border">
             <h2 className="font-display text-2xl font-bold mb-6">Related Services</h2>
-            <div className="grid grid-cols-2 gap-3 sm:gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:gap-8 lg:grid-cols-4">
               {relatedServices.map((r) => (
                 <div
                   key={r._id}
@@ -657,6 +741,58 @@ const CustomerServiceDetail = () => {
           <p className="absolute bottom-4 text-white/50 text-sm">{lightboxIndex + 1} / {service.gallery.length}</p>
         </div>
       )}
+
+      {/* View All Reviews Modal */}
+      <Dialog open={showAllReviewsModal} onOpenChange={setShowAllReviewsModal}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+              All Reviews ({reviews.length})
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4 pr-2">
+            {reviews.map((review) => (
+              <div key={review._id} className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-xs font-bold text-white shrink-0">
+                      {review.customerName?.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">{review.customerName}</p>
+                      <div className="flex gap-0.5 mt-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={`h-3 w-3 ${
+                              s <= review.score ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  {review.ratedAt && (
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(review.ratedAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  )}
+                </div>
+                {review.comment ? (
+                  <p className="text-sm text-muted-foreground pl-10 italic">"{review.comment}"</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground pl-10 italic">Rated {review.score}/5 stars</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </CustomerLayout>
   );
 };

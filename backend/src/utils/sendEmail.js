@@ -191,3 +191,53 @@ export const sendContactMessage = async ({
     throw new Error("Failed to send message");
   }
 };
+
+export const sendContactUsToAdmin = async ({
+  name,
+  email,
+  subject,
+  message,
+}) => {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn("[email] SMTP not configured — Contact Us message not emailed to admin");
+    return false;
+  }
+  const { from, user } = getSmtpConfig();
+  // Send to the active SMTP email (site owner) if ADMIN_EMAIL is the placeholder 'admin@gmail.com'
+  const adminEmail = (process.env.ADMIN_EMAIL && process.env.ADMIN_EMAIL !== "admin@gmail.com")
+    ? process.env.ADMIN_EMAIL
+    : user;
+  try {
+    await transporter.sendMail({
+      from: `"JoyEvents" <${user}>`,
+      to: adminEmail,
+      replyTo: email,
+      subject: `[Contact Us Request] ${subject || "New Inquiry"} — JoyEvents`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+          <div style="background: linear-gradient(135deg, #FF5A00, #FF8C00); padding: 24px 30px;">
+            <h1 style="color: white; margin: 0; font-size: 20px;">📩 New Contact Us Submission</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="font-size: 15px;">Hi Admin,</p>
+            <p style="color: #555;">You have received a new message from the Contact Us form:</p>
+            <div style="background: #f9f9f9; border-left: 4px solid #FF5A00; border-radius: 6px; padding: 16px 20px; margin: 20px 0;">
+              <p style="margin: 0 0 8px; font-size: 13px; color: #888;"><strong>Name:</strong> ${name}</p>
+              <p style="margin: 0 0 8px; font-size: 13px; color: #888;"><strong>Email:</strong> ${email}</p>
+              <p style="margin: 0 0 8px; font-size: 13px; color: #888;"><strong>Subject:</strong> ${subject || "N/A"}</p>
+              <p style="margin: 0; font-size: 15px; color: #333; white-space: pre-wrap;"><strong>Message:</strong>\n${message}</p>
+            </div>
+            <p style="color: #555; font-size: 13px;">You can reply directly to this email to respond to the user.</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+            <p style="color: #aaa; font-size: 12px; text-align: center;">JoyEvents</p>
+          </div>
+        </div>
+      `,
+    });
+    return true;
+  } catch (error) {
+    console.error("sendContactUsToAdmin error:", error.message);
+    throw new Error("Failed to send email to admin");
+  }
+};

@@ -34,6 +34,8 @@ const Index = () => {
   const [promoCodes, setPromoCodes] = useState<any[]>([]);
   const [promoLoading, setPromoLoading] = useState(true);
   const [showAllPromos, setShowAllPromos] = useState(false);
+  const [showAllServices, setShowAllServices] = useState(false);
+  const [showAllEvents, setShowAllEvents] = useState(false);
 
   useEffect(() => {
     apiListCategories("service").then(res => setDbCategories(res.categories || [])).catch(() => { });
@@ -424,17 +426,12 @@ const Index = () => {
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="mb-12 flex items-end justify-between"
+            className="mb-12"
           >
-            <div>
-              <h2 className="font-display text-3xl font-bold md:text-4xl">
-                <span className="text-gradient">Featured</span> Events
-              </h2>
-              <p className="mt-2 text-muted-foreground">Curated experiences you don't want to miss</p>
-            </div>
-            <Link to="/events" className="hidden items-center gap-1 text-sm font-medium text-primary hover:underline md:flex">
-              View All <ArrowRight className="h-4 w-4" />
-            </Link>
+            <h2 className="font-display text-3xl font-bold md:text-4xl">
+              <span className="text-gradient">Featured</span> Events
+            </h2>
+            <p className="mt-2 text-muted-foreground">Curated experiences you don't want to miss</p>
           </motion.div>
           <div className="grid grid-cols-2 gap-3 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {loading ? (
@@ -465,35 +462,27 @@ const Index = () => {
               </div>
             )}
           </div>
+
+          <div className="mt-8 flex justify-center">
+            <Button
+              onClick={() => navigate("/events")}
+              variant="outline"
+              className="px-6 border-primary/20 hover:border-primary/50 text-foreground gap-2 font-semibold"
+            >
+              Browse All Events <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </section>
 
       {/* Our Services */}
       <section className="py-12 sm:py-20 bg-secondary/30">
         <div className="container mx-auto">
-          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="mb-8 sm:mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div>
-              <h2 className="font-display text-3xl font-bold md:text-4xl">
-                End-to-End Event Planning <span className="text-gradient">Services</span>
-              </h2>
-              <p className="mt-2 text-muted-foreground">Choose a service to explore and send a booking request</p>
-            </div>
-            {!svcLoading && services.length > 0 && (
-              <div className="w-full md:w-64">
-                <Select value={activeCategory} onValueChange={setActiveCategory}>
-                  <SelectTrigger className="w-full bg-card">
-                    <SelectValue placeholder="Select Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="mb-8 sm:mb-12">
+            <h2 className="font-display text-3xl font-bold md:text-4xl">
+              End-to-End Event Planning <span className="text-gradient">Services</span>
+            </h2>
+            <p className="mt-2 text-muted-foreground">Choose a service to explore and send a booking request</p>
           </motion.div>
 
           {/* Service Cards — consistent style matching /services page */}
@@ -506,87 +495,91 @@ const Index = () => {
               <Briefcase className="h-4 w-4 opacity-50" /> No services available for this category yet.
             </div>
           ) : (
-            <div className="mt-8 grid grid-cols-2 gap-3 md:gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredServices.map((svc: any, i: number) => (
-                <motion.div
-                  key={svc._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.07 }}
-                  className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors"
-                >
-                  {/* Image */}
-                  <div className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-52">
-                    {imgSrc(svc.image) ? (
-                      <img
-                        src={imgSrc(svc.image)}
-                        alt={svc.name}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-muted-foreground">
-                        <Briefcase className="h-12 w-12 opacity-30" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                      From {formatCurrency(svc.price)}
-                    </span>
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-2 sm:p-5 flex flex-col flex-1">
-                    <h3 className="font-semibold text-xs sm:text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">
-                      {svc.name}
-                    </h3>
-                    {/* Rating display */}
-                    {svc.averageRating && svc.averageRating > 0 ? (
-                      <div className="flex items-center gap-1 mt-1">
-                        <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0" />
-                        <span className="text-xs font-semibold">
-                          {svc.averageRating.toFixed(1)}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          ({svc.ratingCount || 0})
-                        </span>
-                      </div>
-                    ) : null}
-                    {svc.highlights?.length > 0 && (
-                      <ul className="mt-3 space-y-1">
-                        {svc.highlights.slice(0, 2).map((h: string) => (
-                          <li key={h} className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                            {h}
-                          </li>
-                        ))}
-                        {svc.highlights.length > 2 && (
-                          <li className="text-xs text-primary font-medium pl-3">+{svc.highlights.length - 2} more</li>
-                        )}
-                      </ul>
-                    )}
-
-                    <div className="flex-1" />
-
-                    <div className="mt-2 sm:mt-5 flex flex-col gap-1.5 sm:gap-2">
-                      <Button
-                        variant="outline"
-                        className="w-full border-primary text-primary hover:bg-primary/10"
-                        onClick={() => navigate(`/services/${svc._id}`)}
-                      >
-                        View Details
-                      </Button>
-                      <Button
-                        className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90"
-                        onClick={() => openBook(svc)}
-                      >
-                        Book Now
-                      </Button>
+            <>
+              <div className="mt-8 grid grid-cols-2 gap-3 md:gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredServices.slice(0, 4).map((svc: any, i: number) => (
+                  <motion.div
+                    key={svc._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.07 }}
+                    className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors"
+                  >
+                    {/* Image */}
+                    <div className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-52">
+                      {imgSrc(svc.image) ? (
+                        <img
+                          src={imgSrc(svc.image)}
+                          alt={svc.name}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-muted-foreground">
+                          <Briefcase className="h-12 w-12 opacity-30" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                        From {formatCurrency(svc.price)}
+                      </span>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+
+                    {/* Content */}
+                    <div className="p-3 sm:p-5 flex flex-col flex-1">
+                      <h3 className="font-semibold text-sm sm:text-base line-clamp-2 leading-tight group-hover:text-primary transition-colors mb-1.5 sm:mb-2 min-h-[2.5rem]">
+                        {svc.name}
+                      </h3>
+                      
+                      {svc.createdBy && (
+                        <p className="text-[10px] sm:text-xs text-muted-foreground mb-3 flex-shrink-0">
+                          Provider: <span className="text-primary font-medium">{svc.createdBy.name}</span>
+                        </p>
+                      )}
+
+                      {/* Highlights */}
+                      {svc.highlights?.length > 0 && (
+                        <ul className="space-y-1 mb-4 flex-1">
+                          {svc.highlights.slice(0, 2).map((h: string, hi: number) => (
+                            <li key={hi} className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground">
+                              <span className="h-1 sm:h-1.5 w-1 sm:w-1.5 rounded-full bg-primary shrink-0" />
+                              <span className="line-clamp-1">{h}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {/* Buttons */}
+                      <div className="space-y-2 mt-auto">
+                        <Button
+                          variant="outline"
+                          className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold border-border hover:bg-secondary text-foreground"
+                          onClick={() => navigate(`/services/${svc._id}`)}
+                        >
+                          View Details
+                        </Button>
+                        <Button
+                          className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90"
+                          onClick={() => openBook(svc)}
+                        >
+                          Book Now
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              <div className="mt-8 flex justify-center">
+                <Button
+                  onClick={() => navigate("/services")}
+                  variant="outline"
+                  className="px-6 border-primary/20 hover:border-primary/50 text-foreground gap-2 font-semibold"
+                >
+                  Browse All Services <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </>
           )}
         </div>
       </section>
@@ -711,7 +704,7 @@ const Index = () => {
         <section className="py-12 sm:py-20">
           <div className="container mx-auto">
             <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-              className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 sm:mb-12">
+              className="mb-8 sm:mb-12">
               <div>
                 <span className="inline-flex items-center gap-2 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs font-medium text-yellow-500 mb-3">
                   <Star className="h-3.5 w-3.5 fill-yellow-500" /> Verified Reviews
@@ -723,11 +716,6 @@ const Index = () => {
                   Real experiences from verified bookings — helping you choose with confidence.
                 </p>
               </div>
-              <Link to="/reviews">
-                <Button variant="outline" className="shrink-0 gap-2">
-                  View All Reviews <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
             </motion.div>
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">

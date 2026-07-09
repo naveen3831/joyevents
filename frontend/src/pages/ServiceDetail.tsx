@@ -1,4 +1,4 @@
-import { apiGetServiceById, apiCheckFavorite, apiAddFavorite, apiRemoveFavorite, apiValidatePromoCode, apiListServices } from "@/lib/api";
+import { apiGetServiceById, apiCheckFavorite, apiAddFavorite, apiRemoveFavorite, apiValidatePromoCode, apiListServices, apiGetPublicReviews } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 
 import { useParams, Link, useNavigate } from "react-router-dom";
@@ -31,8 +31,22 @@ const ServiceDetail = () => {
   const [appliedPromo, setAppliedPromo] = useState<any>(null);
   const [promoError, setPromoError] = useState("");
   const [relatedServices, setRelatedServices] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [showAllReviewsModal, setShowAllReviewsModal] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
 
   const imgSrc = (image: string) => !image ? "" : image.startsWith("http") ? image : `${API_URL}${image}`;
+
+  useEffect(() => {
+    if (!id) return;
+    apiGetPublicReviews()
+      .then((res: any) => {
+        const allReviews = res.reviews || [];
+        const filtered = allReviews.filter((r: any) => r.serviceId === id);
+        setReviews(filtered);
+      })
+      .catch((err) => console.error("Failed to load reviews:", err));
+  }, [id]);
 
   useEffect(() => {
     const load = async () => {
@@ -225,17 +239,29 @@ const ServiceDetail = () => {
                 {/* Gallery */}
                 {service.gallery?.length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-base mb-3 flex items-center gap-2">
-                      <Images className="h-4 w-4 text-primary" /> Gallery
-                    </h3>
-                    <div className="grid grid-cols-3 gap-2">
-                      {service.gallery.map((img: string, idx: number) => (
-                        <button key={idx} onClick={() => setLightboxIndex(idx)}
-                          className="relative aspect-square rounded-lg overflow-hidden bg-secondary hover:opacity-90 transition-opacity">
-                          <img src={imgSrc(img)} alt={`Gallery ${idx + 1}`} className="h-full w-full object-cover" />
-                        </button>
-                      ))}
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-base flex items-center gap-2">
+                        <Images className="h-4 w-4 text-primary" /> Gallery ({service.gallery.length})
+                      </h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary hover:text-primary/80 font-semibold"
+                        onClick={() => setShowGallery(!showGallery)}
+                      >
+                        {showGallery ? "Hide Gallery" : "View Gallery"}
+                      </Button>
                     </div>
+                    {showGallery && (
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        {service.gallery.map((img: string, idx: number) => (
+                          <button key={idx} onClick={() => setLightboxIndex(idx)}
+                            className="relative aspect-square rounded-lg overflow-hidden bg-secondary hover:opacity-90 transition-opacity">
+                            <img src={imgSrc(img)} alt={`Gallery ${idx + 1}`} className="h-full w-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -247,6 +273,66 @@ const ServiceDetail = () => {
                   <Button variant="outline" className="flex-1" onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }}>
                     <Share2 className="mr-2 h-4 w-4" /> Share
                   </Button>
+                </div>
+
+                {/* Reviews Section */}
+                <div className="mt-8 border-t border-border pt-8">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                      Customer Reviews ({reviews.length})
+                    </h3>
+                    {reviews.length > 2 && (
+                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 font-semibold" onClick={() => setShowAllReviewsModal(true)}>
+                        View All
+                      </Button>
+                    )}
+                  </div>
+
+                  {reviews.length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic">No reviews yet for this service.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {reviews.slice(0, 2).map((review) => (
+                        <div key={review._id} className="rounded-xl border border-border bg-card p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-xs font-bold text-white shrink-0">
+                                {review.customerName?.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold">{review.customerName}</p>
+                                <div className="flex gap-0.5 mt-0.5">
+                                  {[1, 2, 3, 4, 5].map((s) => (
+                                    <Star
+                                      key={s}
+                                      className={`h-3 w-3 ${
+                                        s <= review.score ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            {review.ratedAt && (
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(review.ratedAt).toLocaleDateString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </span>
+                            )}
+                          </div>
+                          {review.comment ? (
+                            <p className="text-sm text-muted-foreground pl-10 italic">"{review.comment}"</p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground pl-10 italic">Rated {review.score}/5 stars</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -364,9 +450,9 @@ const ServiceDetail = () => {
 
         {/* Related Services Section */}
         {relatedServices.length > 0 && (
-          <div className="px-3 sm:px-6 lg:px-12 mt-16 pt-12 border-t border-border w-full relative z-10">
+          <div className="px-3 sm:px-6 lg:px-12 mt-16 pt-12 pb-16 border-t border-border w-full relative z-10">
             <h2 className="font-display text-3xl font-black tracking-tight mb-8">Related Services</h2>
-            <div className="grid grid-cols-2 gap-4 md:gap-8 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:gap-8 lg:grid-cols-4">
               {relatedServices.map((r) => (
                 <div
                   key={r._id}
@@ -484,6 +570,58 @@ const ServiceDetail = () => {
               onClose={() => setShowPaymentModal(false)}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View All Reviews Modal */}
+      <Dialog open={showAllReviewsModal} onOpenChange={setShowAllReviewsModal}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+              All Reviews ({reviews.length})
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4 pr-2">
+            {reviews.map((review) => (
+              <div key={review._id} className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-xs font-bold text-white shrink-0">
+                      {review.customerName?.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">{review.customerName}</p>
+                      <div className="flex gap-0.5 mt-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={`h-3 w-3 ${
+                              s <= review.score ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  {review.ratedAt && (
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(review.ratedAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  )}
+                </div>
+                {review.comment ? (
+                  <p className="text-sm text-muted-foreground pl-10 italic">"{review.comment}"</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground pl-10 italic">Rated {review.score}/5 stars</p>
+                )}
+              </div>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
     </Layout>

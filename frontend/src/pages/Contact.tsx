@@ -9,6 +9,7 @@ import { STATIC_IMAGES } from "@/lib/staticImages";
 import { useState } from "react";
 import { toast } from "sonner";
 import { usePlatformName, useSupportEmail } from "@/hooks/usePlatformName";
+import { apiSendContactUsToAdmin } from "@/lib/api";
 import {
   sanitizeEmailInput,
   sanitizeNameInput,
@@ -73,11 +74,20 @@ const Contact = () => {
     }
 
     setSending(true);
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 800));
-    toast.success("Message sent! We'll get back to you within 24 hours.");
-    setForm({ name: "", email: "", subject: "", message: "" });
-    setSending(false);
+    try {
+      await apiSendContactUsToAdmin({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        subject: form.subject?.trim() || "",
+        message: form.message.trim(),
+      });
+      toast.success("Message sent! We'll get back to you within 24 hours.");
+      setForm({ name: "", email: "", subject: "", message: "" });
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send message. Please try again.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (

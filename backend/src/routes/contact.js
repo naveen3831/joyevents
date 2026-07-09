@@ -172,4 +172,30 @@ router.post("/:id/customer-reply", verifyToken, async (req, res) => {
   }
 });
 
+// POST /api/contact/admin — send contact message to admin (public)
+router.post("/admin", async (req, res) => {
+  const { name, email, subject, message } = req.body;
+  if (!name?.trim() || !email?.trim() || !message?.trim()) {
+    return res.status(400).json({ error: "Name, email and message are required" });
+  }
+  const emailErr = validateEmail(email);
+  if (emailErr) return res.status(400).json({ error: emailErr });
+  const normalizedEmail = normalizeEmail(email);
+
+  try {
+    const { sendContactUsToAdmin } = await import("../utils/sendEmail.js");
+    await sendContactUsToAdmin({
+      name: name.trim(),
+      email: normalizedEmail,
+      subject: subject ? subject.trim() : "",
+      message: message.trim(),
+    });
+
+    res.json({ success: true, message: "Your message has been sent to the admin!" });
+  } catch (e) {
+    console.error("contact/admin error:", e.message);
+    res.status(500).json({ error: e.message || "Failed to send message to the admin" });
+  }
+});
+
 export default router;
