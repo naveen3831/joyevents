@@ -14,10 +14,12 @@ import EventCard from "@/components/EventCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SimplePayment from "@/components/SimplePayment";
 import { savePendingServiceBooking, getPendingServiceBooking, clearPendingServiceBooking, savePendingEventBooking } from "@/lib/bookingState";
+import { useHomepageSettings } from "@/hooks/useHomepageSettings";
 
 const Index = () => {
   const { isLoggedIn, token } = useAuth() as any;
   const navigate = useNavigate();
+  const settings = useHomepageSettings();
 
   const [services, setServices] = useState<any[]>([]);
   const [svcLoading, setSvcLoading] = useState(true);
@@ -214,11 +216,26 @@ const Index = () => {
                 <span>Discover Extraordinary Events</span>
               </motion.div>
               <h1 className="font-display text-2xl font-bold leading-tight text-white sm:text-4xl md:text-5xl lg:text-6xl">
-                Create <span className="text-gradient">Unforgettable</span> Moments
+                {(() => {
+                  const parts = settings.heroTitle.split(" ");
+                  if (parts.length >= 2) {
+                    const middleIndex = Math.floor(parts.length / 2);
+                    const before = parts.slice(0, middleIndex).join(" ");
+                    const middle = parts[middleIndex];
+                    const after = parts.slice(middleIndex + 1).join(" ");
+                    return (
+                      <>
+                        {before}{" "}
+                        <span className="text-gradient">{middle}</span>
+                        {after ? ` ${after}` : ""}
+                      </>
+                    );
+                  }
+                  return settings.heroTitle;
+                })()}
               </h1>
               <p className="mt-3 sm:mt-4 max-w-xl text-sm sm:text-base text-white/80">
-                From intimate workshops to grand festivals — discover, book, and manage events
-                that bring people together and create lasting memories.
+                {settings.heroSubtitle}
               </p>
               <div className="mt-5 sm:mt-6 flex flex-wrap gap-2 sm:gap-3">
                 <Link to="/events">
@@ -247,9 +264,9 @@ const Index = () => {
             className="grid grid-cols-3 gap-4 text-center sm:gap-8"
           >
             {[
-              { label: "Events", value: "1,800+" },
-              { label: "Attendees", value: "50K+" },
-              { label: "Merchants", value: "340+" },
+              { label: "Events", value: settings.eventsCount },
+              { label: "Attendees", value: settings.attendeesCount },
+              { label: "Merchants", value: settings.merchantsCount },
             ].map((stat, i) => (
               <motion.div
                 key={stat.label}

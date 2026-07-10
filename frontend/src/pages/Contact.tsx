@@ -29,17 +29,19 @@ import {
   EMAIL_HINT,
 } from "@/lib/validation";
 
+import { useHomepageSettings } from "@/hooks/useHomepageSettings";
+
 const Contact = () => {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [sending, setSending] = useState(false);
   const platformName = usePlatformName();
-  const supportEmail = useSupportEmail();
+  const settings = useHomepageSettings();
 
   const CONTACT_INFO = [
-    { icon: Mail,    title: "Email Us",       value: supportEmail,           desc: "For proposals, event planning questions, and project discussions.", href: `mailto:${supportEmail}` },
-    { icon: Phone,   title: "Call Us",        value: "+91 98765 43210",    desc: "Fast communication on timelines, budgets, and availability across India.", href: "tel:+919876543210" },
-    { icon: MapPin,  title: "Visit Us",       value: "Mumbai, India",    desc: "In-person planning sessions and creative reviews by appointment.", href: "https://www.google.com/maps/search/Mumbai,+India" },
-    { icon: Clock,   title: "Business Hours", value: "Mon–Fri, 9am–6pm IST", desc: "Average response time under 2 hours during business hours." },
+    { icon: Mail,    title: "Email Us",       value: settings.contactEmail,           desc: "For proposals, event planning questions, and project discussions.", href: `mailto:${settings.contactEmail}` },
+    { icon: Phone,   title: "Call Us",        value: settings.contactPhone,    desc: "Fast communication on timelines, budgets, and availability.", href: `tel:${settings.contactPhone}` },
+    { icon: MapPin,  title: "Visit Us",       value: settings.contactAddress,    desc: "In-person planning sessions and creative reviews by appointment.", href: `https://www.google.com/maps/search/${encodeURIComponent(settings.contactAddress)}` },
+    { icon: Clock,   title: "Business Hours", value: settings.contactWorkingHours, desc: "Average response time under 2 hours during business hours." },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -282,7 +284,7 @@ const Contact = () => {
             Our support team is available Monday–Friday, 9am–6pm. We typically respond within 2 hours.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-4">
-            <a href="tel:+919876543210">
+            <a href={`tel:${settings.contactPhone}`}>
               <Button className="gap-2 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90">
                 <Phone className="h-4 w-4" /> Call Now
               </Button>

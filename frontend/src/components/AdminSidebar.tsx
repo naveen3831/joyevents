@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Users, Calendar, Settings, Briefcase, DollarSign,
   BarChart3, Activity, User, CreditCard, Calculator, RefreshCcw,
-  Wallet, BookOpen, ChevronDown, X, Sparkles, Menu, LogOut
+  Wallet, BookOpen, ChevronDown, X, Sparkles, Menu, LogOut, Home
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { clearSession } from "@/lib/session";
@@ -33,6 +33,7 @@ const links: any[] = [
   },
   { to: "/admin-dashboard/reports",             label: "Reports & Analytics", icon: BarChart3 },
   { to: "/admin-dashboard/ai-recommendations",  label: "AI Recommendations",  icon: Sparkles },
+  { to: "/admin-dashboard/homepage",            label: "Homepage CMS",        icon: Home },
   { to: "/admin-dashboard/settings",            label: "Settings",             icon: Settings },
   { to: "/admin-dashboard/profile",             label: "My Profile",           icon: User },
 ];

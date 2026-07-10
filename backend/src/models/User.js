@@ -32,6 +32,23 @@ const userSchema = new mongoose.Schema(
       default: "active",
       required: true
     },
+    mobile: { type: String, trim: true },
+    merchantStatus: {
+      type: String,
+      enum: ["details_pending", "details_submitted", "quotation_sent", "paid", "active"],
+      default: "details_pending"
+    },
+    merchantDetails: {
+      businessName: { type: String, trim: true },
+      businessDescription: { type: String, trim: true },
+      eventTypes: [String],
+      serviceTypes: [String],
+      experienceYears: { type: Number },
+      address: { type: String, trim: true }
+    },
+    quotationAmount: { type: Number, default: 0 },
+    maxEvents: { type: Number, default: 5 },
+    maxServices: { type: Number, default: 5 },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
   },

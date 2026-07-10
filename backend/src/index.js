@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 import { existsSync } from "fs";
 import authRoutes from "./routes/auth.js";
+import merchantRoutes from "./routes/merchant.js";
 import bookingRoutes from "./routes/bookings.js";
 import eventRoutes from "./routes/events.js";
 import serviceRoutes from "./routes/services.js";
@@ -121,6 +122,7 @@ app.use("/api/favorites", favoriteRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/recommendations", recommendationRoutes);
+app.use("/api/merchant", merchantRoutes);
 
 // Serve frontend build only in non-Docker / single-process mode (PM2 / local)
 // In Docker, Nginx serves the frontend and proxies /api → this backend.

@@ -1,24 +1,72 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
-import { Users, Store, Calendar, DollarSign, TrendingUp, Shield, Filter } from "lucide-react";
+import { Users, Store, Calendar, DollarSign, TrendingUp, Shield, Filter, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Layout from "@/components/Layout";
 import StatCard from "@/components/StatCard";
 import { useState, useEffect } from "react";
-import { apiListCategories } from "@/lib/api";
+import { apiListCategories, apiListUsers, apiListEvents, apiGetTickets } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import ManageCategoriesModal from "@/components/ManageCategoriesModal";
 
 const AdminDashboard = () => {
   const { token } = useAuth();
-  const stats = { totalUsers: 0, totalMerchants: 0, totalEvents: 0, totalRevenue: 0 };
+  const [stats, setStats] = useState({ totalUsers: 0, totalMerchants: 0, totalEvents: 0, totalRevenue: 0 });
+  const [loading, setLoading] = useState(true);
+  const [tickets, setTickets] = useState<any[]>([]);
 
   const [showCatModal, setShowCatModal] = useState(false);
   const [eventCategories, setEventCategories] = useState<any[]>([]);
 
   useEffect(() => {
     loadEventCategories();
-  }, []);
+    if (token) {
+      loadDashboardData();
+    }
+  }, [token]);
+
+  const loadDashboardData = async () => {
+    try {
+      const [usersRes, eventsRes, ticketsRes] = await Promise.all([
+        apiListUsers(token),
+        apiListEvents(token),
+        apiGetTickets(token)
+      ]);
+
+      const usersList = usersRes.users || [];
+      const eventsList = eventsRes.events || [];
+      const ticketsList = ticketsRes.tickets || [];
+
+      const totalUsers = usersList.filter((u: any) => u.role === "user").length;
+      const totalMerchants = usersList.filter((u: any) => u.role === "merchant").length;
+      const totalEvents = eventsList.length;
+
+      let totalRevenue = 0;
+      usersList.forEach((u: any) => {
+        if (u.role === "merchant" && (u.merchantStatus === "active" || u.merchantStatus === "paid")) {
+          totalRevenue += u.quotationAmount || 0;
+        }
+      });
+
+      ticketsList.forEach((t: any) => {
+        if (t.status === "paid" || t.status === "approved") {
+          totalRevenue += t.quotationAmount || 0;
+        }
+      });
+
+      setStats({
+        totalUsers,
+        totalMerchants,
+        totalEvents,
+        totalRevenue
+      });
+      setTickets(ticketsList);
+    } catch (e: any) {
+      toast.error("Failed to load platform metrics");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadEventCategories = async () => {
     try {
@@ -46,12 +94,69 @@ const AdminDashboard = () => {
             </div>
           </motion.div>
 
+          {/* Pending Limit Upgrade Alerts */}
+          {(() => {
+            const pendingTicketsCount = tickets.filter(t => t.status === "pending").length;
+            const paidTicketsCount = tickets.filter(t => t.status === "paid").length;
+            return (
+              <>
+                {pendingTicketsCount > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    className="mt-6 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0 animate-pulse" />
+                      <div>
+                        <h4 className="font-semibold text-sm text-yellow-600 dark:text-yellow-400">Action Required: Pending Limit Upgrade Requests</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          There are {pendingTicketsCount} merchant slot upgrade requests waiting for setup quotations.
+                        </p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => window.location.href = "/admin-dashboard/users?tab=tickets"}
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors"
+                    >
+                      View Requests
+                    </button>
+                  </motion.div>
+                )}
+
+                {paidTicketsCount > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    className="mt-4 p-4 rounded-xl border border-green-500/30 bg-green-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 animate-bounce" />
+                      <div>
+                        <h4 className="font-semibold text-sm text-green-600 dark:text-green-400">Action Required: Paid Upgrade Tickets Ready for Approval</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          There are {paidTicketsCount} slot upgrade requests that have been paid and are awaiting your approval.
+                        </p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => window.location.href = "/admin-dashboard/users?tab=tickets"}
+                      className="bg-green-600 hover:bg-green-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors"
+                    >
+                      Review & Approve
+                    </button>
+                  </motion.div>
+                )}
+              </>
+            );
+          })()}
+
           {/* Stats */}
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard title="Total Users" value={stats.totalUsers.toLocaleString()} icon={<Users className="h-5 w-5" />} index={0} />
             <StatCard title="Total Merchants" value={stats.totalMerchants} icon={<Store className="h-5 w-5" />} index={1} />
             <StatCard title="Total Events" value={stats.totalEvents.toString()} icon={<Calendar className="h-5 w-5" />} index={2} />
-            <StatCard title="Platform Revenue" value={`${formatCurrency((stats.totalRevenue / 1000), { minimumFractionDigits: 0, maximumFractionDigits: 0 })}K`} icon={<DollarSign className="h-5 w-5" />} index={3} />
+            <StatCard title="Platform Revenue" value={formatCurrency(stats.totalRevenue)} icon={<DollarSign className="h-5 w-5" />} index={3} />
           </div>
 
           <div className="mt-12 grid gap-8 lg:grid-cols-2">

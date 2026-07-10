@@ -1256,3 +1256,153 @@ export async function apiGetAdminRecommendationData(token: string) {
   }
   return res.json();
 }
+
+// ── Merchant Onboarding & Upgrades ──────────────────────────────────────────
+
+export async function apiUpdateMerchantDetails(details: any, token: string) {
+  const res = await fetch(`${API_URL}/api/merchant/details`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(details)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to submit merchant details");
+  }
+  return res.json();
+}
+
+export async function apiPayMerchantQuotation(paymentDetails: any, token: string) {
+  const res = await fetch(`${API_URL}/api/merchant/pay-quotation`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(paymentDetails)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to pay quotation");
+  }
+  return res.json();
+}
+
+export async function apiSendMerchantQuotation(merchantId: string, amount: number, token: string) {
+  const res = await fetch(`${API_URL}/api/merchant/${merchantId}/quotation`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ amount })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to send quotation");
+  }
+  return res.json();
+}
+
+export async function apiActivateMerchant(merchantId: string, limits: { maxEvents?: number; maxServices?: number }, token: string) {
+  const res = await fetch(`${API_URL}/api/merchant/${merchantId}/activate`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(limits)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to activate merchant");
+  }
+  return res.json();
+}
+
+export async function apiRaiseTicket(ticket: { requestedEvents: number; requestedServices: number; message: string }, token: string) {
+  const res = await fetch(`${API_URL}/api/merchant/tickets`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(ticket)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to raise ticket");
+  }
+  return res.json();
+}
+
+export async function apiGetTickets(token: string) {
+  const res = await fetch(`${API_URL}/api/merchant/tickets`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to fetch tickets");
+  }
+  return res.json();
+}
+
+export async function apiSendTicketQuotation(ticketId: string, amount: number, token: string) {
+  const res = await fetch(`${API_URL}/api/merchant/tickets/${ticketId}/quotation`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ amount })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to send ticket quotation");
+  }
+  return res.json();
+}
+
+export async function apiPayTicketQuotation(ticketId: string, cardNumber: string, token: string) {
+  const res = await fetch(`${API_URL}/api/merchant/tickets/${ticketId}/pay`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ cardNumber })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to pay for ticket quotation");
+  }
+  return res.json();
+}
+
+export async function apiApproveTicket(ticketId: string, token: string) {
+  const res = await fetch(`${API_URL}/api/merchant/tickets/${ticketId}/approve`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to approve ticket");
+  }
+  return res.json();
+}
+
+export async function apiVerifyToken(token: string) {
+  const res = await fetch(`${API_URL}/api/auth/verify`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Token verification failed");
+  }
+  return res.json();
+}
+
+export async function apiGetHomepageSettings() {
+  const res = await fetch(`${API_URL}/api/settings/homepage`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || "Failed to load homepage settings");
+  }
+  return res.json();
+}
+
+export async function apiSaveHomepageSettings(settings: any, token: string) {
+  const res = await fetch(`${API_URL}/api/settings/homepage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(settings)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || "Failed to save homepage settings");
+  }
+  return res.json();
+}

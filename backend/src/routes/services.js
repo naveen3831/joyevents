@@ -194,9 +194,19 @@ router.post("/", verifyToken, requireRole("merchant", "admin"), upload.fields([
   { name: 'gallery', maxCount: 4 }
 ]), async (req, res) => {
   try {
-    
     const { name, description, price, category, highlights, active } = req.body || {};
     if (!name || !price) return res.status(400).json({ error: "name and price are required" });
+
+    if (req.user.role === "merchant") {
+      if (req.user.merchantStatus !== "active") {
+        return res.status(403).json({ error: "Your account must be activated by the administrator to create services." });
+      }
+      const count = await Service.countDocuments({ createdBy: req.user._id });
+      const max = req.user.maxServices || 5;
+      if (count >= max) {
+        return res.status(400).json({ error: `Service limit reached. You can only add up to ${max} services. Please raise a ticket to request more.` });
+      }
+    }
     
     if (name.length > 100) return res.status(400).json({ error: "Name cannot exceed 100 characters" });
     if (description && description.length > 1000) return res.status(400).json({ error: "Description cannot exceed 1000 characters" });

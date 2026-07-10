@@ -273,6 +273,17 @@ router.post("/", verifyToken, upload.fields([
     const { title, description, date, time, location, price, category, status, eventType, tickets, hasMultipleSessions, sessions, maxAttendees } = req.body || {};
     if (!title || !date || !time || !location) return res.status(400).json({ error: "Missing fields" });
     
+    if (req.user.role === "merchant") {
+      if (req.user.merchantStatus !== "active") {
+        return res.status(403).json({ error: "Your account must be activated by the administrator to create events." });
+      }
+      const count = await Event.countDocuments({ createdBy: req.user._id });
+      const max = req.user.maxEvents || 5;
+      if (count >= max) {
+        return res.status(400).json({ error: `Event limit reached. You can only add up to ${max} events. Please raise a ticket to request more.` });
+      }
+    }
+    
     if (title.trim().length > 100) return res.status(400).json({ error: "Event title cannot exceed 100 characters" });
     if (description && description.trim().length > 1000) return res.status(400).json({ error: "Event description cannot exceed 1000 characters" });
     if (location.trim().length > 150) return res.status(400).json({ error: "Event location cannot exceed 150 characters" });

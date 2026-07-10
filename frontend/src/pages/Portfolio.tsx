@@ -50,33 +50,53 @@ const PROJECTS = [
   },
 ];
 
-const METRICS = [
-  { icon: Award,      value: "1,800+", label: "Events Completed" },
-  { icon: TrendingUp, value: "50K+",   label: "Guests Served" },
-  { icon: Layers,     value: "12+",    label: "Event Categories" },
-];
+import { useHomepageSettings } from "@/hooks/useHomepageSettings";
 
-const Portfolio = () => (
-  <Layout>
-    {/* ── Hero ─────────────────────────────────────── */}
-    <section className="relative isolate overflow-hidden">
-      <img src={STATIC_IMAGES.portfolioHero} alt="Our Portfolio" className="h-[75vh] w-full object-cover" loading="eager" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
-      <div className="absolute inset-0 flex items-center">
-        <div className="container mx-auto">
-          <motion.div
-            initial={{ opacity: 0, x: -40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7 }}
-            className="max-w-xl"
-          >
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Our Portfolio</p>
-            <h1 className="mt-4 font-display text-lg sm:text-2xl font-bold leading-tight text-white sm:text-5xl md:text-6xl">
-              A portfolio shaped by <span className="text-primary">atmosphere</span>, scale, and detail
-            </h1>
-            <p className="mt-5 text-lg text-white/75">
-              Explore the types of experiences we deliver across corporate productions, luxury celebrations, and high-impact event launches.
-            </p>
+const Portfolio = () => {
+  const settings = useHomepageSettings();
+  const METRICS = [
+    { icon: Award,      value: settings.eventsCount, label: "Events Completed" },
+    { icon: TrendingUp, value: settings.attendeesCount,   label: "Guests Served" },
+    { icon: Layers,     value: settings.portfolioCategories,    label: "Event Categories" },
+  ];
+
+  return (
+    <Layout>
+      {/* ── Hero ─────────────────────────────────────── */}
+      <section className="relative isolate overflow-hidden">
+        <img src={STATIC_IMAGES.portfolioHero} alt="Our Portfolio" className="h-[75vh] w-full object-cover" loading="eager" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+        <div className="absolute inset-0 flex items-center">
+          <div className="container mx-auto">
+            <motion.div
+              initial={{ opacity: 0, x: -40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7 }}
+              className="max-w-xl"
+            >
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Our Portfolio</p>
+              <h1 className="mt-4 font-display text-lg sm:text-2xl font-bold leading-tight text-white sm:text-5xl md:text-6xl">
+                {(() => {
+                  const parts = settings.portfolioTitle.split(" ");
+                  if (parts.length >= 2) {
+                    const middleIndex = Math.floor(parts.length / 2);
+                    const before = parts.slice(0, middleIndex).join(" ");
+                    const middle = parts[middleIndex];
+                    const after = parts.slice(middleIndex + 1).join(" ");
+                    return (
+                      <>
+                        {before}{" "}
+                        <span className="text-primary">{middle}</span>
+                        {after ? ` ${after}` : ""}
+                      </>
+                    );
+                  }
+                  return settings.portfolioTitle;
+                })()}
+              </h1>
+              <p className="mt-5 text-lg text-white/75">
+                {settings.portfolioSubtitle}
+              </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to="/events">
                 <Button className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90">
@@ -240,7 +260,8 @@ const Portfolio = () => (
       </motion.div>
     </section>
   </Layout>
-);
+  );
+};
 
 export default Portfolio;
 

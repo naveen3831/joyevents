@@ -29,9 +29,20 @@ const links = [
 
 const NavLinks = ({ onClose }: { onClose?: () => void }) => {
   const location = useLocation();
+  const { user } = useAuth() as any;
+  const isMerchantActive = user?.merchantStatus === "active";
+
+  const visibleLinks = isMerchantActive 
+    ? links 
+    : links.filter(l => 
+        l.to === "/merchant-dashboard" || 
+        l.to === "/merchant-dashboard/profile" || 
+        l.to === "/merchant-dashboard/settings"
+      );
+
   return (
     <nav className="space-y-1 p-3">
-      {links.map(({ to, label, icon: Icon, ...rest }) => {
+      {visibleLinks.map(({ to, label, icon: Icon, ...rest }) => {
         const isActive = location.pathname === to;
         const isHighlight = (rest as any).highlight;
         return (

@@ -1,15 +1,25 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
-import { Calendar, DollarSign, Users, TrendingUp, Plus, BarChart3, CheckCircle2, Clock, AlertCircle, Loader2, History, MapPin, ExternalLink, Store, Briefcase, Settings, Video, Star, Bell, CreditCard, ArrowRight } from"lucide-react";
+import { Calendar, DollarSign, Users, TrendingUp, Plus, BarChart3, CheckCircle2, Clock, AlertCircle, Loader2, History, MapPin, ExternalLink, Store, Briefcase, Settings, Video, Star, Bell, CreditCard, ArrowRight, Ticket, AlertTriangle } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import StatCard from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiAssignedBookings, apiCompleteBooking, apiApproveBooking, apiRejectBooking, apiListMyEvents, apiListMyServices, apiAssignLegacyEvents, apiAssignLegacyServices, apiUpdateBookingStatus, apiGetNotifications, apiFixServiceBookings, apiGetEarningsDashboard } from "@/lib/api";
+import { 
+  apiAssignedBookings, apiCompleteBooking, apiApproveBooking, apiRejectBooking, 
+  apiListMyEvents, apiListMyServices, apiAssignLegacyEvents, apiAssignLegacyServices, 
+  apiUpdateBookingStatus, apiGetNotifications, apiFixServiceBookings, apiGetEarningsDashboard,
+  apiUpdateMerchantDetails, apiPayMerchantQuotation, apiRaiseTicket, apiGetTickets, apiPayTicketQuotation,
+  apiVerifyToken
+} from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const STATUS_BADGE: Record<string, string> = {
   assigned: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
@@ -27,7 +37,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 const MerchantDashboard = () => {
-  const { token, user } = useAuth() as any;
+  const { token, user, updateUser } = useAuth() as any;
   const [bookings, setBookings] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
@@ -49,23 +59,69 @@ const MerchantDashboard = () => {
   const [earningsSummary, setEarningsSummary] = useState<any>(null);
   const [showAllPayouts, setShowAllPayouts] = useState(false);
 
+  // Onboarding details state
+  const [businessName, setBusinessName] = useState(user?.merchantDetails?.businessName || "");
+  const [businessDescription, setBusinessDescription] = useState(user?.merchantDetails?.businessDescription || "");
+  const [experienceYears, setExperienceYears] = useState(user?.merchantDetails?.experienceYears?.toString() || "");
+  const [address, setAddress] = useState(user?.merchantDetails?.address || "");
+  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>(user?.merchantDetails?.eventTypes || []);
+  const [selectedServiceTypes, setSelectedServiceTypes] = useState<string[]>(user?.merchantDetails?.serviceTypes || []);
+  const [submittingOnboarding, setSubmittingOnboarding] = useState(false);
+
+  // Onboarding card payment state
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardholderName, setCardholderName] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [cvv, setCvv] = useState("");
+  const [paymentLoading, setPaymentLoading] = useState(false);
+
+  // Limit upgrade tickets state
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isPayTicketModalOpen, setIsPayTicketModalOpen] = useState(false);
+  const [selectedTicketForPayment, setSelectedTicketForPayment] = useState<any>(null);
+  const [requestedEvents, setRequestedEvents] = useState(5);
+  const [requestedServices, setRequestedServices] = useState(5);
+  const [ticketMessage, setTicketMessage] = useState("");
+  const [submittingTicket, setSubmittingTicket] = useState(false);
+
   const loadBookings = async () => {
     if (!token) return;
     try {
-      const [bookingsRes, eventsRes, servicesRes, notificationsRes, earningsRes] = await Promise.all([
+      // Sync user profile state in real-time
+      try {
+        const verifyRes = await apiVerifyToken(token);
+        if (verifyRes.user && JSON.stringify(verifyRes.user) !== JSON.stringify(user)) {
+          updateUser(verifyRes.user);
+        }
+      } catch (err) {
+        // ignore profile fetching errors
+      }
+
+      const promises: Promise<any>[] = [
         apiAssignedBookings(token),
         apiListMyEvents(token),
         apiListMyServices(token),
         apiGetNotifications(token, { limit: 10 }),
         apiGetEarningsDashboard(token)
-      ]);
+      ];
+
+      if (user?.merchantStatus === "active") {
+        promises.push(apiGetTickets(token));
+      }
+
+      const results = await Promise.all(promises);
       
-      setBookings(bookingsRes.bookings || []);
-      setEvents(eventsRes.events || []);
-      setServices(servicesRes.services || []);
-      setNotifications(notificationsRes.notifications || []);
-      setUnreadCount(notificationsRes.unreadCount || 0);
-      setEarningsSummary(earningsRes);
+      setBookings(results[0].bookings || []);
+      setEvents(results[1].events || []);
+      setServices(results[2].services || []);
+      setNotifications(results[3].notifications || []);
+      setUnreadCount(results[3].unreadCount || 0);
+      setEarningsSummary(results[4]);
+
+      if (user?.merchantStatus === "active" && results[5]) {
+        setTickets(results[5].tickets || []);
+      }
     } catch (e) {
       // silently ignore polling errors
     } finally {
@@ -73,7 +129,7 @@ const MerchantDashboard = () => {
     }
   };
 
-  useEffect(() => { loadBookings(); }, [token]);
+  useEffect(() => { loadBookings(); }, [token, user?.merchantStatus]);
 
   // Smooth real-time updates without blinking
   useEffect(() => {
@@ -82,41 +138,66 @@ const MerchantDashboard = () => {
     const pollInterval = setInterval(async () => {
       if (fixingBookings) return;
       try {
-        const [bookingsRes, eventsRes, servicesRes, earningsRes] = await Promise.all([
+        // Sync user profile state in real-time
+        try {
+          const verifyRes = await apiVerifyToken(token);
+          if (verifyRes.user && JSON.stringify(verifyRes.user) !== JSON.stringify(user)) {
+            updateUser(verifyRes.user);
+          }
+        } catch (err) {
+          // ignore profile fetching errors
+        }
+
+        const promises: Promise<any>[] = [
           apiAssignedBookings(token),
           apiListMyEvents(token),
           apiListMyServices(token),
           apiGetEarningsDashboard(token)
-        ]);
+        ];
+
+        if (user?.merchantStatus === "active") {
+          promises.push(apiGetTickets(token));
+        }
+
+        const results = await Promise.all(promises);
         
         // Only update if values changed
         setBookings(prev => {
-          if (JSON.stringify(prev) !== JSON.stringify(bookingsRes.bookings)) {
-            return bookingsRes.bookings || [];
+          if (JSON.stringify(prev) !== JSON.stringify(results[0].bookings)) {
+            return results[0].bookings || [];
           }
           return prev;
         });
         
         setEvents(prev => {
-          if (JSON.stringify(prev) !== JSON.stringify(eventsRes.events)) {
-            return eventsRes.events || [];
+          if (JSON.stringify(prev) !== JSON.stringify(results[1].events)) {
+            return results[1].events || [];
           }
           return prev;
         });
         
         setServices(prev => {
-          if (JSON.stringify(prev) !== JSON.stringify(servicesRes.services)) {
-            return servicesRes.services || [];
+          if (JSON.stringify(prev) !== JSON.stringify(results[2].services)) {
+            return results[2].services || [];
           }
           return prev;
         });
 
         setEarningsSummary(prev => {
-          if (JSON.stringify(prev) !== JSON.stringify(earningsRes)) {
-            return earningsRes;
+          if (JSON.stringify(prev) !== JSON.stringify(results[3])) {
+            return results[3];
           }
           return prev;
         });
+
+        if (user?.merchantStatus === "active" && results[4]) {
+          setTickets(prev => {
+            if (JSON.stringify(prev) !== JSON.stringify(results[4].tickets)) {
+              return results[4].tickets || [];
+            }
+            return prev;
+          });
+        }
       } catch (error) {
         // silently ignore polling errors
       }
@@ -133,7 +214,7 @@ const MerchantDashboard = () => {
       clearInterval(pollInterval);
       window.removeEventListener("payoutProcessed", handlePayoutProcessed);
     };
-  }, [token]);
+  }, [token, user?.merchantStatus]);
 
   // Derived stats
   const activeBookings = bookings.filter((b) => ["assigned", "pending", "pending_approval", "approved", "awaiting_payment", "paid", "processing", "confirmed", "accepted"].includes(b.status));
@@ -248,33 +329,473 @@ const MerchantDashboard = () => {
   const handleFixServiceBookings = async () => {
     setFixingBookings(true);
     try {
-      const result = await apiFixServiceBookings(token);
-      if (result.fixed > 0) {
-        toast.success(`Fixed ${result.fixed} service booking(s) — they now appear in your dashboard`);
-      } else {
-        toast.info("No orphaned service bookings found");
-      }
+      const res = await apiFixServiceBookings(token);
+      toast.success(res.message || "Service bookings synchronized successfully!");
       loadBookings();
     } catch (e: any) {
-      toast.error(e?.message || "Failed to fix service bookings");
+      toast.error(e?.message || "Failed to synchronize service bookings");
     } finally {
       setFixingBookings(false);
     }
   };
 
-  const handleStatusUpdate = async (bookingId: string, newStatus: string) => {
-    setUpdatingStatus(bookingId);
+  const handleRaiseTicketSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    const reqEv = Number(requestedEvents) || 0;
+    const reqSe = Number(requestedServices) || 0;
+    if (reqEv < 0 || reqEv > 100 || reqSe < 0 || reqSe > 100) {
+      toast.error("Requested slot increases must be between 0 and 100.");
+      return;
+    }
+    if (reqEv === 0 && reqSe === 0) {
+      toast.error("Please request at least one slot upgrade increase.");
+      return;
+    }
+    if (ticketMessage.trim().length > 300) {
+      toast.error("Explanation message cannot exceed 300 characters.");
+      return;
+    }
+    setSubmittingTicket(true);
     try {
-      await apiUpdateBookingStatus(bookingId, newStatus, token);
-      toast.success(`Booking status updated to ${newStatus}`);
-      setStatusUpdate({ id: "", show: false, currentStatus: "" });
+      await apiRaiseTicket({
+        requestedEvents: reqEv,
+        requestedServices: reqSe,
+        message: ticketMessage.trim()
+      }, token);
+      toast.success("Upgrade ticket request raised successfully!");
+      setIsUpgradeModalOpen(false);
+      setRequestedEvents(5);
+      setRequestedServices(5);
+      setTicketMessage("");
       loadBookings();
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to update status");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to raise ticket");
     } finally {
-      setUpdatingStatus(null);
+      setSubmittingTicket(false);
     }
   };
+
+  const handlePayTicketSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !selectedTicketForPayment) return;
+    if (!cardNumber || !cardholderName || !expiryDate || !cvv) {
+      toast.error("Please fill in all card details");
+      return;
+    }
+    if (cardNumber.replace(/\s/g, "").length !== 16) {
+      toast.error("Please enter a valid 16-digit card number");
+      return;
+    }
+    setPaymentLoading(true);
+    try {
+      await apiPayTicketQuotation(selectedTicketForPayment._id, cardNumber, token);
+      toast.success("Upgrade ticket quote paid successfully! Awaiting admin approval.");
+      setIsPayTicketModalOpen(false);
+      setSelectedTicketForPayment(null);
+      setCardNumber("");
+      setCardholderName("");
+      setExpiryDate("");
+      setCvv("");
+      loadBookings();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to pay for ticket quotation");
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // If merchant is not active, return the onboarding wizard
+  if (user && user.merchantStatus !== "active") {
+    let mStatus = user.merchantStatus;
+    if (!mStatus) {
+      if (user.merchantDetails && user.merchantDetails.businessName) {
+        mStatus = user.quotationAmount > 0 ? "quotation_sent" : "details_submitted";
+      } else {
+        mStatus = "details_pending";
+      }
+    }
+
+    const handleOnboardingSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!token) return;
+      if (!businessName || !businessDescription || !address) {
+        toast.error("Please fill in all required fields.");
+        return;
+      }
+      if (businessName.trim().length > 50) {
+        toast.error("Business name cannot exceed 50 characters.");
+        return;
+      }
+      const exp = Number(experienceYears) || 0;
+      if (exp < 0 || exp > 80) {
+        toast.error("Experience years must be between 0 and 80.");
+        return;
+      }
+      if (businessDescription.trim().length > 1000) {
+        toast.error("Business description cannot exceed 1000 characters.");
+        return;
+      }
+      if (address.trim().length > 150) {
+        toast.error("Address cannot exceed 150 characters.");
+        return;
+      }
+      setSubmittingOnboarding(true);
+      try {
+        const res = await apiUpdateMerchantDetails({
+          businessName: businessName.trim(),
+          businessDescription: businessDescription.trim(),
+          experienceYears: exp,
+          address: address.trim(),
+          eventTypes: selectedEventTypes,
+          serviceTypes: selectedServiceTypes
+        }, token);
+        toast.success("Business details submitted successfully!");
+        updateUser(res.user);
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to submit details");
+      } finally {
+        setSubmittingOnboarding(false);
+      }
+    };
+
+    const handlePayOnboardingSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!token) return;
+      if (!cardNumber || !cardholderName || !expiryDate || !cvv) {
+        toast.error("Please fill in all card details");
+        return;
+      }
+      if (cardNumber.replace(/\s/g, "").length !== 16) {
+        toast.error("Please enter a valid 16-digit card number");
+        return;
+      }
+      setPaymentLoading(true);
+      try {
+        const res = await apiPayMerchantQuotation({
+          cardNumber,
+          cardholderName,
+          expiryDate,
+          cvv
+        }, token);
+        toast.success("Payment successful! Waiting for activation.");
+        updateUser(res.user);
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to process payment");
+      } finally {
+        setPaymentLoading(false);
+      }
+    };
+
+    return (
+      <MerchantLayout>
+        <section className="py-8 max-w-4xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+            <div>
+              <h1 className="font-display text-3xl font-bold">
+                Merchant <span className="text-gradient">Onboarding</span>
+              </h1>
+              <p className="text-muted-foreground mt-1">Complete the steps below to activate your merchant account.</p>
+            </div>
+
+            {/* Stepper Header */}
+            <div className="grid grid-cols-4 gap-2 border-b border-border pb-4">
+              {[
+                { step: "details_pending", label: "1. Business Details" },
+                { step: "details_submitted", label: "2. Review" },
+                { step: "quotation_sent", label: "3. Pay Quotation" },
+                { step: "paid", label: "4. Activation" }
+              ].map((s, idx) => {
+                const isCurrent = mStatus === s.step;
+                const isDone = 
+                  (idx === 0 && mStatus !== "details_pending") ||
+                  (idx === 1 && mStatus !== "details_pending" && mStatus !== "details_submitted") ||
+                  (idx === 2 && mStatus === "paid");
+                return (
+                  <div key={s.step} className="text-center">
+                    <span className={`text-xs font-semibold block transition-colors ${
+                      isCurrent ? "text-primary font-bold" : isDone ? "text-green-500" : "text-muted-foreground"
+                    }`}>
+                      {s.label}
+                    </span>
+                    <div className={`h-1.5 rounded-full mt-2 transition-all ${
+                      isCurrent ? "bg-primary w-full" : isDone ? "bg-green-500 w-full" : "bg-secondary w-full"
+                    }`} />
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* STEP 1: Details Pending Form */}
+            {mStatus === "details_pending" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl border border-border bg-card p-6 sm:p-8 space-y-6 shadow-lg">
+                <div>
+                  <h2 className="font-display text-xl font-bold flex items-center gap-2">
+                    <Store className="h-5 w-5 text-primary" /> Tell us about your business
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">Enter your event/service capabilities so we can review your profile.</p>
+                </div>
+                <form onSubmit={handleOnboardingSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="businessName">Business / Company Name *</Label>
+                      <Input
+                        id="businessName"
+                        required
+                        maxLength={50}
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        placeholder="e.g. Joyful Celebrations Ltd."
+                      />
+                      <p className="text-[10px] text-muted-foreground">Up to 50 characters</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="experienceYears">Years of Experience</Label>
+                      <Input
+                        id="experienceYears"
+                        type="text"
+                        required
+                        value={experienceYears}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9]/g, "");
+                          setExperienceYears(val.slice(0, 2)); // max 2 digits
+                        }}
+                        placeholder="e.g. 5"
+                      />
+                      <p className="text-[10px] text-muted-foreground">Between 0 and 80</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="businessDescription">Business Description *</Label>
+                    <Textarea
+                      id="businessDescription"
+                      required
+                      maxLength={1000}
+                      value={businessDescription}
+                      onChange={(e) => setBusinessDescription(e.target.value)}
+                      placeholder="Describe what services and events you specialize in, team size, etc."
+                      className="min-h-[100px]"
+                    />
+                    <p className="text-[10px] text-muted-foreground text-right">{businessDescription.length}/1000 characters</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Business Address / Location *</Label>
+                    <Input
+                      id="address"
+                      required
+                      maxLength={150}
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="e.g. 123 Main St, New York, NY"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Up to 150 characters</p>
+                  </div>
+
+                  {/* Event Types checkboxes */}
+                  <div className="space-y-3">
+                    <Label>Event Types You Handle</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      {["Wedding", "Birthday", "Corporate", "Concert", "Festival", "Exhibition", "Private Party", "Anniversary"].map((t) => (
+                        <label key={t} className="flex items-center gap-2 text-sm cursor-pointer p-2.5 rounded-lg border border-border hover:bg-secondary/50 transition-colors">
+                          <input
+                            type="checkbox"
+                            className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                            checked={selectedEventTypes.includes(t)}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedEventTypes([...selectedEventTypes, t]);
+                              else setSelectedEventTypes(selectedEventTypes.filter(x => x !== t));
+                            }}
+                          />
+                          <span>{t}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Service Types checkboxes */}
+                  <div className="space-y-3">
+                    <Label>Services You Offer</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      {["Catering", "Photography", "Videography", "Decoration", "Sound System", "Lighting", "Live Music", "DJ", "Anchor/Host", "Security"].map((t) => (
+                        <label key={t} className="flex items-center gap-2 text-sm cursor-pointer p-2.5 rounded-lg border border-border hover:bg-secondary/50 transition-colors">
+                          <input
+                            type="checkbox"
+                            className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                            checked={selectedServiceTypes.includes(t)}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedServiceTypes([...selectedServiceTypes, t]);
+                              else setSelectedServiceTypes(selectedServiceTypes.filter(x => x !== t));
+                            }}
+                          />
+                          <span>{t}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button type="submit" disabled={submittingOnboarding} className="w-full bg-gradient-primary text-white">
+                    {submittingOnboarding ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</>
+                    ) : (
+                      "Submit Business Details"
+                    )}
+                  </Button>
+                </form>
+              </motion.div>
+            )}
+
+            {/* STEP 2: Details Submitted / Review Pending */}
+            {mStatus === "details_submitted" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl border border-border bg-card p-8 text-center space-y-6 shadow-lg py-12">
+                <div className="mx-auto w-16 h-16 rounded-full bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20">
+                  <Clock className="h-8 w-8 text-yellow-500 animate-pulse" />
+                </div>
+                <div className="space-y-2 max-w-md mx-auto">
+                  <h2 className="font-display text-xl font-bold">Profile Under Review</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Thank you for submitting your business details! Our admin team is currently reviewing your profile to determine the quotation amount.
+                  </p>
+                </div>
+                <div className="p-4 bg-secondary/30 rounded-lg max-w-sm mx-auto text-xs text-muted-foreground text-left space-y-2 border border-border/50">
+                  <p className="font-semibold text-foreground">Submitted Details Preview:</p>
+                  <p><strong>Business Name:</strong> {user.merchantDetails?.businessName}</p>
+                  <p><strong>Experience:</strong> {user.merchantDetails?.experienceYears} years</p>
+                  <p><strong>Location:</strong> {user.merchantDetails?.address}</p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* STEP 3: Quotation Sent / Payment Pending */}
+            {mStatus === "quotation_sent" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                {/* Quotation Info */}
+                <div className="md:col-span-2 rounded-2xl border border-border bg-card p-6 space-y-4 shadow-lg flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <span className="text-xs uppercase bg-primary/10 text-primary px-2.5 py-1 rounded-full font-bold">Onboarding Quote</span>
+                    <h2 className="font-display text-2xl font-bold mt-2">Setup Quotation Received</h2>
+                    <p className="text-sm text-muted-foreground">
+                      To activate your merchant account and access all premium dashboard tools, please pay the setup quotation amount.
+                    </p>
+                  </div>
+                  <div className="py-6 border-y border-border my-2">
+                    <span className="text-sm text-muted-foreground block">Amount Due</span>
+                    <span className="text-4xl font-extrabold text-primary">{formatCurrency(user.quotationAmount || 0)}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>✅ Enforced 5 maximum event slots</p>
+                    <p>✅ Enforced 5 maximum service slots</p>
+                    <p>✅ Unlimited customer booking receipts</p>
+                  </div>
+                </div>
+
+                {/* Checkout Card Form */}
+                <div className="md:col-span-3 rounded-2xl border border-border bg-card p-6 sm:p-8 space-y-6 shadow-lg">
+                  <div>
+                    <h3 className="font-display font-bold text-lg flex items-center gap-2">
+                      <CreditCard className="h-5 w-5 text-primary" /> Dummy Card Payment
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">This is a simulated secure transaction for demonstration purposes.</p>
+                  </div>
+
+                  <form onSubmit={handlePayOnboardingSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="cardNumber">Card Number</Label>
+                      <Input
+                        id="cardNumber"
+                        required
+                        placeholder="4111 2222 3333 4444"
+                        value={cardNumber}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+                          const matches = val.match(/\d{4,16}/g);
+                          const match = (matches && matches[0]) || "";
+                          const parts = [];
+                          for (let i = 0, len = match.length; i < len; i += 4) {
+                            parts.push(match.substring(i, i + 4));
+                          }
+                          setCardNumber(parts.length ? parts.join(" ") : val);
+                        }}
+                        maxLength={19}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="expiryDate">Expiry Date</Label>
+                        <Input
+                          id="expiryDate"
+                          required
+                          placeholder="MM/YY"
+                          value={expiryDate}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+                            setExpiryDate(val.length >= 2 ? val.substring(0, 2) + "/" + val.substring(2, 4) : val);
+                          }}
+                          maxLength={5}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="cvv">CVV</Label>
+                        <Input
+                          id="cvv"
+                          required
+                          placeholder="123"
+                          type="password"
+                          value={cvv}
+                          onChange={(e) => setCvv(e.target.value.replace(/[^0-9]/g, ""))}
+                          maxLength={3}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cardholderName">Cardholder Name</Label>
+                      <Input
+                        id="cardholderName"
+                        required
+                        placeholder="John Doe"
+                        value={cardholderName}
+                        onChange={(e) => setCardholderName(e.target.value)}
+                      />
+                    </div>
+
+                    <Button type="submit" disabled={paymentLoading} className="w-full bg-gradient-primary text-white font-semibold">
+                      {paymentLoading ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing Payment...</>
+                      ) : (
+                        `Pay ${formatCurrency(user.quotationAmount || 0)} & Activate`
+                      )}
+                    </Button>
+                  </form>
+                </div>
+              </motion.div>
+            )}
+
+            {/* STEP 4: Paid / Awaiting Approval */}
+            {mStatus === "paid" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl border border-border bg-card p-8 text-center space-y-6 shadow-lg py-12">
+                <div className="mx-auto w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center border border-green-500/20">
+                  <CheckCircle2 className="h-8 w-8 text-green-500 animate-bounce" />
+                </div>
+                <div className="space-y-2 max-w-md mx-auto">
+                  <h2 className="font-display text-xl font-bold">Payment Verified</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Thank you! Your payment of <strong>{formatCurrency(user.quotationAmount || 0)}</strong> has been processed successfully.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Our admin team is now performing final checks to activate your dashboard. We appreciate your patience!
+                  </p>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-secondary/80 text-xs font-semibold text-muted-foreground border border-border">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> Waiting for Admin Activation
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        </section>
+      </MerchantLayout>
+    );
+  }
 
   return (
     <MerchantLayout>
@@ -292,6 +813,73 @@ const MerchantDashboard = () => {
                 Merchant <span className="text-gradient">Dashboard</span>
               </h1>
               <p className="mt-1 text-muted-foreground">Manage your assigned bookings and track performance</p>
+            </div>
+          </motion.div>
+
+          {/* Pending Upgrade Quotations Alert Banner */}
+          {tickets.filter(t => t.status === "quotation_sent").map((ticket: any) => (
+            <motion.div 
+              key={ticket._id}
+              initial={{ opacity: 0, y: -10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              className="mt-6 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0 animate-pulse" />
+                <div>
+                  <h4 className="font-semibold text-sm text-yellow-600 dark:text-yellow-400">Action Required: Slot Upgrade Quotation Received</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Admin quoted <strong className="text-primary">{formatCurrency(ticket.quotationAmount)}</strong> to add +{ticket.requestedEvents} Events and +{ticket.requestedServices} Services.
+                  </p>
+                </div>
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => {
+                  setSelectedTicketForPayment(ticket);
+                  setCardNumber("");
+                  setCardholderName("");
+                  setExpiryDate("");
+                  setCvv("");
+                  setIsPayTicketModalOpen(true);
+                }} 
+                className="bg-gradient-primary text-white font-bold whitespace-nowrap"
+              >
+                Pay {formatCurrency(ticket.quotationAmount)} Now
+              </Button>
+            </motion.div>
+          ))}
+
+          {/* Account Limits Card */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-6 p-5 rounded-xl border border-border bg-card shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="font-display font-bold text-lg flex items-center gap-2">
+                  <Ticket className="h-5 w-5 text-primary" /> Event & Service Slots
+                </h3>
+                <p className="text-xs text-muted-foreground">Monitor and manage your listing slots. Need more? Raise a ticket.</p>
+                <div className="flex gap-6 mt-3">
+                  <div className="p-3 bg-secondary/50 rounded-lg border border-border/30 min-w-[120px]">
+                    <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Events List Limit</span>
+                    <span className="text-lg font-extrabold text-foreground">{events.length} <span className="text-xs font-normal text-muted-foreground">/ {user?.maxEvents || 5} slots</span></span>
+                  </div>
+                  <div className="p-3 bg-secondary/50 rounded-lg border border-border/30 min-w-[120px]">
+                    <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Services List Limit</span>
+                    <span className="text-lg font-extrabold text-foreground">{services.length} <span className="text-xs font-normal text-muted-foreground">/ {user?.maxServices || 5} slots</span></span>
+                  </div>
+                </div>
+              </div>
+              <Button 
+                onClick={() => {
+                  setRequestedEvents(5);
+                  setRequestedServices(5);
+                  setTicketMessage("");
+                  setIsUpgradeModalOpen(true);
+                }} 
+                className="bg-gradient-primary text-primary-foreground hover:opacity-90 self-start sm:self-center"
+              >
+                Raise Slots Upgrade Ticket
+              </Button>
             </div>
           </motion.div>
 
@@ -1207,8 +1795,305 @@ const MerchantDashboard = () => {
               </div>
             )}
           </motion.div>
+
+          {/* Slots Upgrade Request Tickets History */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }} className="mt-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-display text-sm sm:text-2xl font-bold flex items-center gap-2">
+                <Ticket className="h-5 w-5 text-indigo-500" /> Slots Upgrade Request Tickets
+              </h2>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-6">
+              {tickets.length === 0 ? (
+                <p className="text-center text-muted-foreground py-6 text-sm">No upgrade request tickets raised yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {tickets.map((t: any) => (
+                    <div key={t._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-secondary/50 border border-border/50 gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-sm">Request: +{t.requestedEvents} Events, +{t.requestedServices} Services</span>
+                          <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium border ${
+                            t.status === "approved" ? "bg-green-500/10 text-green-500 border-green-500/20"
+                            : t.status === "paid" ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                            : t.status === "quotation_sent" ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                            : "bg-secondary text-muted-foreground border-border"
+                          }`}>
+                            {t.status === "approved" ? "Approved & Upgraded" 
+                            : t.status === "paid" ? "Paid - Awaiting Approval"
+                            : t.status === "quotation_sent" ? "Quotation Sent"
+                            : "Pending Review"}
+                          </span>
+                        </div>
+                        {t.message && <p className="text-xs text-muted-foreground mt-1">Message: "{t.message}"</p>}
+                        <p className="text-[10px] text-muted-foreground/80 mt-1">Requested on {new Date(t.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {t.status === "quotation_sent" && (
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-sm text-primary">Quote: {formatCurrency(t.quotationAmount)}</span>
+                            <Button 
+                              size="sm" 
+                              onClick={() => {
+                                setSelectedTicketForPayment(t);
+                                setCardNumber("");
+                                setCardholderName("");
+                                setExpiryDate("");
+                                setCvv("");
+                                setIsPayTicketModalOpen(true);
+                              }} 
+                              className="bg-gradient-primary text-white"
+                            >
+                              Pay Now
+                            </Button>
+                          </div>
+                        )}
+                        {t.status === "paid" && (
+                          <span className="text-xs font-semibold text-green-500">Paid: {formatCurrency(t.quotationAmount)}</span>
+                        )}
+                        {t.status === "approved" && (
+                          <span className="text-xs font-semibold text-green-600">Upgrade Completed</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Billing & Payments History */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }} className="mt-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-display text-sm sm:text-2xl font-bold flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-500" /> Billing & Payments History
+              </h2>
+            </div>
+            <div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
+              <table className="w-full text-sm min-w-[600px]">
+                <thead>
+                  <tr className="border-b border-border bg-secondary/50">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Description</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Payment Date</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Amount Paid</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const billingHistory: any[] = [];
+                    // 1. Setup Onboarding Payment (if paid or active)
+                    if (user?.merchantStatus === "active" || user?.merchantStatus === "paid") {
+                      billingHistory.push({
+                        id: "setup-fee",
+                        date: user.updatedAt || user.createdAt,
+                        description: "Onboarding Account Setup Fee",
+                        amount: user.quotationAmount || 0,
+                        status: user.merchantStatus === "active" ? "Activated" : "Paid (Awaiting Activation)",
+                        statusColor: user.merchantStatus === "active" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-purple-500/10 text-purple-600 border-purple-500/20"
+                      });
+                    }
+
+                    // 2. Ticket Payments
+                    tickets.forEach((t: any) => {
+                      if (t.status === "paid" || t.status === "approved") {
+                        billingHistory.push({
+                          id: t._id,
+                          date: t.updatedAt || t.createdAt,
+                          description: `Limit Upgrade (+${t.requestedEvents} Events, +${t.requestedServices} Services)`,
+                          amount: t.quotationAmount || 0,
+                          status: t.status === "approved" ? "Approved & Upgraded" : "Paid (Awaiting Approval)",
+                          statusColor: t.status === "approved" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                        });
+                      }
+                    });
+
+                    // Sort descending
+                    billingHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                    if (billingHistory.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No payment history found</td>
+                        </tr>
+                      );
+                    }
+
+                    return billingHistory.map(row => (
+                      <tr key={row.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+                        <td className="px-4 py-3 align-middle font-medium">{row.description}</td>
+                        <td className="px-4 py-3 align-middle text-muted-foreground">
+                          {new Date(row.date).toLocaleDateString()} {new Date(row.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td className="px-4 py-3 align-middle font-bold text-primary">{formatCurrency(row.amount)}</td>
+                        <td className="px-4 py-3 align-middle text-right">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${row.statusColor}`}>
+                            {row.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
         </div>
       </section>
+
+      {/* Upgrade Slots Ticket Modal */}
+      <Dialog open={isUpgradeModalOpen} onOpenChange={setIsUpgradeModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Ticket className="h-5 w-5 text-indigo-500" /> Raise Upgrade Ticket
+            </DialogTitle>
+            <DialogDescription>
+              Request additional slots for events and services from the platform administrator.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleRaiseTicketSubmit} className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="reqEvents">Additional Event Slots</Label>
+                <Input
+                  id="reqEvents"
+                  type="text"
+                  required
+                  value={requestedEvents}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, "");
+                    setRequestedEvents(Number(val.slice(0, 3))); // max 3 digits
+                  }}
+                />
+                <p className="text-[10px] text-muted-foreground">Up to 100 slots</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reqServices">Additional Service Slots</Label>
+                <Input
+                  id="reqServices"
+                  type="text"
+                  required
+                  value={requestedServices}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, "");
+                    setRequestedServices(Number(val.slice(0, 3))); // max 3 digits
+                  }}
+                />
+                <p className="text-[10px] text-muted-foreground">Up to 100 slots</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ticketMsg">Explanation Message (Optional)</Label>
+              <Textarea
+                id="ticketMsg"
+                maxLength={300}
+                placeholder="Why do you need more slots? e.g. Scaling up, high season demand."
+                value={ticketMessage}
+                onChange={(e) => setTicketMessage(e.target.value)}
+              />
+              <p className="text-[10px] text-muted-foreground text-right">{ticketMessage.length}/300 characters</p>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsUpgradeModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submittingTicket} className="bg-gradient-primary text-white">
+                {submittingTicket ? "Raising Ticket..." : "Submit Upgrade Request"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pay Ticket Modal */}
+      <Dialog open={isPayTicketModalOpen} onOpenChange={setIsPayTicketModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-primary" /> Pay Slot Upgrade Quotation
+            </DialogTitle>
+            <DialogDescription>
+              Card details simulation to pay for the slot upgrade request.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedTicketForPayment && (
+            <form onSubmit={handlePayTicketSubmit} className="space-y-4 py-2">
+              <div className="p-3 bg-secondary/30 rounded-lg text-xs space-y-1 mb-2 border border-border">
+                <p className="font-semibold text-foreground">Upgrade Details:</p>
+                <p>Requested: +{selectedTicketForPayment.requestedEvents} Events, +{selectedTicketForPayment.requestedServices} Services</p>
+                <p className="text-sm font-bold text-primary mt-1">Amount Due: {formatCurrency(selectedTicketForPayment.quotationAmount)}</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ticketCardNumber">Card Number</Label>
+                <Input
+                  id="ticketCardNumber"
+                  required
+                  placeholder="4111 2222 3333 4444"
+                  value={cardNumber}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+                    const matches = val.match(/\d{4,16}/g);
+                    const match = (matches && matches[0]) || "";
+                    const parts = [];
+                    for (let i = 0, len = match.length; i < len; i += 4) {
+                      parts.push(match.substring(i, i + 4));
+                    }
+                    setCardNumber(parts.length ? parts.join(" ") : val);
+                  }}
+                  maxLength={19}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ticketExpiry">Expiry Date</Label>
+                  <Input
+                    id="ticketExpiry"
+                    required
+                    placeholder="MM/YY"
+                    value={expiryDate}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+                      setExpiryDate(val.length >= 2 ? val.substring(0, 2) + "/" + val.substring(2, 4) : val);
+                    }}
+                    maxLength={5}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ticketCvv">CVV</Label>
+                  <Input
+                    id="ticketCvv"
+                    required
+                    placeholder="123"
+                    type="password"
+                    value={cvv}
+                    onChange={(e) => setCvv(e.target.value.replace(/[^0-9]/g, ""))}
+                    maxLength={3}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ticketCardholder">Cardholder Name</Label>
+                <Input
+                  id="ticketCardholder"
+                  required
+                  placeholder="John Doe"
+                  value={cardholderName}
+                  onChange={(e) => setCardholderName(e.target.value)}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsPayTicketModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={paymentLoading} className="bg-gradient-primary text-white">
+                  {paymentLoading ? "Processing Payment..." : `Pay ${formatCurrency(selectedTicketForPayment.quotationAmount)}`}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </MerchantLayout>
   );
 }

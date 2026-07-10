@@ -4,13 +4,7 @@ import { ArrowRight, Users, Award, Globe, Heart } from "lucide-react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { STATIC_IMAGES } from "@/lib/staticImages";
-
-const stats = [
-  { value: "1,800+", label: "Events Hosted" },
-  { value: "50K+", label: "Happy Attendees" },
-  { value: "340+", label: "Trusted Merchants" },
-  { value: "12+", label: "Years Experience" },
-];
+import { useHomepageSettings } from "@/hooks/useHomepageSettings";
 
 const values = [
   {
@@ -62,33 +56,58 @@ const team = [
   },
 ];
 
-const AboutUs = () => (
-  <Layout>
-    {/* ── Hero ─────────────────────────────────────── */}
-    <section className="relative isolate overflow-hidden">
-      {/* Background image — lighter overlay so it's clearly visible */}
-      <img
-        src={STATIC_IMAGES.aboutHero}
-        alt="Elegant event management team coordinating a luxury celebration"
-        className="h-[75vh] w-full object-cover"
-        loading="eager"
-      />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
-      <div className="absolute inset-0 flex items-center">
-        <div className="container mx-auto">
-          <motion.div
-            initial={{ opacity: 0, x: -40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7 }}
-            className="max-w-xl"
-          >
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">About Us</p>
-            <h1 className="mt-4 font-display text-lg sm:text-2xl font-bold leading-tight text-white sm:text-5xl md:text-6xl">
-              We build <span className="text-primary">unforgettable</span> event experiences
-            </h1>
-            <p className="mt-5 text-lg text-white/75">
-              JoyEvents brings strategy, hospitality, production, and design together so every celebration feels effortless, premium, and deeply memorable.
-            </p>
+const AboutUs = () => {
+  const settings = useHomepageSettings();
+  const stats = [
+    { value: settings.eventsCount, label: "Events Hosted" },
+    { value: settings.attendeesCount, label: "Happy Attendees" },
+    { value: settings.merchantsCount, label: "Trusted Merchants" },
+    { value: settings.aboutExperience, label: "Years Experience" },
+  ];
+
+  return (
+    <Layout>
+      {/* ── Hero ─────────────────────────────────────── */}
+      <section className="relative isolate overflow-hidden">
+        {/* Background image — lighter overlay so it's clearly visible */}
+        <img
+          src={STATIC_IMAGES.aboutHero}
+          alt="Elegant event management team coordinating a luxury celebration"
+          className="h-[75vh] w-full object-cover"
+          loading="eager"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+        <div className="absolute inset-0 flex items-center">
+          <div className="container mx-auto">
+            <motion.div
+              initial={{ opacity: 0, x: -40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7 }}
+              className="max-w-xl"
+            >
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">About Us</p>
+              <h1 className="mt-4 font-display text-lg sm:text-2xl font-bold leading-tight text-white sm:text-5xl md:text-6xl">
+                {(() => {
+                  const parts = settings.aboutTitle.split(" ");
+                  if (parts.length >= 2) {
+                    const middleIndex = Math.floor(parts.length / 2);
+                    const before = parts.slice(0, middleIndex).join(" ");
+                    const middle = parts[middleIndex];
+                    const after = parts.slice(middleIndex + 1).join(" ");
+                    return (
+                      <>
+                        {before}{" "}
+                        <span className="text-primary">{middle}</span>
+                        {after ? ` ${after}` : ""}
+                      </>
+                    );
+                  }
+                  return settings.aboutTitle;
+                })()}
+              </h1>
+              <p className="mt-5 text-lg text-white/75">
+                {settings.aboutSubtitle}
+              </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to="/portfolio">
                 <Button className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90">
@@ -319,7 +338,8 @@ const AboutUs = () => (
       </motion.div>
     </section>
   </Layout>
-);
+  );
+};
 
 export default AboutUs;
 

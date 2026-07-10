@@ -9,8 +9,15 @@ export async function verifyToken(req, res, next) {
     const secret = process.env.JWT_SECRET;
     if (!secret) return res.status(500).json({ error: "JWT secret not configured" });
     const payload = jwt.verify(token, secret);
-    const user = await User.findById(payload.sub).select("_id name email role");
+    const user = await User.findById(payload.sub).select("_id name email role status mobile merchantStatus merchantDetails quotationAmount maxEvents maxServices");
     if (!user) return res.status(401).json({ error: "Unauthorized" });
+    if (user.role === "merchant" && !user.merchantStatus) {
+      if (user.merchantDetails && user.merchantDetails.businessName) {
+        user.merchantStatus = user.quotationAmount > 0 ? "quotation_sent" : "details_submitted";
+      } else {
+        user.merchantStatus = "details_pending";
+      }
+    }
     req.user = user;
     next();
   } catch (err) {

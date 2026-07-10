@@ -1,10 +1,11 @@
 import { Calendar, Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
-import { usePlatformName, useSupportEmail } from "@/hooks/usePlatformName";
+import { usePlatformName } from "@/hooks/usePlatformName";
+import { useHomepageSettings } from "@/hooks/useHomepageSettings";
 
 const Footer = () => {
   const platformName = usePlatformName();
-  const supportEmail = useSupportEmail();
+  const settings = useHomepageSettings();
   return (
   <footer className="border-t border-border bg-secondary/50 py-6 sm:py-12 w-full">
     <div className="w-full px-4 sm:px-6 lg:px-14 xl:px-20">
@@ -43,9 +44,9 @@ const Footer = () => {
         <div>
           <h4 className="mb-2 sm:mb-3 font-display text-xs sm:text-sm font-semibold">Contact</h4>
           <div className="flex flex-col gap-1 sm:gap-2 text-[11px] sm:text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5"><Mail className="h-3 w-3 shrink-0" /> <span className="truncate">{supportEmail}</span></span>
-            <span className="flex items-center gap-1.5"><Phone className="h-3 w-3 shrink-0" /> +91 98765 43210</span>
-            <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3 shrink-0" /> Mumbai, India</span>
+            <span className="flex items-center gap-1.5"><Mail className="h-3 w-3 shrink-0" /> <span className="truncate">{settings.contactEmail}</span></span>
+            <span className="flex items-center gap-1.5"><Phone className="h-3 w-3 shrink-0" /> {settings.contactPhone}</span>
+            <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3 shrink-0" /> {settings.contactAddress}</span>
           </div>
         </div>
       </div>

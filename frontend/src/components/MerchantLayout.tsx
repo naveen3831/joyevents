@@ -2,9 +2,24 @@ import { ReactNode, useState } from "react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import MerchantSidebar from "./MerchantSidebar";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLocation, Navigate } from "react-router-dom";
 
 const MerchantLayout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user } = useAuth() as any;
+  const location = useLocation();
+
+  const isMerchantActive = !user || user.merchantStatus === "active";
+  const allowedPaths = [
+    "/merchant-dashboard",
+    "/merchant-dashboard/profile",
+    "/merchant-dashboard/settings"
+  ];
+
+  if (user && !isMerchantActive && !allowedPaths.includes(location.pathname)) {
+    return <Navigate to="/merchant-dashboard" replace />;
+  }
 
   return (
     <div className="min-h-screen w-full flex flex-col">
