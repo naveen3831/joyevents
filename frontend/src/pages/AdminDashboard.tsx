@@ -140,7 +140,7 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                     <button 
-                      onClick={() => window.location.href = "/admin-dashboard/users?tab=tickets"}
+                      onClick={() => window.location.href = "/admin-dashboard/users?tab=tickets&action=approve"}
                       className="bg-green-600 hover:bg-green-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors"
                     >
                       Review & Approve

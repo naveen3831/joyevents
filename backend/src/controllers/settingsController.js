@@ -151,7 +151,13 @@ export const getHomepageSettings = async (_req, res) => {
       aboutExperience: "12+",
       portfolioTitle: "A portfolio shaped by atmosphere, scale, and detail",
       portfolioSubtitle: "Explore the types of experiences we deliver across corporate productions, luxury celebrations, and high-impact event launches.",
-      portfolioCategories: "12+"
+      portfolioCategories: "12+",
+      heroImage: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1600&q=80",
+      eventsImage: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=1600&q=80",
+      servicesImage: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=900&q=80",
+      aboutImage: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=900&q=80",
+      portfolioImage: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=900&q=80",
+      contactImage: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=900&q=80"
     };
     const settings = parseJsonSetting(doc, fallback);
     res.json(settings);
@@ -178,7 +184,13 @@ export const saveHomepageSettings = async (req, res) => {
     aboutExperience,
     portfolioTitle,
     portfolioSubtitle,
-    portfolioCategories
+    portfolioCategories,
+    heroImage,
+    eventsImage,
+    servicesImage,
+    aboutImage,
+    portfolioImage,
+    contactImage
   } = req.body || {};
 
   // Simple field validation & sanitization
@@ -197,7 +209,13 @@ export const saveHomepageSettings = async (req, res) => {
     aboutExperience: String(aboutExperience || "12+").trim().slice(0, 20),
     portfolioTitle: String(portfolioTitle || "A portfolio shaped by atmosphere, scale, and detail").trim().slice(0, 100),
     portfolioSubtitle: String(portfolioSubtitle || "").trim().slice(0, 500),
-    portfolioCategories: String(portfolioCategories || "12+").trim().slice(0, 20)
+    portfolioCategories: String(portfolioCategories || "12+").trim().slice(0, 20),
+    heroImage: String(heroImage || "").trim().slice(0, 500),
+    eventsImage: String(eventsImage || "").trim().slice(0, 500),
+    servicesImage: String(servicesImage || "").trim().slice(0, 500),
+    aboutImage: String(aboutImage || "").trim().slice(0, 500),
+    portfolioImage: String(portfolioImage || "").trim().slice(0, 500),
+    contactImage: String(contactImage || "").trim().slice(0, 500)
   };
 
   if (settings.contactEmail) {

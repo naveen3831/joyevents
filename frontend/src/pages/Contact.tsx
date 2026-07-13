@@ -195,7 +195,7 @@ const Contact = () => {
             {/* Second image - placed below contact info */}
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }} className="relative mt-8 overflow-hidden rounded-3xl shadow-2xl">
               <img
-                src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=900&q=80"
+                src={settings.contactImage || "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=900&q=80"}
                 alt="Our team ready to assist"
                 className="h-[320px] w-full object-cover"
               />

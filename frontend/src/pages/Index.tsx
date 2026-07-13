@@ -195,7 +195,7 @@ const Index = () => {
     <Layout>
       {/* Hero — same proportions as Portfolio page (75vh, content overlaid) */}
       <section className="relative isolate overflow-hidden">
-        <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1600&q=80" alt="Event celebration" className="h-[55vh] min-h-[320px] w-full object-cover sm:h-[60vh] md:h-[65vh] lg:h-[75vh]" loading="eager" />
+        <img src={settings.heroImage || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1600&q=80"} alt="Event celebration" className="h-[55vh] min-h-[320px] w-full object-cover sm:h-[60vh] md:h-[65vh] lg:h-[75vh]" loading="eager" />
         <div className="absolute inset-0 bg-black/55" />
         <div className="absolute inset-0" style={{ background: "var(--gradient-glow)" }} />
         <div className="absolute inset-0 flex items-center">
@@ -547,7 +547,7 @@ const Index = () => {
                       <h3 className="font-semibold text-sm sm:text-base line-clamp-2 leading-tight group-hover:text-primary transition-colors mb-1.5 sm:mb-2 min-h-[2.5rem]">
                         {svc.name}
                       </h3>
-                      
+
                       {svc.createdBy && (
                         <p className="text-[10px] sm:text-xs text-muted-foreground mb-3 flex-shrink-0">
                           Provider: <span className="text-primary font-medium">{svc.createdBy.name}</span>

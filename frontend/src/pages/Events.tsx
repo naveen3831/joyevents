@@ -15,8 +15,10 @@ import { toast } from "sonner";
 import { apiListEvents, apiListCategories, apiGetFavorites, apiAddFavorite, apiRemoveFavorite, apiGetAllPromoCodes } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import ManageCategoriesModal from "@/components/ManageCategoriesModal";
+import { useHomepageSettings } from "@/hooks/useHomepageSettings";
 
 const Events = () => {
+  const settings = useHomepageSettings();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState(searchParams.get("category") || "All");
@@ -38,7 +40,7 @@ const Events = () => {
 
   useEffect(() => {
     loadEvents();
-    
+
     // Real-time polling — silent update every 5s, no loading flash
     const pollInterval = setInterval(async () => {
       try {
@@ -53,12 +55,12 @@ const Events = () => {
         // silently ignore polling errors
       }
     }, 5000);
-    
+
     const handleEventUpdate = () => loadEvents();
     window.addEventListener('eventUpdated', handleEventUpdate);
     window.addEventListener('eventCreated', handleEventUpdate);
     window.addEventListener('globalEventUpdate', handleEventUpdate);
-    
+
     return () => {
       clearInterval(pollInterval);
       window.removeEventListener('eventUpdated', handleEventUpdate);
@@ -119,7 +121,7 @@ const Events = () => {
         });
         setFavMap(map);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [isLoggedIn, token, role]);
 
   const handleToggleFavorite = async (event: any) => {
@@ -207,7 +209,7 @@ const Events = () => {
       {/* Hero Banner */}
       <section className="relative isolate overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=1600&q=80"
+          src={settings.eventsImage || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=1600&q=80"}
           alt="Browse Events"
           className="h-[75vh] w-full object-cover"
           loading="eager"

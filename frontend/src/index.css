@@ -227,13 +227,16 @@
     width: 6px;
     height: 6px;
   }
+
   ::-webkit-scrollbar-track {
     background: transparent;
   }
+
   ::-webkit-scrollbar-thumb {
     background: hsl(var(--border) / 0.8);
     border-radius: 9999px;
   }
+
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--primary) / 0.8);
   }
@@ -245,7 +248,9 @@
   }
 
   /* Forms compatibility resets for Safari/Firefox */
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     font-family: inherit;
     -webkit-tap-highlight-color: transparent;
   }

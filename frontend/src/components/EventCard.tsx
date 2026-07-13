@@ -32,7 +32,7 @@ const EventCard = ({ event, index = 0, onBookNow, onViewDetails, onImageClick, i
         localStorage.removeItem(PENDING_CONTACT_KEY);
         setShowContact(true);
       }
-    } catch {}
+    } catch { }
   }, [isLoggedIn, event._id]);
 
   const handleContactClick = () => {
@@ -157,11 +157,10 @@ const EventCard = ({ event, index = 0, onBookNow, onViewDetails, onImageClick, i
               <button
                 onClick={() => onBookNow(event)}
                 disabled={event.live || allSoldOut}
-                className={`w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold transition-all ${
-                  event.live || allSoldOut
-                    ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
-                    : "bg-gradient-primary text-primary-foreground hover:opacity-90"
-                }`}
+                className={`w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold transition-all ${event.live || allSoldOut
+                  ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                  : "bg-gradient-primary text-primary-foreground hover:opacity-90"
+                  }`}
               >
                 {event.live ? "Live — View Only" : allSoldOut ? "Sold Out" : "Book Now"}
               </button>

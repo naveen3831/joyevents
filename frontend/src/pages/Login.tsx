@@ -44,6 +44,15 @@ const Login = () => {
     }
   }, [isLoggedIn, role, navigate, redirectParam]);
 
+  // Show error if redirected due to deactivation
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam === "deactivated") {
+      toast.error("Your account has been deactivated. Please contact the administrator.");
+      navigate("/login", { replace: true });
+    }
+  }, [location.search, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formErr = validateLoginForm(email, password);

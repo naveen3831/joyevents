@@ -10,6 +10,28 @@ import { Loader2 } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ScrollToTop from "@/components/ScrollToTop";
 
+// Global fetch interceptor to handle account deactivation instantly
+const originalFetch = window.fetch;
+window.fetch = async (...args) => {
+  const res = await originalFetch(...args);
+  if (res.status === 403) {
+    const clone = res.clone();
+    try {
+      const data = await clone.json();
+      if (data?.error && (data.error.includes("deactivated") || data.error.includes("contact the administrator"))) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("role");
+        sessionStorage.clear();
+        window.location.href = "/login?error=deactivated";
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+  }
+  return res;
+};
+
 // Lazy load all page components for better performance
 const Index = lazy(() => import("./pages/Index"));
 const Events = lazy(() => import("./pages/Events"));
@@ -28,6 +50,7 @@ const MerchantServices = lazy(() => import("./pages/MerchantServices"));
 const MerchantLiveEvents = lazy(() => import("./pages/MerchantLiveEvents"));
 const TicketValidation = lazy(() => import("./pages/TicketValidation"));
 const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
+const AdminEarnings = lazy(() => import("./pages/admin/AdminEarnings"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminEvents = lazy(() => import("./pages/admin/AdminEvents"));
 const AdminMetrics = lazy(() => import("./pages/admin/AdminMetrics"));
@@ -163,6 +186,7 @@ const AppRoutes = () => {
         <Route path="/admin-dashboard/refunds" element={<ProtectedRoute allowedRoles={["admin"]}><AdminRefunds /></ProtectedRoute>} />
         <Route path="/admin-dashboard/payouts" element={<ProtectedRoute allowedRoles={["admin"]}><AdminPayouts /></ProtectedRoute>} />
         <Route path="/admin-dashboard/bookings" element={<ProtectedRoute allowedRoles={["admin"]}><AdminBookings /></ProtectedRoute>} />
+        <Route path="/admin-dashboard/earnings" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEarnings /></ProtectedRoute>} />
         <Route path="/admin-dashboard/reports" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReports /></ProtectedRoute>} />
         <Route path="/admin-dashboard/ai-recommendations" element={<ProtectedRoute allowedRoles={["admin"]}><AdminRecommendations /></ProtectedRoute>} />
         <Route path="/create-event" element={<ProtectedRoute allowedRoles={["merchant"]}><CreateEvent /></ProtectedRoute>} />

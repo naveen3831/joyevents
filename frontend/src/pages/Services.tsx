@@ -36,7 +36,10 @@ const PROCESS = [
   { step: "04", title: "Event Day", desc: "Relax and enjoy — our professionals handle every detail on the day." },
 ];
 
+import { useHomepageSettings } from "@/hooks/useHomepageSettings";
+
 const Services = () => {
+  const settings = useHomepageSettings();
   const { isLoggedIn, role, token } = useAuth() as any;
   const navigate = useNavigate();
 
@@ -294,7 +297,7 @@ const Services = () => {
     <Layout>
       {/* ── Hero ─────────────────────────────────────── */}
       <section className="relative isolate overflow-hidden">
-        <img src={STATIC_IMAGES.servicesHero} alt="Our Services" className="h-[75vh] w-full object-cover" loading="eager" />
+        <img src={settings.servicesImage || STATIC_IMAGES.servicesHero} alt="Our Services" className="h-[75vh] w-full object-cover" loading="eager" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
         <div className="absolute inset-0 flex items-center">
           <div className="container mx-auto">

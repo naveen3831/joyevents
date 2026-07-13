@@ -29,6 +29,7 @@ const links: any[] = [
       { to: "/admin-dashboard/commissions", label: "Commissions",  icon: Calculator },
       { to: "/admin-dashboard/refunds",     label: "Refunds",      icon: RefreshCcw },
       { to: "/admin-dashboard/payouts",     label: "Payouts",      icon: Wallet },
+      { to: "/admin-dashboard/earnings",    label: "Admin Earnings", icon: DollarSign },
     ]
   },
   { to: "/admin-dashboard/reports",             label: "Reports & Analytics", icon: BarChart3 },
@@ -106,7 +107,7 @@ const AdminSidebar = ({ open, onClose, onToggle }: AdminSidebarProps) => {
     {/* Hamburger toggle — hidden on mobile (Navbar handles it), visible on sm+ */}
     <button
       onClick={onToggle}
-      className="hidden sm:flex fixed top-[4.25rem] left-3 z-50 items-center justify-center w-9 h-9 rounded-lg bg-secondary border border-border hover:bg-secondary/80 transition-colors shadow-sm"
+      className="hidden sm:flex fixed top-[5.25rem] left-3 z-50 items-center justify-center w-9 h-9 rounded-lg bg-secondary border border-border hover:bg-secondary/80 transition-colors shadow-sm"
       aria-label="Toggle menu"
     >
       {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -127,7 +128,7 @@ const AdminSidebar = ({ open, onClose, onToggle }: AdminSidebarProps) => {
         <motion.aside
           initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
           transition={{ type: "spring", damping: 28, stiffness: 220 }}
-          className="fixed top-16 left-0 bottom-0 w-64 bg-card border-r border-border z-50 flex flex-col shadow-2xl"
+          className="fixed top-20 left-0 bottom-0 w-64 bg-card border-r border-border z-50 flex flex-col shadow-2xl"
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <span className="font-display text-sm font-bold text-gradient">Admin Menu</span>

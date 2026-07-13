@@ -35,14 +35,24 @@ const getTransporter = () => {
   const { user, pass, host, port, secure } = getSmtpConfig();
   if (!user || !pass) return null;
 
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure,
+  const options = {
     auth: { user, pass },
-    tls: { minVersion: "TLSv1.2" },
-    requireTLS: !secure && port === 587,
-  });
+    tls: { 
+      minVersion: "TLSv1.2",
+      rejectUnauthorized: false 
+    }
+  };
+
+  if (host.includes("gmail.com")) {
+    options.service = "gmail";
+  } else {
+    options.host = host;
+    options.port = port;
+    options.secure = secure;
+    options.requireTLS = !secure && port === 587;
+  }
+
+  return nodemailer.createTransport(options);
 };
 
 export const sendMerchantCredentials = async ({ name, email, password }) => {
@@ -52,22 +62,39 @@ export const sendMerchantCredentials = async ({ name, email, password }) => {
     return false;
   }
   const { from } = getSmtpConfig();
+  const loginUrl = `${process.env.FRONTEND_URL || "http://localhost:8080"}/login`;
   try {
     await transporter.sendMail({
       from,
       to: email,
       subject: "Welcome to JoyEvents! Your Merchant Account Created",
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #FF5A00;">Welcome, ${name}!</h2>
-          <p>Your merchant account has been successfully created by the administrator.</p>
-          <p>Here are your login credentials:</p>
-          <div style="background-color: #f4f4f4; padding: 15px; border-radius: 8px;">
-            <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Password:</strong> ${password}</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+          <div style="background: linear-gradient(135deg, #FF5A00, #FF8C00); padding: 30px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to JoyEvents!</h1>
           </div>
-          <p style="margin-top: 20px;">Please login at <a href="${process.env.FRONTEND_URL || "http://localhost:8080"}/login">JoyEvents</a> and change your password as soon as possible.</p>
-          <p>Best regards,<br>The JoyEvents Team</p>
+          <div style="padding: 30px; color: #333;">
+            <p style="font-size: 16px;">Hi <strong>${name}</strong>,</p>
+            <p style="color: #555; line-height: 1.5;">Your merchant account has been successfully created by the administrator. You can now log in to access your merchant dashboard and configure your events/services listing.</p>
+            
+            <p style="font-weight: bold; margin-top: 20px; color: #FF5A00;">Your Login Credentials:</p>
+            <div style="background-color: #f4f4f4; padding: 20px; border-radius: 8px; border-left: 4px solid #FF5A00; margin: 15px 0;">
+              <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Email Address:</strong> ${email}</p>
+              <p style="margin: 0; font-size: 14px;"><strong>Temporary Password:</strong> ${password}</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${loginUrl}" style="background: linear-gradient(135deg, #FF5A00, #FF8C00); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 10px rgba(255,90,0,0.2);">
+                Login to Your Account
+              </a>
+            </div>
+            
+            <p style="color: #888; font-size: 12px; text-align: center; margin-top: 30px;">
+              Please change your password immediately after your first login for account security.
+            </p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+            <p style="color: #aaa; font-size: 12px; text-align: center;">JoyEvents Platform</p>
+          </div>
         </div>
       `,
     });

@@ -65,8 +65,9 @@ const AdminUsers = () => {
 
   // New States for Onboarding and Ticketing Flow
   const queryParams = new URLSearchParams(window.location.search);
-  const initialTab = (queryParams.get("tab") as "users" | "tickets" | "billing") || "users";
-  const [activeTab, setActiveTab] = useState<"users" | "tickets" | "billing">(initialTab);
+  const initialTab = (queryParams.get("tab") as "users" | "registrations" | "tickets" | "billing") || "users";
+  const [activeTab, setActiveTab] = useState<"users" | "registrations" | "tickets" | "billing">(initialTab);
+  const [searchQuery, setSearchQuery] = useState("");
   const [tickets, setTickets] = useState<any[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
 
@@ -92,6 +93,18 @@ const AdminUsers = () => {
   const [ticketQuoteAmount, setTicketQuoteAmount] = useState("");
   const [isTicketQuoteDialogOpen, setIsTicketQuoteDialogOpen] = useState(false);
   const [sendingTicketQuote, setSendingTicketQuote] = useState(false);
+
+  const filteredUsers = users.filter((u) => {
+    const matchesSearch = searchQuery === "" ||
+      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.mobile && u.mobile.includes(searchQuery));
+
+    if (activeTab === "registrations") {
+      return matchesSearch && u.role === "merchant" && (u.merchantStatus === "details_submitted" || u.merchantStatus === "paid");
+    }
+    return matchesSearch;
+  });
 
   const loadUsers = async () => {
     if (!token) return;
@@ -122,6 +135,18 @@ const AdminUsers = () => {
       loadTickets();
     }
   }, [token]);
+
+  useEffect(() => {
+    if (activeTab === "tickets" && queryParams.get("action") === "approve" && tickets.length > 0) {
+      const firstPaid = tickets.find(t => t.status === "paid");
+      if (firstPaid) {
+        // Clear query parameters to prevent duplicate triggers
+        const newUrl = window.location.pathname + `?tab=tickets`;
+        window.history.replaceState({ path: newUrl }, "", newUrl);
+        handleApproveTicketClick(firstPaid._id);
+      }
+    }
+  }, [tickets, activeTab]);
 
   const handleOpenCreate = () => {
     setFormState({ id: "", name: "", email: "", password: "", role: "merchant", mobile: "" });
@@ -510,7 +535,13 @@ const AdminUsers = () => {
                   </div>
                   <Button 
                     size="sm" 
-                    onClick={() => setActiveTab("tickets")}
+                    onClick={() => {
+                      setActiveTab("tickets");
+                      const firstPaid = tickets.find(t => t.status === "paid");
+                      if (firstPaid) {
+                        handleApproveTicketClick(firstPaid._id);
+                      }
+                    }}
                     className="bg-green-600 hover:bg-green-700 text-white font-semibold whitespace-nowrap"
                   >
                     Review & Approve
@@ -530,6 +561,14 @@ const AdminUsers = () => {
             }`}
           >
             All Users & Onboarding
+          </button>
+          <button 
+            onClick={() => setActiveTab("registrations")}
+            className={`font-semibold text-sm pb-2 border-b-2 transition-all ${
+              activeTab === "registrations" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Registration Requests ({users.filter(u => u.role === "merchant" && (u.merchantStatus === "details_submitted" || u.merchantStatus === "paid")).length})
           </button>
           <button 
             onClick={() => {
@@ -556,13 +595,19 @@ const AdminUsers = () => {
           </button>
         </div>
 
-        {activeTab === "users" ? (
+        {activeTab === "users" || activeTab === "registrations" ? (
           <>
             {/* Filters */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-6 flex gap-3">
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Search users..." maxLength={30} className="pl-10 bg-card border-border" />
+                <Input 
+                  placeholder="Search users..." 
+                  maxLength={30} 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-card border-border" 
+                />
               </div>
               <Button variant="outline" size="icon"><Filter className="h-4 w-4" /></Button>
             </motion.div>
@@ -583,7 +628,7 @@ const AdminUsers = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((u) => (
+                  {filteredUsers.map((u) => (
                     <tr key={u._id} className="border-b border-border hover:bg-muted/50 transition-colors">
                       <td className="px-4 py-3 align-middle font-medium">{u.name}</td>
                       <td className="px-4 py-3 align-middle text-muted-foreground">{u.email}</td>
@@ -741,9 +786,11 @@ const AdminUsers = () => {
                       </td>
                     </tr>
                   ))}
-                  {users.length === 0 && (
+                  {filteredUsers.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No users found</td>
+                      <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                        {activeTab === "registrations" ? "No pending registration requests found" : "No users found"}
+                      </td>
                     </tr>
                   )}
                 </tbody>

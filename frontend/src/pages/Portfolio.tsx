@@ -206,7 +206,7 @@ const Portfolio = () => {
           <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="relative">
             <div className="overflow-hidden rounded-3xl shadow-2xl">
               <img
-                src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=900&q=80"
+                src={settings.portfolioImage || "https://images.unsplash.com/photo-1511578314322-379afb476865?w=900&q=80"}
                 alt="Behind the scenes event setup"
                 className="h-[480px] w-full object-cover"
               />

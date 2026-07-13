@@ -11,6 +11,9 @@ export async function verifyToken(req, res, next) {
     const payload = jwt.verify(token, secret);
     const user = await User.findById(payload.sub).select("_id name email role status mobile merchantStatus merchantDetails quotationAmount maxEvents maxServices");
     if (!user) return res.status(401).json({ error: "Unauthorized" });
+    if (user.status === "deactivated") {
+      return res.status(403).json({ error: "Your account has been deactivated. Please contact the administrator." });
+    }
     if (user.role === "merchant" && !user.merchantStatus) {
       if (user.merchantDetails && user.merchantDetails.businessName) {
         user.merchantStatus = user.quotationAmount > 0 ? "quotation_sent" : "details_submitted";

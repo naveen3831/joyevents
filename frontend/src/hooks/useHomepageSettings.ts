@@ -18,7 +18,13 @@ export const DEFAULT_SETTINGS = {
   aboutExperience: "12+",
   portfolioTitle: "A portfolio shaped by atmosphere, scale, and detail",
   portfolioSubtitle: "Explore the types of experiences we deliver across corporate productions, luxury celebrations, and high-impact event launches.",
-  portfolioCategories: "12+"
+  portfolioCategories: "12+",
+  heroImage: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1600&q=80",
+  eventsImage: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=1600&q=80",
+  servicesImage: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=900&q=80",
+  aboutImage: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=900&q=80",
+  portfolioImage: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=900&q=80",
+  contactImage: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=900&q=80"
 };
 
 export const useHomepageSettings = () => {

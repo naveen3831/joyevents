@@ -33,6 +33,13 @@ const AdminHomepageSettings = () => {
   const [portfolioSubtitle, setPortfolioSubtitle] = useState("");
   const [portfolioCategories, setPortfolioCategories] = useState("");
 
+  const [heroImage, setHeroImage] = useState("");
+  const [eventsImage, setEventsImage] = useState("");
+  const [servicesImage, setServicesImage] = useState("");
+  const [aboutImage, setAboutImage] = useState("");
+  const [portfolioImage, setPortfolioImage] = useState("");
+  const [contactImage, setContactImage] = useState("");
+
   const loadSettings = async () => {
     setLoading(true);
     try {
@@ -53,6 +60,12 @@ const AdminHomepageSettings = () => {
         setPortfolioTitle(data.portfolioTitle || "");
         setPortfolioSubtitle(data.portfolioSubtitle || "");
         setPortfolioCategories(data.portfolioCategories || "");
+        setHeroImage(data.heroImage || "");
+        setEventsImage(data.eventsImage || "");
+        setServicesImage(data.servicesImage || "");
+        setAboutImage(data.aboutImage || "");
+        setPortfolioImage(data.portfolioImage || "");
+        setContactImage(data.contactImage || "");
       }
     } catch (err: any) {
       toast.error(err?.message || "Failed to load homepage settings");
@@ -84,6 +97,24 @@ const AdminHomepageSettings = () => {
       return;
     }
 
+    // Phone format validation (exactly 12 digits)
+    if (contactPhone.trim()) {
+      const phoneRegex = /^[0-9]{12}$/;
+      if (!phoneRegex.test(contactPhone.trim())) {
+        toast.error("Invalid Phone Number. Must contain exactly 12 numeric digits (no letters, spaces, or special characters).");
+        return;
+      }
+    }
+
+    // Email format validation
+    if (contactEmail.trim()) {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(contactEmail.trim())) {
+        toast.error("Invalid Support Email. Please enter a valid email address (e.g. info@joyevents.com).");
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       await apiSaveHomepageSettings({
@@ -101,7 +132,13 @@ const AdminHomepageSettings = () => {
         aboutExperience,
         portfolioTitle,
         portfolioSubtitle,
-        portfolioCategories
+        portfolioCategories,
+        heroImage,
+        eventsImage,
+        servicesImage,
+        aboutImage,
+        portfolioImage,
+        contactImage
       }, token);
       toast.success("Homepage and pages settings updated successfully!");
     } catch (err: any) {
@@ -140,7 +177,10 @@ const AdminHomepageSettings = () => {
                 </h2>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="heroTitle">Hero Title *</Label>
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="heroTitle">Hero Title *</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{heroTitle.length}/100</span>
+                    </div>
                     <Input
                       id="heroTitle"
                       required
@@ -150,7 +190,7 @@ const AdminHomepageSettings = () => {
                       placeholder="e.g. Create Unforgettable Moments"
                       className="bg-secondary"
                     />
-                    <p className="text-[10px] text-muted-foreground">The middle word will be styled with a vibrant gradient link. Max 100 characters.</p>
+                    <p className="text-[10px] text-muted-foreground">The middle word will be styled with a vibrant gradient link.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="heroSubtitle">Hero Subtitle / Description *</Label>
@@ -176,7 +216,10 @@ const AdminHomepageSettings = () => {
                 </h2>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="aboutTitle">About Us Title *</Label>
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="aboutTitle">About Us Title *</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{aboutTitle.length}/100</span>
+                    </div>
                     <Input
                       id="aboutTitle"
                       required
@@ -186,11 +229,14 @@ const AdminHomepageSettings = () => {
                       placeholder="e.g. We build unforgettable event experiences"
                       className="bg-secondary"
                     />
-                    <p className="text-[10px] text-muted-foreground">The middle word will be styled with a secondary color highlight. Max 100 characters.</p>
+                    <p className="text-[10px] text-muted-foreground">The middle word will be styled with a secondary color highlight.</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="aboutExperience">Platform Years of Experience</Label>
+                      <div className="flex justify-between items-center">
+                        <Label htmlFor="aboutExperience">Platform Years of Experience</Label>
+                        <span className="text-[10px] text-muted-foreground font-mono">{aboutExperience.length}/20</span>
+                      </div>
                       <Input
                         id="aboutExperience"
                         maxLength={20}
@@ -225,7 +271,10 @@ const AdminHomepageSettings = () => {
                 </h2>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="portfolioTitle">Portfolio Title *</Label>
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="portfolioTitle">Portfolio Title *</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{portfolioTitle.length}/100</span>
+                    </div>
                     <Input
                       id="portfolioTitle"
                       required
@@ -235,14 +284,14 @@ const AdminHomepageSettings = () => {
                       placeholder="e.g. A portfolio shaped by atmosphere, scale, and detail"
                       className="bg-secondary"
                     />
-                    <p className="text-[10px] text-muted-foreground">The middle word will be styled with a highlighted color. Max 100 characters.</p>
+                    <p className="text-[10px] text-muted-foreground">The middle word will be styled with a highlighted color.</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="portfolioCategories">Event Categories Count</Label>
                       <Input
                         id="portfolioCategories"
-                        maxLength={20}
+                        maxLength={5}
                         value={portfolioCategories}
                         onChange={(e) => setPortfolioCategories(e.target.value)}
                         placeholder="e.g. 12+"
@@ -277,10 +326,10 @@ const AdminHomepageSettings = () => {
                     <Label htmlFor="eventsCount">Events Count</Label>
                     <Input
                       id="eventsCount"
-                      maxLength={20}
+                      maxLength={5}
                       value={eventsCount}
                       onChange={(e) => setEventsCount(e.target.value)}
-                      placeholder="e.g. 1,800+"
+                      placeholder="e.g. 1,800"
                       className="bg-secondary"
                     />
                   </div>
@@ -288,7 +337,7 @@ const AdminHomepageSettings = () => {
                     <Label htmlFor="attendeesCount">Attendees Count</Label>
                     <Input
                       id="attendeesCount"
-                      maxLength={20}
+                      maxLength={5}
                       value={attendeesCount}
                       onChange={(e) => setAttendeesCount(e.target.value)}
                       placeholder="e.g. 50K+"
@@ -299,7 +348,7 @@ const AdminHomepageSettings = () => {
                     <Label htmlFor="merchantsCount">Merchants Count</Label>
                     <Input
                       id="merchantsCount"
-                      maxLength={20}
+                      maxLength={5}
                       value={merchantsCount}
                       onChange={(e) => setMerchantsCount(e.target.value)}
                       placeholder="e.g. 340+"
@@ -319,15 +368,18 @@ const AdminHomepageSettings = () => {
                     <Label htmlFor="contactPhone" className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Phone Number</Label>
                     <Input
                       id="contactPhone"
-                      maxLength={30}
+                      maxLength={12}
                       value={contactPhone}
-                      onChange={(e) => setContactPhone(e.target.value)}
-                      placeholder="e.g. +91 98765 43210"
+                      onChange={(e) => setContactPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 12))}
+                      placeholder="e.g. 919876543210"
                       className="bg-secondary"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="contactEmail" className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> Support Email</Label>
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="contactEmail" className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> Support Email</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{contactEmail.length}/50</span>
+                    </div>
                     <Input
                       id="contactEmail"
                       type="email"
@@ -341,7 +393,10 @@ const AdminHomepageSettings = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="contactAddress" className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Address / Location</Label>
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="contactAddress" className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Address / Location</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{contactAddress.length}/150</span>
+                    </div>
                     <Input
                       id="contactAddress"
                       maxLength={150}
@@ -352,13 +407,113 @@ const AdminHomepageSettings = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="contactWorkingHours" className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Business Hours</Label>
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="contactWorkingHours" className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Business Hours</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{contactWorkingHours.length}/100</span>
+                    </div>
                     <Input
                       id="contactWorkingHours"
                       maxLength={100}
                       value={contactWorkingHours}
                       onChange={(e) => setContactWorkingHours(e.target.value)}
                       placeholder="e.g. Mon–Fri, 9am–6pm IST"
+                      className="bg-secondary"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Page Images */}
+              <div className="rounded-2xl border border-border bg-card/50 backdrop-blur p-6 sm:p-8 space-y-4 shadow-lg">
+                <h2 className="font-display text-lg font-bold flex items-center gap-2 border-b border-border pb-3">
+                  <Activity className="h-5 w-5 text-purple-500" /> Page Banner & Illustration Images
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="heroImage">Home Page Hero Image URL</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{heroImage.length}/500</span>
+                    </div>
+                    <Input
+                      id="heroImage"
+                      maxLength={500}
+                      value={heroImage}
+                      onChange={(e) => setHeroImage(e.target.value)}
+                      placeholder="Enter image URL..."
+                      className="bg-secondary"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="eventsImage">Events Page Banner Image URL</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{eventsImage.length}/500</span>
+                    </div>
+                    <Input
+                      id="eventsImage"
+                      maxLength={500}
+                      value={eventsImage}
+                      onChange={(e) => setEventsImage(e.target.value)}
+                      placeholder="Enter image URL..."
+                      className="bg-secondary"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="servicesImage">Services Page Banner Image URL</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{servicesImage.length}/500</span>
+                    </div>
+                    <Input
+                      id="servicesImage"
+                      maxLength={500}
+                      value={servicesImage}
+                      onChange={(e) => setServicesImage(e.target.value)}
+                      placeholder="Enter image URL..."
+                      className="bg-secondary"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="aboutImage">About Us Illustration Image URL</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{aboutImage.length}/500</span>
+                    </div>
+                    <Input
+                      id="aboutImage"
+                      maxLength={500}
+                      value={aboutImage}
+                      onChange={(e) => setAboutImage(e.target.value)}
+                      placeholder="Enter image URL..."
+                      className="bg-secondary"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="portfolioImage">Portfolio Illustration Image URL</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{portfolioImage.length}/500</span>
+                    </div>
+                    <Input
+                      id="portfolioImage"
+                      maxLength={500}
+                      value={portfolioImage}
+                      onChange={(e) => setPortfolioImage(e.target.value)}
+                      placeholder="Enter image URL..."
+                      className="bg-secondary"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="contactImage">Contact Us Illustration Image URL</Label>
+                      <span className="text-[10px] text-muted-foreground font-mono">{contactImage.length}/500</span>
+                    </div>
+                    <Input
+                      id="contactImage"
+                      maxLength={500}
+                      value={contactImage}
+                      onChange={(e) => setContactImage(e.target.value)}
+                      placeholder="Enter image URL..."
                       className="bg-secondary"
                     />
                   </div>

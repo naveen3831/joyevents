@@ -87,6 +87,9 @@ export const login = async (req, res) => {
     if (!valid) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
+    if (user.status === "deactivated") {
+      return res.status(403).json({ error: "Your account has been deactivated. Please contact the administrator." });
+    }
     const safeUser = toSafeUser(user);
     let token;
     const secret = process.env.JWT_SECRET;
@@ -144,15 +147,24 @@ export const createUser = async (req, res) => {
     });
     const safeUser = toSafeUser(user);
 
+    let emailSent = false;
     if (assignedRole === "merchant") {
       try {
-        await sendMerchantCredentials({ name, email, password });
+        emailSent = await sendMerchantCredentials({ name, email, password });
       } catch (emailErr) {
         console.error("SMTP error sending merchant credentials:", emailErr);
       }
     }
 
-    return res.status(201).json({ user: safeUser, message: "User created successfully" });
+    return res.status(201).json({ 
+      user: safeUser, 
+      message: assignedRole === "merchant"
+        ? (emailSent 
+            ? "Merchant created successfully and welcome credentials emailed!" 
+            : "Merchant created successfully, but welcome email failed. Check SMTP configuration in .env.")
+        : "User created successfully",
+      emailSent
+    });
   } catch (err) {
     return res.status(500).json({ error: "Failed to create user" });
   }
@@ -173,7 +185,7 @@ export const onlyAdmin = (_req, res) => {
 export const listUsers = async (req, res) => {
   try {
     const users = await User.find({}, "-passwordHash").sort({ createdAt: -1 });
-    res.json({ users });
+    res.json({ users: users.map(toSafeUser) });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch users" });
   }
@@ -196,7 +208,7 @@ export const updateUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    res.json({ user });
+    res.json({ user: toSafeUser(user) });
   } catch (err) {
     res.status(500).json({ error: "Failed to update user" });
   }

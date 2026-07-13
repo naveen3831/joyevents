@@ -188,7 +188,7 @@ const AboutUs = () => {
         >
           <div className="overflow-hidden rounded-3xl shadow-2xl">
             <img
-              src="https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=900&q=80"
+              src={settings.aboutImage || "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=900&q=80"}
               alt="Our team collaborating on event details"
               className="h-[480px] w-full object-cover"
             />

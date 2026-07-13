@@ -369,17 +369,26 @@ export const approveTicket = async (req, res) => {
     ticket.status = "approved";
     await ticket.save();
 
+    const merchantId = ticket.merchant?._id || ticket.merchant;
+    if (!merchantId) {
+      return res.status(400).json({ error: "Ticket has no merchant associated with it" });
+    }
+
     // Upgrade merchant limits
-    const merchant = await User.findByIdAndUpdate(ticket.merchant, {
+    const merchant = await User.findByIdAndUpdate(merchantId, {
       $inc: {
         maxEvents: ticket.requestedEvents || 0,
         maxServices: ticket.requestedServices || 0
       }
     }, { new: true });
 
+    if (!merchant) {
+      return res.status(404).json({ error: "Merchant user not found" });
+    }
+
     // Notify merchant
     await notifyUser(
-      ticket.merchant,
+      merchantId,
       "Slot Upgrade Request Approved",
       `Your slot upgrade request has been approved! Your limits have been upgraded to ${merchant.maxEvents} events and ${merchant.maxServices} services.`,
       ticket._id,
@@ -390,6 +399,7 @@ export const approveTicket = async (req, res) => {
 
     return res.json({ ticket: updatedTicket, message: "Ticket approved and limits upgraded" });
   } catch (err) {
-    return res.status(500).json({ error: "Failed to approve ticket" });
+    console.error("Error during ticket approval:", err);
+    return res.status(500).json({ error: "Failed to approve ticket: " + err.message });
   }
 };

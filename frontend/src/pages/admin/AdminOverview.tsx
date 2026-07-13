@@ -1,16 +1,19 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
-import { Users, Calendar, Briefcase, History, Clock, CheckCircle, CheckCircle2, DollarSign, X, AlertCircle, Loader2, MapPin, ExternalLink, Video, Bell, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, Calendar, Briefcase, History, Clock, CheckCircle, CheckCircle2, DollarSign, X, AlertCircle, Loader2, MapPin, ExternalLink, Video, Bell, Star, ChevronLeft, ChevronRight, FileText, RefreshCw, AlertTriangle } from "lucide-react";
 
 import AdminLayout from "@/components/AdminLayout";
 import StatCard from "@/components/StatCard";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiListBookings, apiListUsers, apiListEvents, apiGetNotifications } from "@/lib/api";
+import { apiListBookings, apiListUsers, apiListEvents, apiGetNotifications, apiGetTickets, apiSendMerchantQuotation, apiActivateMerchant, apiSendTicketQuotation, apiApproveTicket } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import EventCard from "@/components/EventCard";
 import { Link } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const STATUS_BADGE: Record<string, string> = {
   pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
@@ -31,6 +34,29 @@ const AdminOverview = () => {
   const [historyTab, setHistoryTab] = useState<"all" | "pending" | "assigned" | "completed">("all");
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [requestTab, setRequestTab] = useState<"registrations" | "upgrades" | "refunds">("registrations");
+
+  // Onboarding action states
+  const [selectedMerchantDetails, setSelectedMerchantDetails] = useState<any | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
+  const [selectedMerchantForQuote, setSelectedMerchantForQuote] = useState<any | null>(null);
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+  const [quoteAmount, setQuoteAmount] = useState("");
+  const [sendingQuote, setSendingQuote] = useState(false);
+
+  const [selectedMerchantForActivation, setSelectedMerchantForActivation] = useState<any | null>(null);
+  const [isActivationDialogOpen, setIsActivationDialogOpen] = useState(false);
+  const [maxEvents, setMaxEvents] = useState("5");
+  const [maxServices, setMaxServices] = useState("5");
+  const [activatingMerchant, setActivatingMerchant] = useState(false);
+
+  // Tickets action states
+  const [selectedTicketForQuote, setSelectedTicketForQuote] = useState<any | null>(null);
+  const [isTicketQuoteDialogOpen, setIsTicketQuoteDialogOpen] = useState(false);
+  const [ticketQuoteAmount, setTicketQuoteAmount] = useState("");
+  const [sendingTicketQuote, setSendingTicketQuote] = useState(false);
 
   const [bookingsPage, setBookingsPage] = useState(1);
   const [bookingsViewAll, setBookingsViewAll] = useState(false);
@@ -40,11 +66,12 @@ const AdminOverview = () => {
   const loadData = async () => {
     if (!token) return;
     try {
-      const [bookingRes, usersRes, eventsRes, notificationsRes] = await Promise.all([
+      const [bookingRes, usersRes, eventsRes, notificationsRes, ticketsRes] = await Promise.all([
         apiListBookings(undefined, token),
         apiListUsers(token),
         apiListEvents(token),
-        apiGetNotifications(token, { limit: 10 })
+        apiGetNotifications(token, { limit: 10 }),
+        apiGetTickets(token).catch(() => ({ tickets: [] }))
       ]);
       // Show all bookings using the main bookings endpoint so totals stay aligned with payment statistics.
       const allBookingsList = bookingRes.bookings || [];
@@ -62,6 +89,7 @@ const AdminOverview = () => {
       setNotifications(notificationsRes.notifications || []);
       setUnreadCount(notificationsRes.unreadCount || 0);
       setEvents(eventsRes.events || []);
+      setTickets(ticketsRes.tickets || []);
 
       // Filter live events
       const allEvents = eventsRes.events || [];
@@ -86,11 +114,106 @@ const AdminOverview = () => {
     return () => clearInterval(pollInterval);
   }, [token]);
 
+  const handleSendQuoteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !selectedMerchantForQuote) return;
+    const amt = Number(quoteAmount);
+    if (isNaN(amt) || amt < 1 || amt > 1000000) {
+      toast.error("Quotation amount must be a number between 1 and 1,000,000.");
+      return;
+    }
+    setSendingQuote(true);
+    try {
+      await apiSendMerchantQuotation(selectedMerchantForQuote._id, amt, token);
+      toast.success("Onboarding quotation sent to merchant!");
+      setIsQuoteDialogOpen(false);
+      setSelectedMerchantForQuote(null);
+      setQuoteAmount("");
+      loadData();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send quotation");
+    } finally {
+      setSendingQuote(false);
+    }
+  };
+
+  const handleActivateMerchantSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !selectedMerchantForActivation) return;
+    const maxEv = Number(maxEvents);
+    const maxSe = Number(maxServices);
+    if (isNaN(maxEv) || maxEv < 1 || maxEv > 1000 || isNaN(maxSe) || maxSe < 1 || maxSe > 1000) {
+      toast.error("Limits must be numbers between 1 and 1000.");
+      return;
+    }
+    setActivatingMerchant(true);
+    try {
+      await apiActivateMerchant(selectedMerchantForActivation._id, {
+        maxEvents: maxEv,
+        maxServices: maxSe
+      }, token);
+      toast.success("Merchant activated and slot limits set successfully!");
+      setIsActivationDialogOpen(false);
+      setSelectedMerchantForActivation(null);
+      loadData();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to activate merchant");
+    } finally {
+      setActivatingMerchant(false);
+    }
+  };
+
+  const handleSendTicketQuoteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !selectedTicketForQuote) return;
+    const amt = Number(ticketQuoteAmount);
+    if (isNaN(amt) || amt < 1 || amt > 1000000) {
+      toast.error("Quotation amount must be a number between 1 and 1,000,000.");
+      return;
+    }
+    setSendingTicketQuote(true);
+    try {
+      await apiSendTicketQuotation(selectedTicketForQuote._id, amt, token);
+      toast.success("Limit upgrade quotation sent to merchant!");
+      setIsTicketQuoteDialogOpen(false);
+      setSelectedTicketForQuote(null);
+      setTicketQuoteAmount("");
+      loadData();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send ticket quotation");
+    } finally {
+      setSendingTicketQuote(false);
+    }
+  };
+
+  const handleApproveTicketClick = async (ticketId: string) => {
+    if (!token) return;
+    if (!window.confirm("Are you sure you want to approve this ticket and upgrade slot limits?")) return;
+    try {
+      await apiApproveTicket(ticketId, token);
+      toast.success("Ticket approved and slot limits upgraded successfully!");
+      loadData();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to approve ticket");
+    }
+  };
+
   // Derived stats
   const totalUsers = allUsers.filter((u) => u.role === "user").length;
   const totalMerchants = merchants.length;
   const getPaidAmount = (b: any) => (b.paymentStatus === "partially_paid" && b.isAdvancePaid) ? (b.advanceAmount || 0) : (b.price || 0);
   const isPaidBooking = (b: any) => b.paymentStatus === "paid" || b.paymentStatus === "partially_paid";
+
+  // Pending action items and requests
+  const registrationRequests = allUsers.filter(
+    (u: any) => u.role === "merchant" && (u.merchantStatus === "details_submitted" || u.merchantStatus === "paid")
+  );
+  const upgradeRequests = tickets.filter(
+    (t: any) => t.status === "pending" || t.status === "paid"
+  );
+  const refundRequests = allBookings.filter(
+    (b: any) => b.paymentStatus === "refunded" || b.status === "cancelled" || b.refundReason
+  );
 
   const totalRevenue = allBookings
     .filter(isPaidBooking)
@@ -150,6 +273,283 @@ const AdminOverview = () => {
           <StatCard title="Active Live Events"      value={loading ? "…" : liveEvents.length}                           icon={<Video className="h-5 w-5" />}       index={9} />
           <StatCard title="Platform Notifications"  value={loading ? "…" : unreadCount}                                 icon={<Bell className="h-5 w-5" />}        index={10} />
         </div>
+
+        {/* Pending Action Items / Requests Area */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mt-10 animate-in fade-in-50"
+        >
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div>
+              <h2 className="font-display text-xl font-bold flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-yellow-500" /> Pending Action Requests
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Review and approve registration forms, upgrade tickets, or process refunds.
+              </p>
+            </div>
+            {/* Tabs */}
+            <div className="flex bg-secondary/50 p-1 rounded-lg border border-border">
+              <button
+                onClick={() => setRequestTab("registrations")}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  requestTab === "registrations"
+                    ? "bg-[#A68C73] text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Registrations ({registrationRequests.length})
+              </button>
+              <button
+                onClick={() => setRequestTab("upgrades")}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  requestTab === "upgrades"
+                    ? "bg-[#A68C73] text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Upgrades ({upgradeRequests.length})
+              </button>
+              <button
+                onClick={() => setRequestTab("refunds")}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  requestTab === "refunds"
+                    ? "bg-[#A68C73] text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Refunds ({refundRequests.length})
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            {requestTab === "registrations" && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[600px]">
+                  <thead>
+                    <tr className="border-b border-border bg-secondary/50">
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Merchant</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Business Name</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Submitted At</th>
+                      <th className="text-right px-4 py-3 font-medium text-muted-foreground">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {registrationRequests.map((m) => (
+                      <tr key={m._id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
+                        <td className="px-4 py-3 font-medium">
+                          <div className="flex flex-col">
+                            <span>{m.name}</span>
+                            <span className="text-xs text-muted-foreground">{m.email}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">{m.merchantDetails?.businessName || "—"}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                            m.merchantStatus === "paid" ? "bg-purple-500/10 text-purple-600 border-purple-500/20" : "bg-orange-500/10 text-orange-500 border-orange-500/20"
+                          }`}>
+                            {m.merchantStatus === "paid" ? "Paid (Awaiting Activation)" : "Review Pending"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(m.createdAt).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {m.merchantDetails?.businessName && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-xs h-7 border-indigo-500/30 text-indigo-500 hover:bg-indigo-500/5 font-semibold"
+                                onClick={() => {
+                                  setSelectedMerchantDetails(m);
+                                  setIsDetailsModalOpen(true);
+                                }}
+                              >
+                                <FileText className="h-3.5 w-3.5 mr-1" /> Details
+                              </Button>
+                            )}
+                            
+                            {m.merchantStatus === "details_submitted" && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-xs h-7 border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/5 font-semibold"
+                                onClick={() => {
+                                  setSelectedMerchantForQuote(m);
+                                  setQuoteAmount("");
+                                  setIsQuoteDialogOpen(true);
+                                }}
+                              >
+                                <DollarSign className="h-3 w-3 mr-1" /> Send Quote
+                              </Button>
+                            )}
+
+                            {m.merchantStatus === "paid" && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-xs h-7 border-green-500/30 text-green-600 hover:bg-green-500/5 font-semibold"
+                                onClick={() => {
+                                  setSelectedMerchantForActivation(m);
+                                  setMaxEvents(m.maxEvents?.toString() || "5");
+                                  setMaxServices(m.maxServices?.toString() || "5");
+                                  setIsActivationDialogOpen(true);
+                                }}
+                              >
+                                <CheckCircle2 className="h-3 w-3 mr-1" /> Activate
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {registrationRequests.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                          No pending registration reviews.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {requestTab === "upgrades" && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[600px]">
+                  <thead>
+                    <tr className="border-b border-border bg-secondary/50">
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Merchant</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Requested Slots</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Requested At</th>
+                      <th className="text-right px-4 py-3 font-medium text-muted-foreground">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {upgradeRequests.map((t) => (
+                      <tr key={t._id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
+                        <td className="px-4 py-3 font-medium">
+                          <div className="flex flex-col">
+                            <span>{t.merchant?.name || "Merchant"}</span>
+                            <span className="text-xs text-muted-foreground">{t.merchant?.email || ""}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col text-xs font-semibold text-[#A68C73]">
+                            <span>+{t.requestedEvents} Events</span>
+                            <span>+{t.requestedServices} Services</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                            t.status === "paid" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                          }`}>
+                            {t.status === "paid" ? "Paid (Awaiting Approval)" : "Pending Review"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(t.createdAt).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {t.status === "pending" && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-xs h-7 border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/5 font-semibold"
+                                onClick={() => {
+                                  setSelectedTicketForQuote(t);
+                                  setTicketQuoteAmount("");
+                                  setIsTicketQuoteDialogOpen(true);
+                                }}
+                              >
+                                <DollarSign className="h-3 w-3 mr-1" /> Send Quote
+                              </Button>
+                            )}
+                            
+                            {t.status === "paid" && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-xs h-7 border-green-500/30 text-green-600 hover:bg-green-500/5 font-semibold"
+                                onClick={() => handleApproveTicketClick(t._id)}
+                              >
+                                <CheckCircle2 className="h-3 w-3 mr-1" /> Approve & Upgrade
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {upgradeRequests.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                          No pending limit upgrade tickets.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {requestTab === "refunds" && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[600px]">
+                  <thead>
+                    <tr className="border-b border-border bg-secondary/50">
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Service/Event</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Amount</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Reason</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                      <th className="text-right px-4 py-3 font-medium text-muted-foreground">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {refundRequests.map((b) => (
+                      <tr key={b._id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
+                        <td className="px-4 py-3 font-medium">
+                          <div className="flex flex-col">
+                            <span>{b.serviceName || b.event}</span>
+                            <span className="text-xs text-muted-foreground">Customer: {b.customer?.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 font-semibold">{formatCurrency(b.price)}</td>
+                        <td className="px-4 py-3 text-xs italic text-muted-foreground max-w-xs truncate" title={b.refundReason}>
+                          {b.refundReason || "Cancelled Booking"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                            b.paymentStatus === "refunded" ? "bg-gray-500/10 text-gray-500 border-gray-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"
+                          }`}>
+                            {b.paymentStatus === "refunded" ? "Refunded" : "Refund Pending"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Link to={`/admin-dashboard/refunds`}>
+                            <Button size="sm" variant="outline" className="text-xs h-7 border-[#A68C73]/40 text-[#A68C73] hover:bg-[#A68C73]/5">
+                              Process Refund
+                            </Button>
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                    {refundRequests.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                          No pending refunds.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </motion.div>
 
         {/* All Bookings Table - Admin View Only */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-10">
@@ -763,7 +1163,233 @@ const AdminOverview = () => {
               </motion.div>
             </div>
           )}
-        </motion.div>
+          {/* Onboarding Details Dialog */}
+        <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+          <DialogContent className="max-w-2xl bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-primary font-display">
+                <FileText className="h-5 w-5 text-[#A68C73]" /> Merchant Onboarding Details
+              </DialogTitle>
+              <DialogDescription>
+                Review details submitted by the merchant for profile approval.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedMerchantDetails && (
+              <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto pr-2">
+                <div className="grid grid-cols-2 gap-4 border-b border-border pb-4">
+                  <div>
+                    <span className="text-xs text-muted-foreground">Business Name</span>
+                    <p className="font-semibold text-base mt-0.5">{selectedMerchantDetails.merchantDetails?.businessName}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Experience</span>
+                    <p className="font-semibold text-base mt-0.5">{selectedMerchantDetails.merchantDetails?.experienceYears} years</p>
+                  </div>
+                </div>
+
+                <div className="border-b border-border pb-4">
+                  <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1">
+                    <MapPin className="h-3 w-3" /> Business Address
+                  </span>
+                  <p className="mt-0.5">{selectedMerchantDetails.merchantDetails?.address}</p>
+                </div>
+
+                <div className="border-b border-border pb-4">
+                  <span className="text-xs text-muted-foreground font-semibold">Business Description</span>
+                  <p className="mt-1 text-sm whitespace-pre-wrap text-muted-foreground">
+                    {selectedMerchantDetails.merchantDetails?.businessDescription}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-xs text-muted-foreground font-semibold">Event Categories</span>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {selectedMerchantDetails.merchantDetails?.eventTypes?.map((t: string) => (
+                        <span key={t} className="px-2 py-0.5 text-xs rounded-full bg-secondary border border-border">
+                          {t}
+                        </span>
+                      ))}
+                      {(!selectedMerchantDetails.merchantDetails?.eventTypes || selectedMerchantDetails.merchantDetails.eventTypes.length === 0) && (
+                        <span className="text-xs text-muted-foreground">None specified</span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground font-semibold">Service Categories</span>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {selectedMerchantDetails.merchantDetails?.serviceTypes?.map((t: string) => (
+                        <span key={t} className="px-2 py-0.5 text-xs rounded-full bg-secondary border border-border">
+                          {t}
+                        </span>
+                      ))}
+                      {(!selectedMerchantDetails.merchantDetails?.serviceTypes || selectedMerchantDetails.merchantDetails.serviceTypes.length === 0) && (
+                        <span className="text-xs text-muted-foreground">None specified</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4">
+                  <Button type="button" onClick={() => setIsDetailsModalOpen(false)}>Close Details</Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Merchant Onboarding Send Quotation Dialog */}
+        <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-primary font-display">
+                <DollarSign className="h-5 w-5 text-[#A68C73]" /> Send Onboarding Quotation
+              </DialogTitle>
+              <DialogDescription>
+                Set the setup fee amount for this merchant. The merchant will pay this amount before activation.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedMerchantForQuote && (
+              <form onSubmit={handleSendQuoteSubmit} className="space-y-4 py-2">
+                <div className="p-3 bg-secondary/30 rounded-lg text-xs space-y-1 border border-border">
+                  <p><strong>Merchant:</strong> {selectedMerchantForQuote.name}</p>
+                  <p><strong>Email:</strong> {selectedMerchantForQuote.email}</p>
+                  <p><strong>Business:</strong> {selectedMerchantForQuote.merchantDetails?.businessName}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="qAmount">Quotation Amount (in USD/Credits) *</Label>
+                  <Input
+                    id="qAmount"
+                    type="text"
+                    required
+                    placeholder="e.g. 250"
+                    value={quoteAmount}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, "");
+                      setQuoteAmount(val.slice(0, 7));
+                    }}
+                    className="bg-secondary border-border"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Enter a positive number (up to 1,000,000)</p>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>Cancel</Button>
+                  <Button type="submit" disabled={sendingQuote} className="bg-[#A68C73] text-white hover:bg-[#A68C73]/90">
+                    {sendingQuote ? "Sending Quote..." : "Send Quote"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Merchant Onboarding Activation / Limits Dialog */}
+        <Dialog open={isActivationDialogOpen} onOpenChange={setIsActivationDialogOpen}>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-primary font-display">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                {selectedMerchantForActivation?.merchantStatus === "active" ? "Configure Merchant Limits" : "Activate Merchant & Configure Limits"}
+              </DialogTitle>
+              <DialogDescription>
+                Set the maximum number of events and services this merchant is allowed to create on the platform.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedMerchantForActivation && (
+              <form onSubmit={handleActivateMerchantSubmit} className="space-y-4 py-2">
+                <div className="p-3 bg-secondary/30 rounded-lg text-xs space-y-1 border border-border">
+                  <p><strong>Merchant:</strong> {selectedMerchantForActivation.name}</p>
+                  <p><strong>Business:</strong> {selectedMerchantForActivation.merchantDetails?.businessName}</p>
+                  <p><strong>Quotation Paid:</strong> {formatCurrency(selectedMerchantForActivation.quotationAmount || 0)}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="maxEv">Maximum Events Limit</Label>
+                    <Input
+                      id="maxEv"
+                      type="text"
+                      required
+                      value={maxEvents}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, "");
+                        setMaxEvents(val.slice(0, 4));
+                      }}
+                      className="bg-secondary border-border"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Between 1 and 1000</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="maxSe">Maximum Services Limit</Label>
+                    <Input
+                      id="maxSe"
+                      type="text"
+                      required
+                      value={maxServices}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, "");
+                        setMaxServices(val.slice(0, 4));
+                      }}
+                      className="bg-secondary border-border"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Between 1 and 1000</p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsActivationDialogOpen(false)}>Cancel</Button>
+                  <Button type="submit" disabled={activatingMerchant} className="bg-[#A68C73] text-white hover:bg-[#A68C73]/90 font-semibold">
+                    {activatingMerchant ? "Activating..." : selectedMerchantForActivation.merchantStatus === "active" ? "Update Limits" : "Activate Merchant"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Ticket Send Quotation Dialog */}
+        <Dialog open={isTicketQuoteDialogOpen} onOpenChange={setIsTicketQuoteDialogOpen}>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-primary font-display">
+                <DollarSign className="h-5 w-5 text-indigo-500" /> Send Limit Upgrade Quotation
+              </DialogTitle>
+              <DialogDescription>
+                Set the quotation fee for this limit upgrade request.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedTicketForQuote && (
+              <form onSubmit={handleSendTicketQuoteSubmit} className="space-y-4 py-2">
+                <div className="p-3 bg-secondary/30 rounded-lg text-xs space-y-1 border border-border">
+                  <p><strong>Merchant:</strong> {selectedTicketForQuote.merchant?.name}</p>
+                  <p><strong>Requested slots increase:</strong> +{selectedTicketForQuote.requestedEvents} Events, +{selectedTicketForQuote.requestedServices} Services</p>
+                  {selectedTicketForQuote.message && <p><strong>Message:</strong> "{selectedTicketForQuote.message}"</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tqAmount">Quotation Amount (in USD/Credits) *</Label>
+                  <Input
+                    id="tqAmount"
+                    type="text"
+                    required
+                    placeholder="e.g. 100"
+                    value={ticketQuoteAmount}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, "");
+                      setTicketQuoteAmount(val.slice(0, 7));
+                    }}
+                    className="bg-secondary border-border"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Enter a positive number (up to 1,000,000)</p>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsTicketQuoteDialogOpen(false)}>Cancel</Button>
+                  <Button type="submit" disabled={sendingTicketQuote} className="bg-[#A68C73] text-white hover:bg-[#A68C73]/90">
+                    {sendingTicketQuote ? "Sending Quote..." : "Send Quote"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
+      </motion.div>
       </section>
     </AdminLayout>
   );
