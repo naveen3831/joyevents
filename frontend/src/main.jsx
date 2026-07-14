@@ -29,10 +29,17 @@ class ErrorBoundary extends Component {
         return this.props.children;
     }
 }
-// Fetch latest platform name BEFORE mounting React so first render shows correct name
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+    throw new Error("Root element #root was not found. Check frontend/index.html.");
+}
+
+createRoot(rootElement).render(<ErrorBoundary>
+  <App />
+</ErrorBoundary>);
+
+// Sync latest platform name after React mounts so API/proxy issues cannot blank the page.
 syncPlatformSettings().finally(() => {
     document.title = localStorage.getItem("platformName") || "JoyEvents";
-    createRoot(document.getElementById("root")).render(<ErrorBoundary>
-      <App />
-    </ErrorBoundary>);
 });

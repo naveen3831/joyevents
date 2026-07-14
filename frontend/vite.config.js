@@ -13,39 +13,6 @@ export default defineConfig({
         },
     },
     build: {
-        // Code splitting optimization - simplified for better compatibility
-        rollupOptions: {
-            output: {
-                manualChunks: (id) => {
-                    // Only split large vendor libraries
-                    if (id.includes('node_modules')) {
-                        // React and related libraries
-                        if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-                            return 'react-vendor';
-                        }
-                        // Framer Motion (large animation library)
-                        if (id.includes('framer-motion')) {
-                            return 'animation-vendor';
-                        }
-                        // Recharts (charting library)
-                        if (id.includes('recharts')) {
-                            return 'chart-vendor';
-                        }
-                        // Leaflet (mapping library)
-                        if (id.includes('leaflet')) {
-                            return 'map-vendor';
-                        }
-                        // Other node_modules
-                        return 'vendor';
-                    }
-                    // Don't manually chunk app code - let Vite handle it
-                },
-                // Simplified file naming for better server compatibility
-                chunkFileNames: 'assets/[name]-[hash].js',
-                entryFileNames: 'assets/[name]-[hash].js',
-                assetFileNames: 'assets/[name]-[hash].[ext]',
-            },
-        },
         // Increase chunk size warning limit
         chunkSizeWarningLimit: 1000,
         // Minify with esbuild for faster builds
