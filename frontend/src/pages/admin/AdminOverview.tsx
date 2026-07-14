@@ -74,7 +74,11 @@ const AdminOverview = () => {
         apiGetTickets(token).catch(() => ({ tickets: [] }))
       ]);
       // Show all bookings using the main bookings endpoint so totals stay aligned with payment statistics.
-      const allBookingsList = bookingRes.bookings || [];
+      const allBookingsList = (bookingRes.bookings || []).sort((a: any, b: any) => {
+        const dateA = new Date(a.createdAt || a.datetime || 0).getTime();
+        const dateB = new Date(b.createdAt || b.datetime || 0).getTime();
+        return dateB - dateA;
+      });
       setBookings(allBookingsList);
       setAllBookings(allBookingsList);
       const users: any[] = usersRes.users || [];

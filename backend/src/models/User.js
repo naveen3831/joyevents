@@ -49,6 +49,7 @@ const userSchema = new mongoose.Schema(
     quotationAmount: { type: Number, default: 0 },
     maxEvents: { type: Number, default: 5 },
     maxServices: { type: Number, default: 5 },
+    walletBalance: { type: Number, default: 0 },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
   },

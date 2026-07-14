@@ -38,15 +38,15 @@ function getPaidAmount(booking) {
 async function calculateMerchantEarnings(merchantId) {
   const paidBookings = await Booking.find({
     assignedTo: merchantId,
-    status: { $in: ["paid", "confirmed", "accepted", "processing", "completed", "awaiting_final_payment"] },
-    paymentStatus: { $in: ["paid", "partially_paid"] }
+    status: { $in: ["paid", "confirmed", "accepted", "processing", "completed", "awaiting_final_payment", "refunded"] },
+    paymentStatus: { $in: ["paid", "partially_paid", "refunded"] }
   }).lean();
 
   const bookingIds = paidBookings.map((booking) => booking._id);
   const transactions = await Transaction.find({
     merchant: merchantId,
     status: "completed",
-    type: { $in: ["earning", "commission_deduction"] },
+    type: { $in: ["earning", "commission_deduction", "refund"] },
     booking: { $in: bookingIds }
   }).lean();
 
@@ -57,6 +57,7 @@ async function calculateMerchantEarnings(merchantId) {
     const summary = transactionSummaries.get(bookingId) || { earning: 0, commission: 0 };
     if (transaction.type === "earning") summary.earning += Number(transaction.amount) || 0;
     if (transaction.type === "commission_deduction") summary.commission += Number(transaction.amount) || 0;
+    if (transaction.type === "refund") summary.earning += Number(transaction.amount) || 0;
     transactionSummaries.set(bookingId, summary);
   }
 
@@ -101,6 +102,14 @@ async function calculateMerchantEarnings(merchantId) {
   const totalWithdrawn = completedWithdrawals.reduce((sum, w) => sum + (Number(w.amount) || 0), 0);
   const availableBalance = totalEarnings - totalWithdrawn - pendingWithdrawalAmount;
 
+  // Calculate total refunded amount for merchant
+  const refundTxs = await Transaction.find({
+    merchant: merchantId,
+    status: "completed",
+    type: "refund"
+  }).lean();
+  const totalRefunded = refundTxs.reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+
   return {
     totalEarnings: roundMoney(totalEarnings),
     totalCommission: roundMoney(totalCommission),
@@ -109,7 +118,8 @@ async function calculateMerchantEarnings(merchantId) {
     pendingWithdrawalAmount: roundMoney(pendingWithdrawalAmount),
     availableBalance: roundMoney(availableBalance),
     completedBookings: paidBookings.length,
-    pendingWithdrawals: pendingWithdrawals.length
+    pendingWithdrawals: pendingWithdrawals.length,
+    totalRefunded: roundMoney(totalRefunded)
   };
 }
 

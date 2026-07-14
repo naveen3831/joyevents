@@ -261,6 +261,19 @@ router.post("/", verifyToken, async (req, res) => {
     const initialPaymentStatus = isService ? "pending" : "paid";
     const payId = isService ? "" : `PAY-${Date.now()}`;
 
+    // Wallet balance deductions handling
+    const useWallet = !!req.body.useWallet;
+    const walletAmountPaid = Number(req.body.walletAmountPaid || 0);
+
+    let finalPaymentMethod = paymentMethod || "card";
+    if (useWallet && walletAmountPaid > 0) {
+      if (walletAmountPaid >= Number(price)) {
+        finalPaymentMethod = "wallet";
+      } else {
+        finalPaymentMethod = "mixed";
+      }
+    }
+
     const booking = await Booking.create({
       customer: req.user._id,
       event: eventId || null,
@@ -279,10 +292,11 @@ router.post("/", verifyToken, async (req, res) => {
       quantity: bookingQuantity,
       selectedTickets: selectedTickets || {},
       selectedSession: req.body.selectedSession || "",
-      paymentMethod: paymentMethod || "card",
+      paymentMethod: finalPaymentMethod,
       upiId: upiId,
       cardLast4: cardLast4,
       cardholderName: cardholderName,
+      walletAmountPaid: useWallet ? walletAmountPaid : 0,
       customerLocation: customerLocation || null,
       // Promo code data
       promoCode: promoCode ? {
@@ -301,6 +315,26 @@ router.post("/", verifyToken, async (req, res) => {
       // Seat numbers selected by customer
       selectedSeatNumbers: Array.isArray(req.body.seatNumbers) ? req.body.seatNumbers : []
     });
+
+    // Deduct from wallet balance and record transaction if wallet was used
+    if (useWallet && walletAmountPaid > 0) {
+      const customerUser = await User.findById(req.user._id);
+      if (customerUser) {
+        customerUser.walletBalance = Math.max(0, (customerUser.walletBalance || 0) - walletAmountPaid);
+        await customerUser.save();
+
+        // Log transaction for customer spending
+        await Transaction.create({
+          merchant: req.user._id, // customer's wallet transaction
+          booking: booking._id,
+          type: "withdrawal",
+          amount: walletAmountPaid,
+          description: `Paid for booking using Wallet balance: ${booking.serviceName || booking.eventName}`,
+          status: "completed",
+          relatedId: booking._id.toString()
+        });
+      }
+    }
 
     // Increment ticket sold count for ticketed events
     if (eventId) {
@@ -1049,11 +1083,53 @@ router.patch("/:id/pay", verifyToken, async (req, res) => {
     }
 
     const payId = `PAY-${Date.now()}`;
+
+    // Wallet balance deductions handling
+    const useWallet = !!req.body.useWallet;
+    const walletAmountPaid = Number(req.body.walletAmountPaid || 0);
+
+    if (useWallet && walletAmountPaid > 0) {
+      const customerUser = await User.findById(req.user._id);
+      if (!customerUser || (customerUser.walletBalance || 0) < walletAmountPaid) {
+        return res.status(400).json({ error: "Insufficient wallet balance" });
+      }
+      customerUser.walletBalance = Math.max(0, (customerUser.walletBalance || 0) - walletAmountPaid);
+      await customerUser.save();
+
+      // Create transaction for wallet spending
+      const Transaction = (await import("../models/Transaction.js")).default;
+      await Transaction.create({
+        merchant: req.user._id,
+        booking: booking._id,
+        type: "withdrawal",
+        amount: walletAmountPaid,
+        description: `Paid for booking using Wallet balance: ${booking.serviceName || booking.eventName}`,
+        status: "completed",
+        relatedId: booking._id.toString()
+      });
+    }
+
+    let finalPaymentMethod = paymentMethod || "card";
+    if (useWallet && walletAmountPaid > 0) {
+      const amountToPay = paymentType === "advance" 
+        ? (booking.advanceAmount || 0) 
+        : paymentType === "remaining" 
+        ? (booking.remainingAmount || 0) 
+        : booking.price;
+        
+      if (walletAmountPaid >= amountToPay) {
+        finalPaymentMethod = "wallet";
+      } else {
+        finalPaymentMethod = "mixed";
+      }
+    }
+
     let updateFields = {
-      paymentMethod: paymentMethod || "card",
+      paymentMethod: finalPaymentMethod,
       upiId,
       cardLast4,
-      cardholderName
+      cardholderName,
+      walletAmountPaid: (booking.walletAmountPaid || 0) + (useWallet ? walletAmountPaid : 0)
     };
 
     if (paymentType === "advance") {
@@ -1338,10 +1414,33 @@ router.patch("/:id/refund", verifyToken, requireRole("admin"), async (req, res) 
     booking.refundReason = reason;
     booking.refundedAt = new Date();
     booking.refundedBy = req.user._id;
+    booking.refundAmount = Number(booking.price) || 0;
+    booking.refundProcessedAt = new Date();
     await booking.save();
 
     // Decrement ticket sold count if this was a ticketed event booking
     await decrementEventTickets(booking);
+
+    if (booking.assignedTo && booking.refundAmount > 0) {
+      const existingRefundTransaction = await Transaction.findOne({
+        merchant: booking.assignedTo,
+        booking: booking._id,
+        type: "refund",
+        relatedId: `ADMIN-REFUND-${booking._id}`
+      });
+
+      if (!existingRefundTransaction) {
+        await Transaction.create({
+          merchant: booking.assignedTo,
+          booking: booking._id,
+          type: "refund",
+          amount: -booking.refundAmount,
+          description: `Admin refund deduction for booking: ${booking.serviceName || booking.eventName}`,
+          status: "completed",
+          relatedId: `ADMIN-REFUND-${booking._id}`
+        });
+      }
+    }
 
     // Create notification for customer
     await createNotification(
@@ -1362,7 +1461,7 @@ router.patch("/:id/refund", verifyToken, requireRole("admin"), async (req, res) 
         id: booking._id,
         paymentStatus: booking.paymentStatus,
         status: booking.status,
-        refundAmount: booking.price,
+        refundAmount: booking.refundAmount,
         refundReason: booking.refundReason,
         refundedAt: booking.refundedAt
       }
@@ -1679,5 +1778,245 @@ router.post("/:merchantId/process-payout", verifyToken, requireRole("admin"), as
   }
 });
 
+
+// Customer: Request cancellation of a booking
+router.post("/:id/request-cancel", verifyToken, async (req, res) => {
+  try {
+    const booking = await Booking.findOne({ _id: req.params.id, customer: req.user._id });
+    if (!booking) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+    
+    const terminalStatuses = ["completed", "cancelled", "rejected", "refunded"];
+    if (terminalStatuses.includes(booking.status)) {
+      return res.status(400).json({ error: "Cannot cancel a completed, cancelled or refunded booking" });
+    }
+
+    booking.previousStatus = booking.status;
+    booking.status = "cancellation_requested";
+    booking.cancellationRequestedAt = new Date();
+    await booking.save();
+
+    // Create notifications for assigned merchant or event creator
+    const merchantId = booking.assignedTo;
+    if (merchantId) {
+      await createNotification(
+        merchantId,
+        "Cancellation Request received ⚠️",
+        `A customer requested cancellation for booking ${booking.serviceName || booking.eventName}.`,
+        "booking",
+        booking._id,
+        "/merchant-bookings"
+      );
+    }
+
+    // Create notification for Admin
+    try {
+      const admins = await User.find({ role: "admin" });
+      for (const admin of admins) {
+        await createNotification(
+          admin._id,
+          "User Cancellation Request",
+          `User requested cancellation for booking ${booking.serviceName || booking.eventName}.`,
+          "booking",
+          booking._id,
+          "/admin-dashboard/bookings"
+        );
+      }
+    } catch (e) {}
+
+    res.json({ success: true, booking });
+  } catch (error) {
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+
+// Merchant/Admin: Approve cancellation request and propose cancellation fee
+router.post("/:id/approve-cancel", verifyToken, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    // Authorization: Must be admin, or the assigned merchant
+    const isAdmin = req.user.role === "admin";
+    const isMerchant = req.user.role === "merchant" && booking.assignedTo?.toString() === req.user._id.toString();
+    if (!isAdmin && !isMerchant) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const { cancellationFee } = req.body;
+    const fee = Number(cancellationFee);
+    if (isNaN(fee) || fee < 0 || fee > booking.price) {
+      return res.status(400).json({ error: "Invalid cancellation fee" });
+    }
+
+    booking.status = "cancellation_fee_proposed";
+    booking.cancellationFee = fee;
+    booking.cancellationFeeProposedAt = new Date();
+    await booking.save();
+
+    // Notify customer
+    await createNotification(
+      booking.customer,
+      "Cancellation Approved (Action Needed) 🎟️",
+      `Your cancellation request for ${booking.serviceName || booking.eventName} was approved with a fee of ${formatCurrency(fee)}. Please accept the fee to process your refund.`,
+      "booking",
+      booking._id,
+      "/my-requests"
+    );
+
+    res.json({ success: true, booking });
+  } catch (error) {
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+
+// Merchant/Admin: Reject cancellation request
+router.post("/:id/reject-cancel", verifyToken, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    const isAdmin = req.user.role === "admin";
+    const isMerchant = req.user.role === "merchant" && booking.assignedTo?.toString() === req.user._id.toString();
+    if (!isAdmin && !isMerchant) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    // Restore previous status
+    booking.status = booking.previousStatus || "confirmed";
+    booking.previousStatus = "";
+    booking.cancellationFee = 0;
+    await booking.save();
+
+    // Notify customer
+    await createNotification(
+      booking.customer,
+      "Cancellation Request Rejected ❌",
+      `Your cancellation request for ${booking.serviceName || booking.eventName} was rejected. Your booking remains active.`,
+      "booking",
+      booking._id,
+      "/my-requests"
+    );
+
+    res.json({ success: true, booking });
+  } catch (error) {
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+
+// Customer: Accept proposed cancellation fee
+router.post("/:id/accept-cancellation-fee", verifyToken, async (req, res) => {
+  try {
+    const booking = await Booking.findOne({ _id: req.params.id, customer: req.user._id });
+    if (!booking) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    if (booking.status !== "cancellation_fee_proposed") {
+      return res.status(400).json({ error: "No cancellation fee is currently proposed for this booking" });
+    }
+
+    booking.status = "refund_pending";
+    booking.cancellationAcceptedAt = new Date();
+    await booking.save();
+
+    // Notify merchant
+    const merchantId = booking.assignedTo;
+    if (merchantId) {
+      await createNotification(
+        merchantId,
+        "Cancellation Fee Accepted ✅",
+        `Customer accepted the cancellation fee for ${booking.serviceName || booking.eventName}. Please process the refund.`,
+        "booking",
+        booking._id,
+        "/merchant-bookings"
+      );
+    }
+
+    res.json({ success: true, booking });
+  } catch (error) {
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+
+// Merchant/Admin: Process refund and deposit to user's wallet
+router.post("/:id/process-refund", verifyToken, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    const isAdmin = req.user.role === "admin";
+    const isMerchant = req.user.role === "merchant" && booking.assignedTo?.toString() === req.user._id.toString();
+    if (!isAdmin && !isMerchant) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    if (booking.status !== "refund_pending") {
+      return res.status(400).json({ error: "Refund is not pending for this booking" });
+    }
+
+    const refundAmount = Math.max(0, booking.price - (booking.cancellationFee || 0));
+
+    booking.status = "refunded";
+    booking.paymentStatus = "refunded";
+    booking.refundAmount = refundAmount;
+    booking.refundProcessedAt = new Date();
+    await booking.save();
+
+    // Add refund to customer's wallet balance
+    const customer = await User.findById(booking.customer);
+    if (customer) {
+      customer.walletBalance = (customer.walletBalance || 0) + refundAmount;
+      await customer.save();
+    }
+
+    // Create a Transaction record for customer's refund earning
+    const Transaction = (await import("../models/Transaction.js")).default;
+    await Transaction.create({
+      merchant: booking.customer, // Using merchant field as userId or general transactions target
+      booking: booking._id,
+      type: "refund", // Refund type transaction
+      amount: refundAmount,
+      description: `Refund for cancelled booking: ${booking.serviceName || booking.eventName} (less cancellation fee)`,
+      status: "completed",
+      relatedId: `REFUND-${Date.now()}`
+    });
+
+    // Create Transaction records for merchant refund deduction to update merchant payout/earnings statistics in real time!
+    if (booking.assignedTo && refundAmount > 0) {
+      // Create a negative earning or deduction transaction for the merchant
+      await Transaction.create({
+        merchant: booking.assignedTo,
+        booking: booking._id,
+        type: "refund",
+        amount: -refundAmount,
+        description: `Refund deduction for cancelled booking: ${booking.serviceName || booking.eventName}`,
+        status: "completed",
+        relatedId: `REF-DED-${Date.now()}`
+      });
+    }
+
+    // Notify customer
+    await createNotification(
+      booking.customer,
+      "Refund Processed 💰",
+      `A refund of ${formatCurrency(refundAmount)} has been credited to your wallet balance for ${booking.serviceName || booking.eventName}.`,
+      "booking",
+      booking._id,
+      "/customer-dashboard"
+    );
+
+    res.json({ success: true, booking, refundAmount });
+  } catch (error) {
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
 
 export default router;

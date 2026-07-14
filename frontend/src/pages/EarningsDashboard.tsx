@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { DollarSign, TrendingUp, Wallet, History, ArrowDownRight, ArrowUpRight, Loader2, AlertCircle, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { DollarSign, TrendingUp, Wallet, History, ArrowDownRight, ArrowUpRight, Loader2, AlertCircle, CheckCircle2, Clock, XCircle, RefreshCcw } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -260,7 +260,7 @@ const EarningsDashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8"
+          className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 lg:grid-cols-5 mb-8"
         >
           <StatCard
             title="Total Earnings"
@@ -280,6 +280,12 @@ const EarningsDashboard = () => {
             value={formatCurrency(earnings?.totalWithdrawn || 0)}
             icon={Wallet}
             color="text-blue-600"
+          />
+          <StatCard
+            title="Total Refunded"
+            value={formatCurrency(earnings?.totalRefunded || 0)}
+            icon={RefreshCcw}
+            color="text-orange-600"
           />
           <StatCard
             title="Available Balance"
@@ -436,9 +442,15 @@ const EarningsDashboard = () => {
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
-                          <p className={`font-semibold ${transaction.type === "earning" ? "text-green-600" : "text-red-600"}`}>
-                            {transaction.type === "earning" ? "+" : "-"}{formatCurrency(transaction.amount)}
-                          </p>
+                          {(() => {
+                            const isPositive = Number(transaction.amount) >= 0 && transaction.type !== "commission_deduction";
+                            const displayAmount = Math.abs(transaction.amount);
+                            return (
+                              <p className={`font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}>
+                                {isPositive ? "+" : "-"}{formatCurrency(displayAmount)}
+                              </p>
+                            );
+                          })()}
                           <p className="text-xs text-muted-foreground mt-1">
                             {new Date(transaction.createdAt).toLocaleDateString()}
                           </p>
@@ -580,4 +592,3 @@ const EarningsDashboard = () => {
 };
 
 export default EarningsDashboard;
-

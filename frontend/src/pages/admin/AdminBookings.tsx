@@ -54,7 +54,12 @@ const AdminBookings = () => {
     const load = async () => {
       try {
         const res = await apiListBookings(undefined, token);
-        setBookings(res.bookings || []);
+        const sorted = (res.bookings || []).sort((a: any, b: any) => {
+          const dateA = new Date(a.createdAt || a.datetime || 0).getTime();
+          const dateB = new Date(b.createdAt || b.datetime || 0).getTime();
+          return dateB - dateA;
+        });
+        setBookings(sorted);
       } catch {
         toast.error("Failed to load bookings");
       } finally {

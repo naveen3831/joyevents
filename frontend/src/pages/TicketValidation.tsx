@@ -298,7 +298,7 @@ const TicketValidation = () => {
                                       {Object.entries(validationResult.booking.selectedTickets).map(([type, qty]) => (
                                         <div key={type} className="flex justify-between text-sm">
                                           <span className="capitalize text-foreground">{type === 'silver' ? '🥈 Silver' : type === 'gold' ? '🥇 Gold' : type === 'diamond' ? '💎 Diamond' : type}</span>
-                                          <span className="font-semibold text-primary">{qty} Ticket{Number(qty) > 1 ? 's' : ''}</span>
+                                          <span className="font-semibold text-primary">{Number(qty)} Ticket{Number(qty) > 1 ? 's' : ''}</span>
                                         </div>
                                       ))}
                                     </div>
@@ -448,5 +448,4 @@ const TicketValidation = () => {
 };
 
 export default TicketValidation;
-
 

@@ -28,12 +28,16 @@ const UpcomingBookings = () => {
       try {
         const res = await apiMyBookings(token);
         const upcoming = (res.bookings || []).filter((b: any) => {
-          if (!["pending", "assigned", "confirmed"].includes(b.status)) return false;
+          if (["completed", "cancelled", "rejected"].includes(b.status)) return false;
           const isEventBooking = !!b.eventId;
           if (isEventBooking) return b.event != null;
           const isServiceBooking = !!b.service;
           if (isServiceBooking) return b.service != null;
           return false;
+        }).sort((a: any, b: any) => {
+          const dateA = new Date(a.createdAt || a.datetime || 0).getTime();
+          const dateB = new Date(b.createdAt || b.datetime || 0).getTime();
+          return dateB - dateA;
         });
         setBookings(prev => {
           // Only update state if data actually changed — avoids unnecessary re-renders

@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, X, User, Store, Shield, Sun, Moon, ChevronDown, Heart, Briefcase, Menu } from "lucide-react";
+import { Calendar, X, User, Store, Shield, Sun, Moon, ChevronDown, Heart, Briefcase, Menu, ShoppingBag } from "lucide-react";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { apiListCategories, apiListServices, apiListEvents } from "@/lib/api";
 import { clearSession } from "@/lib/session";
+import { useCart } from "@/contexts/CartContext";
 
 const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }: { hideDashboardLinks?: boolean; onSidebarToggle?: () => void }) => {
   const { role, isLoggedIn, setIsLoggedIn, setToken, setUser } = useAuth();
@@ -29,6 +30,7 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }: { hideDashboard
   const [expandedMobileMenu, setExpandedMobileMenu] = useState<string | null>(null);
   const dashboardPath = dashboardPaths[role];
   const platformName = usePlatformName();
+  const { cartCount } = useCart();
 
   useEffect(() => {
     document.title = platformName;
@@ -239,9 +241,19 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }: { hideDashboard
 
           <div className="hidden items-center gap-2 lg:flex flex-nowrap shrink-0">
             {isLoggedIn && role === "customer" && (
-              <Link to="/customer-dashboard/favorites" className="relative text-muted-foreground hover:text-primary transition-colors shrink-0" title="Favorites">
-                <Heart className="h-5 w-5" />
-              </Link>
+              <>
+                <Link to="/customer-dashboard/favorites" className="relative text-muted-foreground hover:text-primary transition-colors shrink-0" title="Favorites">
+                  <Heart className="h-5 w-5" />
+                </Link>
+                <Link to="/customer-dashboard/cart" className="relative text-muted-foreground hover:text-primary transition-colors shrink-0" title="Cart">
+                  <ShoppingBag className="h-5 w-5" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground shadow-sm">
+                      {cartCount}
+                    </span>
+                  )}
+                </Link>
+              </>
             )}
             {isLoggedIn && (
               <NotificationBell />

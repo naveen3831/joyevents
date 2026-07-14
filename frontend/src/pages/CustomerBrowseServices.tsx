@@ -1,17 +1,19 @@
 import { useState, useEffect, useMemo } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Search, Loader2, Briefcase, ArrowLeft, SlidersHorizontal, X, Mail, Star } from "lucide-react";
+import { Search, Loader2, Briefcase, ArrowLeft, SlidersHorizontal, X, Mail, Star, ShoppingBag } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import { apiListServices, apiGetAllPromoCodes } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import ContactMerchantModal from "@/components/ContactMerchantModal";
 import { Tag, Ticket, Copy } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const SORT_OPTIONS = [
   { value: "default", label: "Default" },
@@ -24,10 +26,17 @@ const SORT_OPTIONS = [
 const CustomerBrowseServices = () => {
   const { isLoggedIn } = useAuth() as any;
   const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [contactService, setContactService] = useState<any>(null);
+
+  // Quick Add to Cart State
+  const [selectedServiceForCart, setSelectedServiceForCart] = useState<any>(null);
+  const [cartDate, setCartDate] = useState("");
+  const [cartTime, setCartTime] = useState("");
+  const [cartAddress, setCartAddress] = useState("");
 
   // Filters
   const [showFilters, setShowFilters] = useState(false);
@@ -121,6 +130,49 @@ const CustomerBrowseServices = () => {
   }, [services, search, selectedCategory, sortBy, priceMin, priceMax]);
 
   const imgSrc = (image: string) => image?.startsWith("http") ? image : image ? `${API_URL}${image}` : "";
+
+  const handleAddServiceToCartDirect = () => {
+    if (!isLoggedIn) {
+      const dashboardUrl = `/customer-dashboard/browse-services`;
+      localStorage.setItem("authReturnTo", dashboardUrl);
+      toast.error("Please sign in to add items to cart");
+      navigate(`/login?redirect=${encodeURIComponent(dashboardUrl)}`);
+      return;
+    }
+    if (!selectedServiceForCart) return;
+    if (!cartDate || !cartTime) {
+      toast.error("Please select a date and time");
+      return;
+    }
+    if (!cartAddress) {
+      toast.error("Please enter a delivery address");
+      return;
+    }
+
+    addToCart({
+      type: "service",
+      itemId: selectedServiceForCart._id,
+      name: selectedServiceForCart.name,
+      price: selectedServiceForCart.price,
+      originalPrice: selectedServiceForCart.price,
+      discountAmount: 0,
+      date: cartDate,
+      time: cartTime,
+      image: selectedServiceForCart.image,
+      category: selectedServiceForCart.category,
+      merchantId: selectedServiceForCart.createdBy?._id || selectedServiceForCart.createdBy,
+      details: {
+        addOns: [],
+        customerLocation: { address: cartAddress, latitude: 12.9716, longitude: 77.5946 },
+        guestCount: selectedServiceForCart.allowGuests ? Number(selectedServiceForCart.maxGuests) : undefined
+      }
+    });
+
+    setSelectedServiceForCart(null);
+    setCartDate("");
+    setCartTime("");
+    setCartAddress("");
+  };
 
   const goToDetail = (svc: any) => {
     const dashboardUrl = `/customer-dashboard/services/${svc._id}`;
@@ -378,8 +430,11 @@ const CustomerBrowseServices = () => {
                       <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10" onClick={() => goToDetail(svc)}>
                         View Details
                       </Button>
-                      <Button className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90" onClick={() => goToDetail(svc)}>
-                        Book Now
+                      <Button
+                        className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 flex items-center justify-center gap-1.5"
+                        onClick={() => setSelectedServiceForCart(svc)}
+                      >
+                        <ShoppingBag className="h-4 w-4" /> Add to Cart
                       </Button>
                       {svc.createdBy && (
                         <button
@@ -404,6 +459,38 @@ const CustomerBrowseServices = () => {
           onClose={() => setContactService(null)}
         />
       )}
+      <Dialog open={!!selectedServiceForCart} onOpenChange={(open) => { if (!open) setSelectedServiceForCart(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configure Service Booking</DialogTitle>
+          </DialogHeader>
+          {selectedServiceForCart && (
+            <div className="space-y-4 py-4">
+              <div>
+                <h4 className="font-semibold text-sm mb-1">Service</h4>
+                <p className="text-sm text-muted-foreground">{selectedServiceForCart.name}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Date</label>
+                  <Input type="date" value={cartDate} onChange={e => setCartDate(e.target.value)} min={new Date().toISOString().split("T")[0]} />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Time</label>
+                  <Input type="time" value={cartTime} onChange={e => setCartTime(e.target.value)} />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Event Location / Delivery Address</label>
+                <Input type="text" value={cartAddress} onChange={e => setCartAddress(e.target.value)} placeholder="e.g. 123 Main St, Bengaluru" />
+              </div>
+              <Button onClick={handleAddServiceToCartDirect} className="w-full bg-gradient-primary">
+                Add to Cart — {formatCurrency(selectedServiceForCart.price)}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </CustomerLayout>
   );
 };

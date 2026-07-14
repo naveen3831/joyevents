@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, CalendarDays, Calendar, Clock, MapPin, Users, Loader2,
-  Heart, Share2, Tag, Ticket, X, Check, Star, CheckCircle2, Images, Video,
+  Heart, Share2, Tag, Ticket, X, Check, Star, CheckCircle2, Images, Video, ShoppingBag,
 } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import SimplePayment from "@/components/SimplePayment";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import { apiGetEventById, apiCheckFavorite, apiAddFavorite, apiRemoveFavorite, apiValidatePromoCode, apiListEvents, apiGetPublicReviews } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ const CustomerEventDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { isLoggedIn, token } = useAuth() as any;
   const navigate = useNavigate();
+  const { addToCart } = useCart();
 
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -199,7 +201,7 @@ const CustomerEventDetail = () => {
     }
   };
 
-  const handleBookNow = async () => {
+  const handleAddToCart = (redirectAfterAdding = false) => {
     if (!isLoggedIn || !token) {
       const returnUrl = `/customer-dashboard/events/${id}`;
       savePendingEventBooking({
@@ -225,8 +227,34 @@ const CustomerEventDetail = () => {
       }
     }
 
-    // Show payment modal for events (reverted to old flow)
-    setShowPaymentModal(true);
+    const price = getFinalPrice();
+    const originalPrice = getTicketPrice();
+    const discountAmount = originalPrice - price;
+
+    addToCart({
+      type: "event",
+      itemId: event._id,
+      name: event.title,
+      price,
+      originalPrice,
+      discountAmount,
+      date: new Date(event.datetime).toISOString().split("T")[0],
+      time: new Date(event.datetime).toTimeString().split(" ")[0].slice(0, 5),
+      image: event.image,
+      category: event.category,
+      merchantId: event.createdBy?._id || event.createdBy,
+      details: {
+        selectedTickets,
+        selectedSession: selectedSession || "",
+        selectedSeatNumbers,
+        quantity: event.eventType === "fullService" ? fullServiceQty : undefined
+      },
+      appliedPromo
+    });
+
+    if (redirectAfterAdding) {
+      navigate("/customer-dashboard/cart");
+    }
   };
 
   const isSoldOut = () => {
@@ -732,20 +760,31 @@ const CustomerEventDetail = () => {
                   </div>
 
                   {/* Confirm Booking — gated behind seat selection */}
-                  <Button
-                    className="w-full h-12 text-base bg-gradient-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={handleBookNow}
-                    disabled={
-                      (event.eventType === "ticketed" && Object.values(selectedTickets).reduce((s: number, q: any) => s + q, 0) === 0) ||
-                      (event.eventType === "fullService" && fullServiceQty === 0)
-                    }
-                  >
-                    <Check className="mr-2 h-5 w-5" />
-                    {(event.eventType === "ticketed" && Object.values(selectedTickets).reduce((s: number, q: any) => s + q, 0) === 0) ||
-                     (event.eventType === "fullService" && fullServiceQty === 0)
-                      ? "Select Tickets to Continue"
-                      : `Confirm Booking — ${formatCurrency(getFinalPrice(), { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-12 text-base border-primary/40 hover:bg-primary/5 text-primary"
+                      onClick={() => handleAddToCart(false)}
+                      disabled={
+                        (event.eventType === "ticketed" && Object.values(selectedTickets).reduce((s: number, q: any) => s + q, 0) === 0) ||
+                        (event.eventType === "fullService" && fullServiceQty === 0)
+                      }
+                    >
+                      <ShoppingBag className="mr-2 h-5 w-5" />
+                      Add to Cart
+                    </Button>
+                    <Button
+                      className="flex-1 h-12 text-base bg-gradient-primary text-primary-foreground hover:opacity-90"
+                      onClick={() => handleAddToCart(true)}
+                      disabled={
+                        (event.eventType === "ticketed" && Object.values(selectedTickets).reduce((s: number, q: any) => s + q, 0) === 0) ||
+                        (event.eventType === "fullService" && fullServiceQty === 0)
+                      }
+                    >
+                      <Check className="mr-2 h-5 w-5" />
+                      Book Now
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -842,40 +881,7 @@ const CustomerEventDetail = () => {
         )}
       </div>
 
-      {/* Payment Modal */}
-      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Payment & Booking Details</DialogTitle>
-          </DialogHeader>
-          {event && (
-            <SimplePayment
-              amount={getFinalPrice()}
-              bookingData={{
-                eventName: event.title,
-                eventId: event._id,
-                date: new Date(event.datetime).toISOString().split("T")[0],
-                time: new Date(event.datetime).toTimeString().split(" ")[0].slice(0, 5),
-                selectedTickets: event.eventType === "fullService" ? undefined : selectedTickets,
-                selectedSession,
-                quantity: event.eventType === "fullService" ? fullServiceQty : undefined,
-                promoCode: appliedPromo,
-                originalAmount: getTicketPrice(),
-                discount: getTicketPrice() - getFinalPrice(),
-                seatNumbers: selectedSeatNumbers,
-              }}
-              onSuccess={() => {
-                setShowPaymentModal(false);
-                clearPendingEventBooking();
-                toast.success("Booking confirmed!");
-                navigate("/customer-dashboard/bookings");
-              }}
-              onError={() => {}}
-              onClose={() => setShowPaymentModal(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Checkout processed via Cart */}
 
       {/* Gallery Lightbox */}
       {lightboxIndex !== null && event?.gallery?.length > 0 && (

@@ -36,6 +36,7 @@ function toSafeUser(user) {
     quotationAmount: user.quotationAmount,
     maxEvents: user.maxEvents,
     maxServices: user.maxServices,
+    walletBalance: user.walletBalance || 0,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

@@ -10,7 +10,7 @@ const bookingSchema = new mongoose.Schema(
     eventId: { type: String, trim: true },
     price: { type: Number, required: true },
     datetime: { type: Date, required: true },
-    status: { type: String, enum: ["pending", "pending_approval", "approved", "awaiting_payment", "paid", "confirmed", "assigned", "accepted", "processing", "completed", "cancelled", "awaiting_final_payment"], default: "pending" },
+    status: { type: String, enum: ["pending", "pending_approval", "approved", "awaiting_payment", "paid", "confirmed", "assigned", "accepted", "processing", "completed", "cancelled", "awaiting_final_payment", "cancellation_requested", "cancellation_fee_proposed", "refund_pending", "refunded"], default: "pending" },
     paymentStatus: { type: String, enum: ["pending", "paid", "failed", "refunded", "partially_paid"], default: "pending" },
     paymentId: { type: String, default: "" },
     // Advance payment tracking
@@ -28,10 +28,11 @@ const bookingSchema = new mongoose.Schema(
     quantity: { type: Number, default: 1 },
     selectedTickets: { type: Map, of: Number, default: {} },
     selectedSession: { type: String, enum: ["", "day", "night"], default: "" },
-    paymentMethod: { type: String, enum: ["upi", "card"], default: "card" },
+    paymentMethod: { type: String, enum: ["upi", "card", "wallet", "mixed"], default: "card" },
     upiId: { type: String, default: "" },
     cardLast4: { type: String, default: "" },
     cardholderName: { type: String, default: "" },
+    walletAmountPaid: { type: Number, default: 0 },
     commissionSnapshot: {
       commissionRate: { type: Number, default: null },
       commissionAmount: { type: Number, default: 0 },
@@ -91,7 +92,14 @@ const bookingSchema = new mongoose.Schema(
     }],
     guestCount: { type: Number, default: 0 },
     // Seat numbers selected by customer (e.g. ["diamond-A1", "gold-B3", "seat-C2"])
-    selectedSeatNumbers: [{ type: String }]
+    selectedSeatNumbers: [{ type: String }],
+    cancellationFee: { type: Number, default: 0 },
+    refundAmount: { type: Number, default: 0 },
+    cancellationRequestedAt: { type: Date, default: null },
+    cancellationFeeProposedAt: { type: Date, default: null },
+    cancellationAcceptedAt: { type: Date, default: null },
+    refundProcessedAt: { type: Date, default: null },
+    previousStatus: { type: String, default: "" }
   },
   { timestamps: true }
 );

@@ -777,7 +777,7 @@ const MerchantEvents = () => {
                       value={ticketedType || ""}
                       onChange={(e) => {
                         const value = e.target.value as "normal" | "dayNight" | "";
-                        setTicketedType(value);
+                        setTicketedType(value || null);
                         setTicketTypes([]);
                       }}
                       className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground"
@@ -1335,7 +1335,6 @@ const MerchantEvents = () => {
 };
 
 export default MerchantEvents;
-
 
 
 

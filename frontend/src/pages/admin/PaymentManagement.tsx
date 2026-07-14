@@ -35,7 +35,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { apiListBookings, apiUpdateBookingStatus, apiProcessMerchantPayout, apiGetPendingWithdrawals, apiApproveWithdrawal, apiCompleteWithdrawal, apiRejectWithdrawal } from "@/lib/api";
+import { apiListBookings, apiUpdateBookingStatus, apiProcessMerchantPayout, apiGetAllWithdrawals, apiGetPendingWithdrawals, apiApproveWithdrawal, apiCompleteWithdrawal, apiRejectWithdrawal } from "@/lib/api";
 
 interface Booking {
   _id: string;
@@ -59,6 +59,11 @@ interface Booking {
   status: string;
   paymentStatus: string;
   paymentMethod: string;
+  rating?: {
+    score?: number;
+    comment?: string;
+    ratedAt?: string;
+  };
   assignedTo?: {
     _id: string;
     name: string;
@@ -1441,4 +1446,3 @@ const PaymentManagement = () => {
 };
 
 export default PaymentManagement;
-

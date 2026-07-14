@@ -38,6 +38,7 @@ const CreateEvent = () => {
   const [dayTime, setDayTime] = useState("09:00 AM");
   const [nightTime, setNightTime] = useState("06:00 PM");
   const [showMap, setShowMap] = useState(false);
+  const [mapLocation, setMapLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showAddCategory, setShowAddCategory] = useState(false);
@@ -952,7 +953,6 @@ const CreateEvent = () => {
                   <p className="text-xs text-muted-foreground mt-2">Customers will pay this fixed price to book your event</p>
                 </div>
               )}
-            </div>
 
             <div className="flex gap-3">
               <Button

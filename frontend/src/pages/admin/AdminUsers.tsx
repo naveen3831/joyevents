@@ -32,6 +32,7 @@ type UserData = {
   email: string; 
   role: string; 
   createdAt: string; 
+  updatedAt?: string;
   status?: string; 
   mobile?: string;
   merchantStatus?: string;
@@ -1253,4 +1254,3 @@ const AdminUsers = () => {
 };
 
 export default AdminUsers;
-

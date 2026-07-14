@@ -25,9 +25,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['"Noto Sans Display"', 'sans-serif'],
-        body: ['"Noto Sans Display"', 'sans-serif'],
-        sans: ['"Noto Sans Display"', 'sans-serif'],
+        display: ['"Poppins"', 'sans-serif'],
+        body: ['"Poppins"', 'sans-serif'],
+        sans: ['"Poppins"', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

@@ -103,7 +103,7 @@ const Login = () => {
     <Layout>
       <section className="relative flex min-h-[85vh] items-center justify-center py-12 px-4 overflow-hidden bg-background">
         {/* Background Glowing Ambient Orbs */}
-        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-primary/20 blur-[100px] pointer-events-none animate-pulse duration-[6000ms]" />
+        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-primary/20 blur-[100px] pointer-events-none animate-pulse duration-&lsqb;6000ms&rsqb;" />
         <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[300px] h-[300px] rounded-full bg-amber-500/10 blur-[90px] pointer-events-none" />
 
         <div className="relative w-full max-w-5xl flex flex-col md:flex-row rounded-3xl border border-white/10 bg-black/40 backdrop-blur-xl shadow-2xl overflow-hidden">

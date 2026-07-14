@@ -26,8 +26,13 @@ const BookingHistory = () => {
       if (!token) return;
       try {
         const res = await apiMyBookings(token);
-        // Filter only completed bookings for history
-        const completedBookings = (res.bookings || []).filter((b: any) => b.status === "completed");
+        // Filter only completed bookings for history and sort descending
+        const completedBookings = (res.bookings || []).filter((b: any) => b.status === "completed")
+          .sort((a: any, b: any) => {
+            const dateA = new Date(a.createdAt || a.datetime || 0).getTime();
+            const dateB = new Date(b.createdAt || b.datetime || 0).getTime();
+            return dateB - dateA;
+          });
         setBookings(completedBookings);
       } catch (error) {
       } finally {

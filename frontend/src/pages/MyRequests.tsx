@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiMyBookings, apiSubmitRating, apiPayForBooking } from "@/lib/api";
+import { apiMyBookings, apiSubmitRating, apiPayForBooking, apiRequestCancel, apiAcceptCancellationFee } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -25,6 +25,10 @@ const STATUS_BADGE: Record<string, string> = {
   completed: "bg-purple-500/15 text-purple-400 border border-purple-500/30",
   cancelled: "bg-red-500/15 text-red-400 border border-red-500/30",
   awaiting_final_payment: "bg-pink-500/15 text-pink-400 border border-pink-500/30 font-bold",
+  cancellation_requested: "bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold animate-pulse",
+  cancellation_fee_proposed: "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-bold animate-pulse",
+  refund_pending: "bg-purple-500/15 text-purple-400 border border-purple-500/30 font-bold",
+  refunded: "bg-red-500/15 text-red-400 border border-red-500/30 font-bold",
 };
 
 const MyRequests = () => {
@@ -37,11 +41,45 @@ const MyRequests = () => {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentBooking, setPaymentBooking] = useState<any>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  const handleRequestCancel = async (bookingId: string) => {
+    if (!window.confirm("Are you sure you want to request cancellation for this booking?")) return;
+    setCancellingId(bookingId);
+    try {
+      await apiRequestCancel(bookingId, token);
+      toast.success("Cancellation request submitted successfully!");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to submit cancellation request");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const handleAcceptCancellationFee = async (bookingId: string) => {
+    if (!window.confirm("Do you agree to the proposed cancellation fee and want to proceed to refund?")) return;
+    setCancellingId(bookingId);
+    try {
+      await apiAcceptCancellationFee(bookingId, token);
+      toast.success("Cancellation fee accepted! Refund processing initiated.");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to accept cancellation fee");
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   const load = async () => {
     if (!token) return;
     const res = await apiMyBookings(token);
-    setItems(res.bookings || []);
+    const sorted = (res.bookings || []).sort((a: any, b: any) => {
+      const dateA = new Date(a.createdAt || a.datetime || 0).getTime();
+      const dateB = new Date(b.createdAt || b.datetime || 0).getTime();
+      return dateB - dateA;
+    });
+    setItems(sorted);
   };
 
   useEffect(() => {
@@ -177,8 +215,9 @@ const MyRequests = () => {
 <meta charset="UTF-8">
 <title>Invoice ${invoiceNo}</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:Arial,sans-serif;background:#f4f6f9;padding:30px;color:#333;}
+  body{font-family:'Poppins',sans-serif;background:#f4f6f9;padding:30px;color:#333;}
   .page{max-width:760px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.12);}
   .header{background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;padding:36px 40px;display:flex;justify-content:space-between;align-items:flex-start;}
   .brand{font-size:28px;font-weight:800;letter-spacing:-0.5px;}
@@ -476,8 +515,9 @@ const MyRequests = () => {
 <head>
   <meta charset="UTF-8">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Arial', sans-serif; background: #f5f5f5; padding: 20px; }
+    body { font-family: 'Poppins', sans-serif; background: #f5f5f5; padding: 20px; }
     .ticket {
       max-width: 600px;
       margin: 0 auto;
@@ -726,6 +766,53 @@ const MyRequests = () => {
                                 <CreditCard className="h-3.5 w-3.5" /> Pay {formatCurrency(b.remainingAmount)}
                               </Button>
                             )}
+
+                            {/* 7. Request Cancellation */}
+                            {!["completed", "cancelled", "rejected", "refunded", "cancellation_requested", "cancellation_fee_proposed", "refund_pending"].includes(b.status) && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="bg-red-600 hover:bg-red-700 text-white font-bold"
+                                onClick={() => handleRequestCancel(b._id)}
+                                disabled={cancellingId === b._id}
+                              >
+                                {cancellingId === b._id ? "Processing..." : "Request Cancel"}
+                              </Button>
+                            )}
+
+                            {/* 8. Accept proposed fee */}
+                            {b.status === "cancellation_fee_proposed" && (
+                              <div className="flex flex-col gap-1.5 p-2 border border-indigo-500/20 bg-indigo-500/5 rounded-lg w-full mt-1">
+                                <p className="text-xs font-semibold text-indigo-400">
+                                  Proposed Fee: {formatCurrency(b.cancellationFee || 0)}
+                                </p>
+                                <Button
+                                  size="sm"
+                                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+                                  onClick={() => handleAcceptCancellationFee(b._id)}
+                                  disabled={cancellingId === b._id}
+                                >
+                                  {cancellingId === b._id ? "Processing..." : "Accept Fee"}
+                                </Button>
+                              </div>
+                            )}
+
+                            {/* Status guide text */}
+                            {b.status === "cancellation_requested" && (
+                              <span className="text-xs font-medium text-amber-500 italic">
+                                Waiting for merchant response...
+                              </span>
+                            )}
+                            {b.status === "refund_pending" && (
+                              <span className="text-xs font-medium text-purple-400 italic">
+                                Fee accepted. Refund pending...
+                              </span>
+                            )}
+                            {b.status === "refunded" && (
+                              <span className="text-xs font-medium text-emerald-500 italic">
+                                Refunded {formatCurrency(b.refundAmount || 0)} to Wallet
+                              </span>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -850,5 +937,4 @@ const MyRequests = () => {
 };
 
 export default MyRequests;
-
 

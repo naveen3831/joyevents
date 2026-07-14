@@ -1,17 +1,19 @@
 import { useState, useEffect, useMemo } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Search, Loader2, CalendarDays, ArrowLeft, SlidersHorizontal, X, Mail, Star } from "lucide-react";
+import { Search, Loader2, CalendarDays, ArrowLeft, SlidersHorizontal, X, Mail, Star, ShoppingBag } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import { apiListEvents, apiGetFavorites, apiAddFavorite, apiRemoveFavorite, apiGetAllPromoCodes } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import ContactMerchantModal from "@/components/ContactMerchantModal";
 import { Tag, Ticket, Copy } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const SORT_OPTIONS = [
   { value: "default", label: "Default" },
@@ -27,11 +29,18 @@ const EVENT_TYPES = ["All", "ticketed", "fullService"];
 const CustomerBrowseEvents = () => {
   const { isLoggedIn, token, role } = useAuth() as any;
   const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [favMap, setFavMap] = useState<Record<string, string>>({});
   const [contactEvent, setContactEvent] = useState<any>(null);
+
+  // Quick Add to Cart State
+  const [selectedEventForCart, setSelectedEventForCart] = useState<any>(null);
+  const [cartSession, setCartSession] = useState<"day" | "night" | "">("");
+  const [cartTickets, setCartTickets] = useState<Record<string, number>>({});
+  const [cartFullServiceQty, setCartFullServiceQty] = useState(1);
 
   // Filters
   const [showFilters, setShowFilters] = useState(false);
@@ -145,6 +154,78 @@ const CustomerBrowseEvents = () => {
     }
     return list;
   }, [events, search, selectedCategory, selectedType, sortBy, priceMin, priceMax]);
+
+  const handleAddEventToCartDirect = () => {
+    if (!isLoggedIn) {
+      const dashboardUrl = `/customer-dashboard/browse-events`;
+      localStorage.setItem("authReturnTo", dashboardUrl);
+      toast.error("Please sign in to add items to cart");
+      navigate(`/login?redirect=${encodeURIComponent(dashboardUrl)}`);
+      return;
+    }
+    if (!selectedEventForCart) return;
+
+    if (selectedEventForCart.eventType === "ticketed") {
+      if (selectedEventForCart.hasMultipleSessions && !cartSession) {
+        toast.error("Please select a session");
+        return;
+      }
+      const totalQty = Object.values(cartTickets).reduce((a, b) => a + b, 0);
+      if (totalQty === 0) {
+        toast.error("Please select at least one ticket");
+        return;
+      }
+    } else {
+      if (cartFullServiceQty <= 0) {
+        toast.error("Please specify quantity");
+        return;
+      }
+    }
+
+    // Calculate prices
+    let basePrice = 0;
+    if (selectedEventForCart.eventType === "ticketed") {
+      if (selectedEventForCart.hasMultipleSessions && cartSession) {
+        const tickets = selectedEventForCart.sessions?.[cartSession]?.tickets || [];
+        Object.entries(cartTickets).forEach(([type, qty]) => {
+          const t = tickets.find((t: any) => t.type === type);
+          basePrice += (t?.price || 0) * qty;
+        });
+      } else {
+        Object.entries(cartTickets).forEach(([type, qty]) => {
+          const t = selectedEventForCart.tickets?.find((t: any) => t.type === type);
+          basePrice += (t?.price || 0) * qty;
+        });
+      }
+    } else {
+      basePrice = selectedEventForCart.price * cartFullServiceQty;
+    }
+
+    addToCart({
+      type: "event",
+      itemId: selectedEventForCart._id,
+      name: selectedEventForCart.title,
+      price: basePrice,
+      originalPrice: basePrice,
+      discountAmount: 0,
+      date: new Date(selectedEventForCart.datetime).toISOString().split("T")[0],
+      time: new Date(selectedEventForCart.datetime).toTimeString().split(" ")[0].slice(0, 5),
+      image: selectedEventForCart.image,
+      category: selectedEventForCart.category,
+      merchantId: selectedEventForCart.createdBy?._id || selectedEventForCart.createdBy,
+      details: {
+        selectedTickets: selectedEventForCart.eventType === "ticketed" ? cartTickets : undefined,
+        selectedSession: cartSession || "",
+        selectedSeatNumbers: [],
+        quantity: selectedEventForCart.eventType === "fullService" ? cartFullServiceQty : undefined
+      }
+    });
+
+    setSelectedEventForCart(null);
+    setCartSession("");
+    setCartTickets({});
+    setCartFullServiceQty(1);
+  };
 
   const handleToggleFavorite = async (eventId: string) => {
     if (!isLoggedIn || !token) { toast.error("Please sign in to save favorites"); return; }
@@ -453,8 +534,16 @@ const CustomerBrowseEvents = () => {
                       <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10" onClick={() => goToDetail(event)}>
                         View Details
                       </Button>
-                      <Button className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90" onClick={() => goToDetail(event)}>
-                        Book Now
+                      <Button
+                        className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 flex items-center justify-center gap-1.5"
+                        onClick={() => {
+                          setSelectedEventForCart(event);
+                          if (event.hasMultipleSessions) {
+                            setCartSession(event.sessions?.day?.enabled ? "day" : "night");
+                          }
+                        }}
+                      >
+                        <ShoppingBag className="h-4 w-4" /> Add to Cart
                       </Button>
                       {event.createdBy && (
                         <button
@@ -479,6 +568,120 @@ const CustomerBrowseEvents = () => {
           onClose={() => setContactEvent(null)}
         />
       )}
+      <Dialog open={!!selectedEventForCart} onOpenChange={(open) => { if (!open) setSelectedEventForCart(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configure Event Booking</DialogTitle>
+          </DialogHeader>
+          {selectedEventForCart && (
+            <div className="space-y-4 py-4">
+              <div>
+                <h4 className="font-semibold text-sm mb-1">Event</h4>
+                <p className="text-sm text-muted-foreground">{selectedEventForCart.title}</p>
+              </div>
+
+              {selectedEventForCart.eventType === "ticketed" ? (
+                <>
+                  {selectedEventForCart.hasMultipleSessions && (
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-2">Select Session</label>
+                      <div className="flex gap-4">
+                        {selectedEventForCart.sessions?.day?.enabled && (
+                          <Button
+                            type="button"
+                            variant={cartSession === "day" ? "default" : "outline"}
+                            className="flex-1"
+                            onClick={() => setCartSession("day")}
+                          >
+                            Day Session
+                          </Button>
+                        )}
+                        {selectedEventForCart.sessions?.night?.enabled && (
+                          <Button
+                            type="button"
+                            variant={cartSession === "night" ? "default" : "outline"}
+                            className="flex-1"
+                            onClick={() => setCartSession("night")}
+                          >
+                            Night Session
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-2">Select Tickets</label>
+                    <div className="space-y-3 bg-white/5 p-4 rounded-xl">
+                      {(() => {
+                        const sess = cartSession || (selectedEventForCart.sessions?.day?.enabled ? "day" : "night");
+                        const tickets = selectedEventForCart.hasMultipleSessions
+                          ? (selectedEventForCart.sessions?.[sess]?.tickets || [])
+                          : (selectedEventForCart.tickets || []);
+
+                        return tickets.map((t: any) => (
+                          <div key={t.type} className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-semibold capitalize">{t.type} Tier</span>
+                              <span className="text-xs text-muted-foreground block">{formatCurrency(t.price)}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-8 w-8 rounded-full"
+                                onClick={() => setCartTickets(prev => ({ ...prev, [t.type]: Math.max(0, (prev[t.type] || 0) - 1) }))}
+                              >
+                                -
+                              </Button>
+                              <span className="text-sm font-bold w-4 text-center">{cartTickets[t.type] || 0}</span>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-8 w-8 rounded-full"
+                                onClick={() => setCartTickets(prev => ({ ...prev, [t.type]: (prev[t.type] || 0) + 1 }))}
+                              >
+                                +
+                              </Button>
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-2">Quantity</label>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 rounded-full"
+                      onClick={() => setCartFullServiceQty(q => Math.max(1, q - 1))}
+                    >
+                      -
+                    </Button>
+                    <span className="text-sm font-bold w-4 text-center">{cartFullServiceQty}</span>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 rounded-full"
+                      onClick={() => setCartFullServiceQty(q => q + 1)}
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <Button onClick={handleAddEventToCartDirect} className="w-full bg-gradient-primary">
+                Add to Cart
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </CustomerLayout>
   );
 };

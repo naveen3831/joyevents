@@ -5,9 +5,11 @@ import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CartProvider } from "@/contexts/CartContext";
 import { Suspense, lazy } from "react";
 import { Loader2 } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import PublicRoute from "@/components/PublicRoute";
 import ScrollToTop from "@/components/ScrollToTop";
 
 // Global fetch interceptor to handle account deactivation instantly
@@ -94,6 +96,8 @@ const QRCodeGenerator = lazy(() => import("./pages/QRCodeGenerator"));
 const AIRecommendations = lazy(() => import("./pages/AIRecommendations"));
 const MerchantRecommendations = lazy(() => import("./pages/MerchantRecommendations"));
 const AdminRecommendations = lazy(() => import("./pages/admin/AdminRecommendations"));
+const Cart = lazy(() => import("./pages/Cart"));
+const CustomerWallet = lazy(() => import("./pages/CustomerWallet"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -109,21 +113,21 @@ const AppRoutes = () => {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/about" element={<AboutUs />} />
-        <Route path="/services" element={<Services />} />
-        <Route path="/portfolio" element={<Portfolio />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/blog" element={<Blog />} />
-        <Route path="/blog/:id" element={<BlogDetail />} />
-        <Route path="/reviews" element={<Reviews />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/events/:id" element={<EventDetail />} />
-        <Route path="/services/:id" element={<ServiceDetail />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
+        <Route path="/about" element={<PublicRoute><AboutUs /></PublicRoute>} />
+        <Route path="/services" element={<PublicRoute><Services /></PublicRoute>} />
+        <Route path="/portfolio" element={<PublicRoute><Portfolio /></PublicRoute>} />
+        <Route path="/contact" element={<PublicRoute><Contact /></PublicRoute>} />
+        <Route path="/blog" element={<PublicRoute><Blog /></PublicRoute>} />
+        <Route path="/blog/:id" element={<PublicRoute><BlogDetail /></PublicRoute>} />
+        <Route path="/reviews" element={<PublicRoute><Reviews /></PublicRoute>} />
+        <Route path="/events" element={<PublicRoute><Events /></PublicRoute>} />
+        <Route path="/events/:id" element={<PublicRoute><EventDetail /></PublicRoute>} />
+        <Route path="/services/:id" element={<PublicRoute><ServiceDetail /></PublicRoute>} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+        <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
         
         {/* Dashboard root redirects */}
         <Route path="/customer-dashboard" element={<ProtectedRoute allowedRoles={["customer"]}><UserDashboard /></ProtectedRoute>} />
@@ -147,6 +151,8 @@ const AppRoutes = () => {
         <Route path="/customer-dashboard/settings" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerSettings /></ProtectedRoute>} />
         <Route path="/customer-dashboard/profile" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerProfile /></ProtectedRoute>} />
         <Route path="/customer-dashboard/ai-recommendations" element={<ProtectedRoute allowedRoles={["customer"]}><AIRecommendations /></ProtectedRoute>} />
+        <Route path="/customer-dashboard/cart" element={<ProtectedRoute allowedRoles={["customer"]}><Cart /></ProtectedRoute>} />
+        <Route path="/customer-dashboard/wallet" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerWallet /></ProtectedRoute>} />
         
         {/* Merchant Routes */}
         <Route path="/merchant-dashboard/events" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantEvents /></ProtectedRoute>} />
@@ -202,10 +208,12 @@ const App = () => (
       <TooltipProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
-            <ScrollToTop />
-            <Toaster />
-            <Sonner />
-            <AppRoutes />
+            <CartProvider>
+              <ScrollToTop />
+              <Toaster />
+              <Sonner />
+              <AppRoutes />
+            </CartProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

@@ -9,7 +9,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
-import { apiMyBookings, apiListEvents, apiListServices, apiSubmitRating, apiListCategories } from "@/lib/api";
+import { apiMyBookings, apiListEvents, apiListServices, apiSubmitRating, apiListCategories, apiRequestCancel, apiAcceptCancellationFee, apiWithdrawWallet, apiVerifyToken } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import EventCard from "@/components/EventCard";
 import { toast } from "sonner";
@@ -23,10 +23,14 @@ const STATUS_BADGE: Record<string, string> = {
   confirmed: "bg-green-500/15 text-green-400 border border-green-500/30", // Approved by merchant - ticket generated
   completed: "bg-purple-500/15 text-purple-400 border border-purple-500/30",
   cancelled: "bg-red-500/15 text-red-400 border border-red-500/30",
+  cancellation_requested: "bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold animate-pulse",
+  cancellation_fee_proposed: "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-bold animate-pulse",
+  refund_pending: "bg-purple-500/15 text-purple-400 border border-purple-500/30 font-bold",
+  refunded: "bg-red-500/15 text-red-400 border border-red-500/30 font-bold",
 };
 
 const UserDashboard = () => {
-  const { token, user } = useAuth() as any;
+  const { token, user, updateUser } = useAuth() as any;
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [bookings, setBookings] = useState<any[]>([]);
@@ -58,6 +62,90 @@ const UserDashboard = () => {
   const [submittingRating, setSubmittingRating] = useState(false);
 
   const openPaymentModal = (b: any) => { setPaymentBooking(b); setShowPaymentModal(true); };
+
+  // Cancellation and Withdrawal states
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [withdrawModal, setWithdrawModal] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawMethod, setWithdrawMethod] = useState<"upi" | "bank">("upi");
+  const [upiId, setUpiId] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [ifscCode, setIfscCode] = useState("");
+  const [withdrawing, setWithdrawing] = useState(false);
+
+  const handleRequestCancel = async (bookingId: string) => {
+    if (!window.confirm("Are you sure you want to request cancellation for this booking?")) return;
+    setCancellingId(bookingId);
+    try {
+      await apiRequestCancel(bookingId, token);
+      toast.success("Cancellation request submitted successfully!");
+      loadBookings();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to submit cancellation request");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const handleAcceptCancellationFee = async (bookingId: string) => {
+    if (!window.confirm("Do you agree to the proposed cancellation fee and want to proceed to refund?")) return;
+    setCancellingId(bookingId);
+    try {
+      await apiAcceptCancellationFee(bookingId, token);
+      toast.success("Cancellation fee accepted! Refund processing initiated.");
+      loadBookings();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to accept cancellation fee");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const handleWithdrawSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amountNum = Number(withdrawAmount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    if (amountNum > (user?.walletBalance || 0)) {
+      toast.error("Insufficient balance");
+      return;
+    }
+    if (withdrawMethod === "upi" && !upiId.trim()) {
+      toast.error("Please enter a UPI ID");
+      return;
+    }
+    if (withdrawMethod === "bank" && (!bankName.trim() || !accountNumber.trim() || !ifscCode.trim())) {
+      toast.error("Please enter complete bank transfer details");
+      return;
+    }
+
+    setWithdrawing(true);
+    try {
+      const details = withdrawMethod === "upi" ? { upiId } : { bankName, accountNumber, ifscCode };
+      const res = await apiWithdrawWallet(amountNum, withdrawMethod, details, token);
+      
+      // Update local user context state
+      const verifyRes = await apiVerifyToken(token);
+      if (verifyRes.user) {
+        updateUser(verifyRes.user);
+      }
+      
+      toast.success("Withdrawal processed successfully!");
+      setWithdrawModal(false);
+      setWithdrawAmount("");
+      setUpiId("");
+      setBankName("");
+      setAccountNumber("");
+      setIfscCode("");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to process withdrawal");
+    } finally {
+      setWithdrawing(false);
+    }
+  };
 
   const openRatingModal = (b: any) => {
     setSelectedBooking(b);
@@ -105,7 +193,7 @@ const UserDashboard = () => {
     const rating = b.rating?.score ? `${b.rating.score}/5 ⭐${b.rating.comment ? ` — "${b.rating.comment}"` : ""}` : "";
 
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Invoice ${invoiceNo}</title>
-<style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;background:#f4f6f9;padding:30px;color:#333;}
+<style>@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Poppins',sans-serif;background:#f4f6f9;padding:30px;color:#333;}
 .page{max-width:760px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.12);}
 .header{background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;padding:36px 40px;display:flex;justify-content:space-between;align-items:flex-start;}
 .brand{font-size:28px;font-weight:800;}.brand span{font-size:13px;font-weight:400;opacity:.8;display:block;margin-top:4px;}
@@ -304,12 +392,16 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
     return () => clearInterval(interval);
   }, []);
 
-  // Derived stats
-  const completedBookings = bookings.filter((b) => b.status === "completed");
-  const upcomingBookings = bookings.filter((b) => ["pending", "assigned", "confirmed"].includes(b.status));
+  // Derived stats sorted newest first
+  const sortLatestBookingsFirst = (list: any[]) => {
+    return [...list].sort((a, b) => new Date(b.createdAt || b.datetime || 0).getTime() - new Date(a.createdAt || a.datetime || 0).getTime());
+  };
+
+  const completedBookings = sortLatestBookingsFirst(bookings.filter((b) => b.status === "completed"));
+  const upcomingBookings = sortLatestBookingsFirst(bookings.filter((b) => !["completed", "cancelled", "rejected"].includes(b.status)));
   const totalSpent = completedBookings.reduce((s: number, b: any) => s + (b.price || 0), 0);
 
-  const displayBookings = tab === "all" ? bookings : tab === "upcoming" ? upcomingBookings : completedBookings;
+  const displayBookings = sortLatestBookingsFirst(tab === "all" ? bookings : tab === "upcoming" ? upcomingBookings : completedBookings);
 
 
   return (
@@ -676,7 +768,8 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
   <meta charset="UTF-8">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Arial', sans-serif; background: #f5f5f5; padding: 20px; }
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Poppins', sans-serif; background: #f5f5f5; padding: 20px; }
     .ticket {
       max-width: 600px;
       margin: 0 auto;
@@ -869,6 +962,53 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
                                 {b.status === "awaiting_final_payment" ? `Pay ${formatCurrency(b.remainingAmount)}` : b.paymentType === "advance" ? `Pay ${formatCurrency(b.advanceAmount)}` : "Pay Now"}
                               </Button>
                             )}
+
+                            {/* Cancel Booking option */}
+                            {!["completed", "cancelled", "rejected", "refunded", "cancellation_requested", "cancellation_fee_proposed", "refund_pending"].includes(b.status) && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="bg-red-600 hover:bg-red-700 text-white font-bold"
+                                onClick={() => handleRequestCancel(b._id)}
+                                disabled={cancellingId === b._id}
+                              >
+                                {cancellingId === b._id ? "Processing..." : "Cancel"}
+                              </Button>
+                            )}
+
+                            {/* Accept Proposed Fee */}
+                            {b.status === "cancellation_fee_proposed" && (
+                              <div className="flex flex-col gap-1 p-1.5 border border-indigo-500/20 bg-indigo-500/5 rounded-lg mt-1 w-full max-w-[150px]">
+                                <p className="text-[10px] font-semibold text-indigo-400">
+                                  Fee: {formatCurrency(b.cancellationFee || 0)}
+                                </p>
+                                <Button
+                                  size="sm"
+                                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-0.5 h-6 text-[10px]"
+                                  onClick={() => handleAcceptCancellationFee(b._id)}
+                                  disabled={cancellingId === b._id}
+                                >
+                                  {cancellingId === b._id ? "..." : "Accept Fee"}
+                                </Button>
+                              </div>
+                            )}
+
+                            {/* Cancellation helpers */}
+                            {b.status === "cancellation_requested" && (
+                              <span className="text-[10px] font-medium text-amber-500 italic block mt-1">
+                                Cancel requested...
+                              </span>
+                            )}
+                            {b.status === "refund_pending" && (
+                              <span className="text-[10px] font-medium text-purple-400 italic block mt-1">
+                                Refund pending...
+                              </span>
+                            )}
+                            {b.status === "refunded" && (
+                              <span className="text-[10px] font-medium text-emerald-500 italic block mt-1">
+                                Refunded {formatCurrency(b.refundAmount || 0)}
+                              </span>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -881,11 +1021,40 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
           </motion.div>
 
           {/* Stats */}
-          <div className="mt-4 sm:mt-8 grid grid-cols-2 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-4 sm:mt-8 grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-5">
             <StatCard title={t("total_bookings")} value={loading ? "…" : bookings.length} icon={<Ticket className="h-5 w-5" />} index={0} />
             <StatCard title={t("upcoming")} value={loading ? "…" : upcomingBookings.length} icon={<Calendar className="h-5 w-5" />} index={1} />
             <StatCard title={t("completed")} value={loading ? "…" : completedBookings.length} icon={<CheckCircle2 className="h-5 w-5" />} index={2} />
             <StatCard title={t("total_spent")} value={loading ? "…" : `${formatCurrency(totalSpent)}`} icon={<DollarSign className="h-5 w-5" />} index={3} />
+            
+            {/* Wallet Balance Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="relative overflow-hidden rounded-2xl border border-primary/20 bg-card p-4 flex flex-col justify-between hover:shadow-lg transition-shadow"
+            >
+              <div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-[10px] sm:text-xs">Wallet Balance</span>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                    <DollarSign className="h-4 w-4" />
+                  </div>
+                </div>
+                <div className="mt-2 text-base sm:text-xl font-bold font-display text-gradient truncate">
+                  {loading ? "…" : formatCurrency(user?.walletBalance || 0)}
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setWithdrawModal(true)}
+                disabled={loading || !user?.walletBalance || user.walletBalance <= 0}
+                className="mt-3 w-full border-primary/40 text-primary hover:bg-primary/10 h-7 text-[10px] sm:text-xs font-bold"
+              >
+                Withdraw
+              </Button>
+            </motion.div>
           </div>
 
           {/* Live Events Section */}
@@ -1056,7 +1225,8 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
   <meta charset="UTF-8">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Arial', sans-serif; background: #f5f5f5; padding: 20px; }
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Poppins', sans-serif; background: #f5f5f5; padding: 20px; }
     .ticket {
       max-width: 600px;
       margin: 0 auto;
@@ -1427,11 +1597,128 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
         </DialogContent>
       </Dialog>
 
+      {/* Withdraw Balance Modal */}
+      <Dialog open={withdrawModal} onOpenChange={setWithdrawModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              Withdraw Wallet Balance
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleWithdrawSubmit} className="space-y-4 pt-2">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">
+                Available Wallet Balance: <span className="font-bold text-primary">{formatCurrency(user?.walletBalance || 0)}</span>
+              </p>
+              <label className="text-xs font-semibold block mb-1">Amount to Withdraw</label>
+              <Input
+                type="number"
+                min="1"
+                max={user?.walletBalance || 0}
+                step="any"
+                placeholder="Enter amount..."
+                value={withdrawAmount}
+                onChange={e => setWithdrawAmount(e.target.value)}
+                required
+                className="bg-secondary border-border w-full"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold block mb-1.5">Withdrawal Method</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input
+                    type="radio"
+                    name="withdrawMethod"
+                    checked={withdrawMethod === "upi"}
+                    onChange={() => setWithdrawMethod("upi")}
+                    className="accent-primary"
+                  />
+                  UPI Transfer
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input
+                    type="radio"
+                    name="withdrawMethod"
+                    checked={withdrawMethod === "bank"}
+                    onChange={() => setWithdrawMethod("bank")}
+                    className="accent-primary"
+                  />
+                  Bank Transfer
+                </label>
+              </div>
+            </div>
+
+            {withdrawMethod === "upi" ? (
+              <div>
+                <label className="text-xs font-semibold block mb-1">UPI ID</label>
+                <Input
+                  type="text"
+                  placeholder="e.g. user@okaxis"
+                  value={upiId}
+                  onChange={e => setUpiId(e.target.value)}
+                  required
+                  className="bg-secondary border-border w-full"
+                />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold block mb-1">Bank Name</label>
+                  <Input
+                    type="text"
+                    placeholder="e.g. HDFC Bank"
+                    value={bankName}
+                    onChange={e => setBankName(e.target.value)}
+                    required
+                    className="bg-secondary border-border w-full"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold block mb-1">Account Number</label>
+                  <Input
+                    type="text"
+                    placeholder="e.g. 50100234567890"
+                    value={accountNumber}
+                    onChange={e => setAccountNumber(e.target.value)}
+                    required
+                    className="bg-secondary border-border w-full"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold block mb-1">IFSC Code</label>
+                  <Input
+                    type="text"
+                    placeholder="e.g. HDFC0000060"
+                    value={ifscCode}
+                    onChange={e => setIfscCode(e.target.value)}
+                    required
+                    className="bg-secondary border-border w-full"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 justify-end pt-2">
+              <Button type="button" variant="outline" onClick={() => setWithdrawModal(false)}>Cancel</Button>
+              <Button
+                type="submit"
+                disabled={withdrawing || !withdrawAmount || Number(withdrawAmount) <= 0 || Number(withdrawAmount) > (user?.walletBalance || 0)}
+                className="bg-gradient-primary text-primary-foreground font-bold"
+              >
+                {withdrawing ? "Processing..." : "Process Withdrawal"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
     </CustomerLayout>
   );
 };
 
 export default UserDashboard;
-
 
 

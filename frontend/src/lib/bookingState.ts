@@ -9,7 +9,7 @@ export interface PendingServiceBooking {
   servicePrice: number;
   date: string;
   time: string;
-  selectedAddOns: string[];
+  selectedAddOns: string[] | Record<string, number>;
   customerAddress: string;
   customerLocation: { lat: number; lng: number } | null;
   promoCode: string;

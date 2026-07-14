@@ -68,9 +68,18 @@ const MerchantSidebar = ({ open, onClose, onToggle }: MerchantSidebarProps) => {
   const { setIsLoggedIn, setToken, setUser } = useAuth() as any;
   const navigate = useNavigate();
   const handleLogout = () => {
-    setIsLoggedIn(false); setToken(null); setUser(null);
-    localStorage.removeItem("token"); localStorage.removeItem("role");
-    clearSession(); onClose(); navigate("/login");
+    sessionStorage.setItem("forceLoginNoRedirect", "1");
+    setIsLoggedIn(false);
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+    localStorage.removeItem("authReturnTo");
+    clearSession();
+    sessionStorage.removeItem("bookingReturnTo");
+    onClose();
+    navigate("/login", { replace: true });
   };
   return (
   <>

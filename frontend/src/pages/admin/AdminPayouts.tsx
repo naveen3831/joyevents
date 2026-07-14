@@ -69,6 +69,7 @@ interface Booking {
   datetime: string;
   status: string;
   paymentStatus: string;
+  payoutProcessed?: boolean;
   assignedTo?: {
     _id: string;
     name: string;
@@ -768,4 +769,3 @@ const AdminPayouts = () => {
 };
 
 export default AdminPayouts;
-

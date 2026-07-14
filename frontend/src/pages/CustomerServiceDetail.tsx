@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Briefcase, MapPin, X, Loader2, Star, CheckCircle2, Images } from "lucide-react";
+import { ArrowLeft, Briefcase, MapPin, X, Loader2, Star, CheckCircle2, Images, ShoppingBag } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import { apiListServices, apiValidatePromoCode, apiGetPublicReviews } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { API_URL } from "@/lib/config";
@@ -20,6 +21,7 @@ const CustomerServiceDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { isLoggedIn, token } = useAuth() as any;
   const navigate = useNavigate();
+  const { addToCart } = useCart();
 
   const [service, setService] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -81,7 +83,9 @@ const CustomerServiceDetail = () => {
         if (pending && pending.serviceId === id) {
           setDate(pending.date || "");
           setTime(pending.time || "");
-          setSelectedAddOns(pending.selectedAddOns || {});
+          setSelectedAddOns(Array.isArray(pending.selectedAddOns)
+            ? Object.fromEntries(pending.selectedAddOns.map((name) => [name, 1]))
+            : pending.selectedAddOns || {});
           setCustomerAddress(pending.customerAddress || "");
           setCustomerLocation(pending.customerLocation || null);
           setPromoCode(pending.promoCode || "");
@@ -149,7 +153,7 @@ const CustomerServiceDetail = () => {
     }
   };
 
-  const handleBookNow = async () => {
+  const handleAddToCart = (redirectAfterAdding = false) => {
     if (!isLoggedIn || !token) {
       const returnUrl = `/customer-dashboard/services/${service._id}`;
       savePendingServiceBooking({
@@ -164,39 +168,36 @@ const CustomerServiceDetail = () => {
     }
     if (!date || !time) { toast.error("Please select date and time"); return; }
     if (!customerLocation || !customerAddress) { toast.error("Please provide your location"); return; }
-    
-    // Updated flow: Submit for approval instead of opening payment modal
-    try {
-      const res = await fetch(`${API_URL}/api/bookings`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          serviceId: service._id,
-          serviceName: service.name,
-          price: getFinalPrice(),
-          date,
-          time,
-          addOns: (service.addOns || [])
-            .filter((a: any) => (selectedAddOns[a.name] || 0) > 0)
-            .map((a: any) => ({ name: a.name, price: a.price, quantity: selectedAddOns[a.name] || 1 })),
-          promoCode: appliedPromo,
-          customerLocation: { address: customerAddress, latitude: customerLocation.lat, longitude: customerLocation.lng }
-        })
-      });
 
-      if (res.ok) {
-        toast.success("Booking request submitted! Waiting for merchant approval.");
-        clearPendingServiceBooking();
-        navigate("/customer-dashboard/bookings");
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Failed to submit booking");
-      }
-    } catch (error) {
-      toast.error("An error occurred while submitting booking");
+    const price = getFinalPrice();
+    const originalPrice = service.price + (service.addOns || [])
+      .reduce((sum: number, a: any) => sum + (Number(a.price) * (selectedAddOns[a.name] || 0)), 0);
+    const discountAmount = originalPrice - price;
+
+    addToCart({
+      type: "service",
+      itemId: service._id,
+      name: service.name,
+      price,
+      originalPrice,
+      discountAmount,
+      date,
+      time,
+      image: service.image,
+      category: service.category,
+      merchantId: service.createdBy?._id || service.createdBy,
+      details: {
+        addOns: (service.addOns || [])
+          .filter((a: any) => (selectedAddOns[a.name] || 0) > 0)
+          .map((a: any) => ({ name: a.name, price: a.price, quantity: selectedAddOns[a.name] || 1 })),
+        customerLocation: { address: customerAddress, latitude: customerLocation.lat, longitude: customerLocation.lng },
+        guestCount: service.allowGuests ? Number(service.maxGuests) : undefined
+      },
+      appliedPromo
+    });
+
+    if (redirectAfterAdding) {
+      navigate("/customer-dashboard/cart");
     }
   };
 
@@ -529,9 +530,9 @@ const CustomerServiceDetail = () => {
                   )}
                   {showLocationPicker && (
                     <div className="mt-3">
-                      <LocationPicker onLocationSelect={(loc, addr) => {
-                        setCustomerLocation(loc);
-                        setCustomerAddress(String(addr));
+                      <LocationPicker onLocationSelect={(lat, lng, addr) => {
+                        setCustomerLocation({ lat, lng });
+                        setCustomerAddress(addr);
                         setShowLocationPicker(false);
                       }} />
                     </div>
@@ -602,12 +603,22 @@ const CustomerServiceDetail = () => {
                   </div>
                 </div>
 
-                <Button
-                  className="w-full h-12 text-base bg-gradient-primary text-primary-foreground hover:opacity-90"
-                  onClick={handleBookNow}
-                >
-                  Confirm Booking — {formatCurrency(getFinalPrice())}
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-12 text-base border-primary/40 hover:bg-primary/5 text-primary"
+                    onClick={() => handleAddToCart(false)}
+                  >
+                    <ShoppingBag className="mr-2 h-5 w-5" />
+                    Add to Cart
+                  </Button>
+                  <Button
+                    className="flex-1 h-12 text-base bg-gradient-primary text-primary-foreground hover:opacity-90"
+                    onClick={() => handleAddToCart(true)}
+                  >
+                    Request Now
+                  </Button>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -684,36 +695,7 @@ const CustomerServiceDetail = () => {
         )}
       </div>
 
-      {/* Payment Modal */}
-      {showPaymentModal && service && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
-            <SimplePayment
-              amount={getFinalPrice()}
-              bookingData={{
-                serviceName: service.name,
-                serviceId: service._id,
-                date, time,
-                addOns: (service.addOns || [])
-                  .filter((a: any) => (selectedAddOns[a.name] || 0) > 0)
-                  .map((a: any) => ({ name: a.name, price: a.price, quantity: selectedAddOns[a.name] || 1 })),
-                promoCode: appliedPromo,
-                customerLocation: customerLocation
-                  ? { address: customerAddress, lat: customerLocation.lat, lng: customerLocation.lng }
-                  : undefined,
-              }}
-              onSuccess={() => {
-                setShowPaymentModal(false);
-                clearPendingServiceBooking();
-                toast.success("Booking confirmed!");
-                navigate("/customer-dashboard/bookings");
-              }}
-              onError={() => {}}
-              onClose={() => setShowPaymentModal(false)}
-            />
-          </div>
-        </div>
-      )}
+      {/* Checkout processed via Cart */}
 
       {/* Gallery Lightbox */}
       {lightboxIndex !== null && service?.gallery?.length > 0 && (
@@ -798,8 +780,6 @@ const CustomerServiceDetail = () => {
 };
 
 export default CustomerServiceDetail;
-
-
 
 
 

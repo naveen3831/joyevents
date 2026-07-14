@@ -1,8 +1,9 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { LayoutDashboard, Ticket, History, Calendar, Settings, User, CalendarDays, Briefcase, Heart, MessageSquare, X, Sparkles, Menu, LogOut } from "lucide-react";
+import { LayoutDashboard, Ticket, History, Calendar, Settings, User, CalendarDays, Briefcase, Heart, MessageSquare, X, Sparkles, Menu, LogOut, ShoppingBag, Wallet } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import { clearSession } from "@/lib/session";
 
 interface CustomerSidebarProps {
@@ -14,12 +15,15 @@ interface CustomerSidebarProps {
 const NavLinks = ({ onClose }: { onClose?: () => void }) => {
   const location = useLocation();
   const { t } = useTranslation();
+  const { cartCount } = useCart();
 
   const customerLinks = [
     { to: "/customer-dashboard",                    label: t("overview"),          icon: LayoutDashboard, exact: true },
     { to: "/customer-dashboard/browse-events",      label: t("browse_events"),     icon: CalendarDays },
     { to: "/customer-dashboard/browse-services",    label: t("browse_services"),   icon: Briefcase },
     { to: "/customer-dashboard/bookings",           label: t("my_bookings"),       icon: Ticket },
+    { to: "/customer-dashboard/cart",               label: "Cart",                 icon: ShoppingBag, cartBadge: true },
+    { to: "/customer-dashboard/wallet",             label: "Wallet",               icon: Wallet },
     { to: "/customer-dashboard/history",            label: t("history"),           icon: History },
     { to: "/customer-dashboard/upcoming",           label: t("upcoming"),          icon: Calendar },
     { to: "/customer-dashboard/favorites",          label: t("favorites"),         icon: Heart },
@@ -52,6 +56,11 @@ const NavLinks = ({ onClose }: { onClose?: () => void }) => {
           >
             <Icon className="h-4 w-4 shrink-0" />
             {link.label}
+            {link.cartBadge && cartCount > 0 && (
+              <span className="ml-auto text-[10px] font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full shrink-0">
+                {cartCount}
+              </span>
+            )}
             {isHighlight && !isActive && (
               <span className="ml-auto text-[9px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">AI</span>
             )}
@@ -68,9 +77,18 @@ const CustomerSidebar = ({ open, onClose, onToggle }: CustomerSidebarProps) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    setIsLoggedIn(false); setToken(null); setUser(null);
-    localStorage.removeItem("token"); localStorage.removeItem("role");
-    clearSession(); onClose(); navigate("/login");
+    sessionStorage.setItem("forceLoginNoRedirect", "1");
+    setIsLoggedIn(false);
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+    localStorage.removeItem("authReturnTo");
+    clearSession();
+    sessionStorage.removeItem("bookingReturnTo");
+    onClose();
+    navigate("/login", { replace: true });
   };
 
   return (

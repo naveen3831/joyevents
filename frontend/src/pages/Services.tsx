@@ -206,7 +206,9 @@ const Services = () => {
     setSelectedService(svc);
     setDate(pending.date || "");
     setTime(pending.time || "");
-    setSelectedAddOns(pending.selectedAddOns || []);
+    setSelectedAddOns(Array.isArray(pending.selectedAddOns)
+      ? pending.selectedAddOns
+      : Object.keys(pending.selectedAddOns || {}));
     setCustomerAddress(pending.customerAddress || "");
     setCustomerLocation(pending.customerLocation || null);
     setPromoCode(pending.promoCode || "");
@@ -1127,7 +1129,6 @@ const Services = () => {
 };
 
 export default Services;
-
 
 
 

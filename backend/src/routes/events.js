@@ -10,7 +10,7 @@ const router = Router();
 // Public: list all events
 router.get("/", async (_req, res) => {
   try {
-    const events = await Event.find().populate("createdBy", "name email").sort({ datetime: 1 });
+    const events = await Event.find().populate("createdBy", "name email").sort({ createdAt: -1 });
     
     // Fetch average ratings and rating counts for all events
     const ratings = await Booking.aggregate([
@@ -61,11 +61,11 @@ router.get("/my-events", verifyToken, requireRole("merchant"), async (req, res) 
   try {
 
     // First try to get events with createdBy field
-    let events = await Event.find({ createdBy: req.user._id }).sort({ datetime: 1 });
+    let events = await Event.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
 
     // If no events found with createdBy, check if there are legacy events without createdBy
     if (events.length === 0) {
-      const allEvents = await Event.find({}).sort({ datetime: 1 });
+      const allEvents = await Event.find({}).sort({ createdAt: -1 });
 
       // For now, if there are events without createdBy, return all events for this merchant
       // This is a temporary fix - in production you'd want to properly assign ownership
@@ -124,7 +124,7 @@ router.get("/my-events", verifyToken, requireRole("merchant"), async (req, res) 
 // Public: get events by merchant ID
 router.get("/merchant/:merchantId", async (req, res) => {
   try {
-    const events = await Event.find({ createdBy: req.params.merchantId }).sort({ datetime: 1 });
+    const events = await Event.find({ createdBy: req.params.merchantId }).sort({ createdAt: -1 });
     
     // Fetch average ratings and rating counts for all events
     const ratings = await Booking.aggregate([
@@ -245,8 +245,8 @@ router.post("/assign-legacy-events", verifyToken, requireRole("merchant"), async
 });
 router.get("/debug-events", verifyToken, requireRole("merchant"), async (req, res) => {
   try {
-    const allEvents = await Event.find({}).sort({ datetime: 1 });
-    const myEvents = await Event.find({ createdBy: req.user._id }).sort({ datetime: 1 });
+    const allEvents = await Event.find({}).sort({ createdAt: -1 });
+    const myEvents = await Event.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
 
     res.json({
       totalEvents: allEvents.length,

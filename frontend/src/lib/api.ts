@@ -472,7 +472,13 @@ export async function apiUpdateBookingStatus(id: string, status: string, token: 
   return res.json();
 }
 
-export async function apiPayForBooking(id: string, params: { paymentMethod: string; paymentDetails: any }, token: string) {
+export async function apiPayForBooking(id: string, params: {
+  paymentMethod: string;
+  paymentDetails: any;
+  paymentType?: string;
+  useWallet?: boolean;
+  walletAmountPaid?: number;
+}, token: string) {
   const res = await fetch(`${API_URL}/api/bookings/${id}/pay`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -1403,6 +1409,93 @@ export async function apiSaveHomepageSettings(settings: any, token: string) {
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err?.message || "Failed to save homepage settings");
+  }
+  return res.json();
+}
+
+export async function apiRequestCancel(id: string, token: string) {
+  const res = await fetch(`${API_URL}/api/bookings/${id}/request-cancel`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to request cancellation");
+  }
+  return res.json();
+}
+
+export async function apiApproveCancel(id: string, cancellationFee: number, token: string) {
+  const res = await fetch(`${API_URL}/api/bookings/${id}/approve-cancel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ cancellationFee })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to approve cancellation");
+  }
+  return res.json();
+}
+
+export async function apiRejectCancel(id: string, token: string) {
+  const res = await fetch(`${API_URL}/api/bookings/${id}/reject-cancel`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to reject cancellation");
+  }
+  return res.json();
+}
+
+export async function apiAcceptCancellationFee(id: string, token: string) {
+  const res = await fetch(`${API_URL}/api/bookings/${id}/accept-cancellation-fee`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to accept cancellation fee");
+  }
+  return res.json();
+}
+
+export async function apiProcessRefund(id: string, token: string) {
+  const res = await fetch(`${API_URL}/api/bookings/${id}/process-refund`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to process refund");
+  }
+  return res.json();
+}
+
+export async function apiWithdrawWallet(amount: number, paymentMethod: string, details: any, token: string) {
+  const res = await fetch(`${API_URL}/api/auth/withdraw`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ amount, paymentMethod, details })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to withdraw wallet balance");
+  }
+  return res.json();
+}
+
+export async function apiAddWalletFunds(amount: number, paymentMethod: string, paymentDetails: any, token: string) {
+  const res = await fetch(`${API_URL}/api/auth/add-wallet-funds`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ amount, paymentMethod, paymentDetails })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || "Failed to add wallet funds");
   }
   return res.json();
 }

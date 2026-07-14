@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiAssignedBookings, apiCompleteBooking, apiUpdateBookingStatus, apiApproveBooking, apiRejectBooking } from "@/lib/api";
+import { apiAssignedBookings, apiCompleteBooking, apiUpdateBookingStatus, apiApproveBooking, apiRejectBooking, apiApproveCancel, apiRejectCancel, apiProcessRefund } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import {
@@ -29,6 +29,10 @@ const STATUS_BADGE: Record<string, string> = {
   cancelled: "bg-red-500/15 text-red-400 border border-red-500/30",
   paid: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold",
   awaiting_final_payment: "bg-pink-500/15 text-pink-400 border border-pink-500/30 font-bold",
+  cancellation_requested: "bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold animate-pulse",
+  cancellation_fee_proposed: "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-bold",
+  refund_pending: "bg-purple-500/15 text-purple-400 border border-purple-500/30 font-bold animate-pulse",
+  refunded: "bg-red-500/15 text-red-400 border border-red-500/30 font-bold",
 };
 
 const MerchantBookings = () => {
@@ -41,6 +45,13 @@ const MerchantBookings = () => {
   const [approvalOptions, setApprovalOptions] = useState<{ id: string; show: boolean }>({ id: "", show: false });
   const [customAdvance, setCustomAdvance] = useState<string>("");
   const [showCustomInput, setShowCustomInput] = useState(false);
+
+  // Cancellation and Refund handling states
+  const [cancellationModal, setCancellationModal] = useState(false);
+  const [selectedCancelBooking, setSelectedCancelBooking] = useState<any | null>(null);
+  const [cancelFeeOption, setCancelFeeOption] = useState<"preset" | "custom">("preset");
+  const [customCancelFee, setCustomCancelFee] = useState("");
+  const [submittingCancelAction, setSubmittingCancelAction] = useState(false);
 
   const load = async () => {
     if (!token) return;
@@ -59,8 +70,12 @@ const MerchantBookings = () => {
     load();
   }, [token]);
 
-  const activeItems = items.filter(b => !["completed", "cancelled"].includes(b.status) || b.status === "awaiting_final_payment");
-  const historyItems = items.filter(b => ["completed", "cancelled"].includes(b.status));
+  const sortLatestBookingsFirst = (list: any[]) => {
+    return [...list].sort((a, b) => new Date(b.createdAt || b.datetime || 0).getTime() - new Date(a.createdAt || a.datetime || 0).getTime());
+  };
+
+  const activeItems = sortLatestBookingsFirst(items.filter(b => !["completed", "cancelled", "rejected"].includes(b.status)));
+  const historyItems = sortLatestBookingsFirst(items.filter(b => ["completed", "cancelled"].includes(b.status)));
   const displayItems = tab === "active" ? activeItems : historyItems;
 
   const handleUpdateStatus = async (id: string, status: string) => {
@@ -110,7 +125,65 @@ const MerchantBookings = () => {
       toast.error(e.message || "Failed to reject booking");
     }
   };
+  const handleApproveCancelSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCancelBooking) return;
 
+    let fee = 0;
+    if (cancelFeeOption === "preset") {
+      fee = Math.round((selectedCancelBooking.price || 0) * 0.3);
+    } else {
+      const parsed = Number(customCancelFee);
+      if (isNaN(parsed) || parsed < 0 || parsed > (selectedCancelBooking.price || 0)) {
+        toast.error("Please enter a valid cancellation fee (cannot exceed booking price)");
+        return;
+      }
+      fee = parsed;
+    }
+
+    setSubmittingCancelAction(true);
+    try {
+      await apiApproveCancel(selectedCancelBooking._id, fee, token);
+      toast.success("Cancellation approved and fee proposed successfully!");
+      setCancellationModal(false);
+      setSelectedCancelBooking(null);
+      setCustomCancelFee("");
+      setCancelFeeOption("preset");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to approve cancellation");
+    } finally {
+      setSubmittingCancelAction(false);
+    }
+  };
+
+  const handleRejectCancel = async (bookingId: string) => {
+    if (!window.confirm("Are you sure you want to reject this cancellation request? The booking status will be restored.")) return;
+    setSubmittingCancelAction(true);
+    try {
+      await apiRejectCancel(bookingId, token);
+      toast.success("Cancellation request rejected successfully!");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to reject cancellation request");
+    } finally {
+      setSubmittingCancelAction(false);
+    }
+  };
+
+  const handleProcessRefund = async (bookingId: string) => {
+    if (!window.confirm("Are you sure you want to process the refund? This will deposit the remaining amount into the user's wallet.")) return;
+    setSubmittingCancelAction(true);
+    try {
+      await apiProcessRefund(bookingId, token);
+      toast.success("Refund processed successfully!");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to process refund");
+    } finally {
+      setSubmittingCancelAction(false);
+    }
+  };
   return (
     <MerchantLayout>
       <section className="py-2 sm:py-8 lg:py-10">
@@ -279,7 +352,44 @@ const MerchantBookings = () => {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          {b.service && b.status === "pending_approval" ? (
+                          {b.status === "cancellation_requested" ? (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                className="bg-amber-600 text-white hover:bg-amber-700 h-8 px-3 text-xs font-semibold"
+                                onClick={() => {
+                                  setSelectedCancelBooking(b);
+                                  setCancellationModal(true);
+                                }}
+                              >
+                                Approve Cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-500 border-red-500/30 hover:bg-red-500/10 h-8 px-3 text-xs font-semibold"
+                                onClick={() => handleRejectCancel(b._id)}
+                              >
+                                Reject Cancel
+                              </Button>
+                            </div>
+                          ) : b.status === "refund_pending" ? (
+                            <Button
+                              size="sm"
+                              className="bg-purple-600 text-white hover:bg-purple-700 h-8 px-3 text-xs font-semibold"
+                              onClick={() => handleProcessRefund(b._id)}
+                            >
+                              Process Refund ({formatCurrency(b.price - (b.cancellationFee || 0))})
+                            </Button>
+                          ) : b.status === "cancellation_fee_proposed" ? (
+                            <span className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20 italic">
+                              Fee proposed, awaiting customer...
+                            </span>
+                          ) : b.status === "refunded" ? (
+                            <span className="text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded border border-red-500/20 italic">
+                              Refunded {formatCurrency(b.refundAmount || 0)}
+                            </span>
+                          ) : b.service && b.status === "pending_approval" ? (
                             <div className="flex items-center gap-2">
                               <Button
                                 size="sm"
@@ -444,6 +554,115 @@ const MerchantBookings = () => {
                 Cancel
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Approve Cancellation Modal */}
+      {cancellationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
+            <h3 className="font-display text-xl font-bold mb-2 text-center text-amber-500">Approve Cancellation</h3>
+            <p className="text-sm text-muted-foreground mb-4 text-center">
+              Specify a cancellation fee for this booking. The remaining amount will be refunded to the customer once they accept.
+            </p>
+            <form onSubmit={handleApproveCancelSubmit} className="space-y-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Booking Price: <span className="font-bold text-foreground">{formatCurrency(selectedCancelBooking?.price || 0)}</span>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold block">Cancellation Fee Policy</label>
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input
+                      type="radio"
+                      name="cancelFeeOption"
+                      checked={cancelFeeOption === "preset"}
+                      onChange={() => setCancelFeeOption("preset")}
+                      className="accent-primary"
+                    />
+                    Standard 30% Fee ({formatCurrency(Math.round((selectedCancelBooking?.price || 0) * 0.3))})
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input
+                      type="radio"
+                      name="cancelFeeOption"
+                      checked={cancelFeeOption === "custom"}
+                      onChange={() => setCancelFeeOption("custom")}
+                      className="accent-primary"
+                    />
+                    Custom Cancellation Fee
+                  </label>
+                </div>
+              </div>
+
+              {cancelFeeOption === "custom" && (
+                <div>
+                  <label className="text-xs font-semibold block mb-1">Custom Fee Amount</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max={selectedCancelBooking?.price || 0}
+                    step="any"
+                    placeholder="Enter fee amount..."
+                    value={customCancelFee}
+                    onChange={e => setCustomCancelFee(e.target.value)}
+                    required
+                    className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 w-full"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Cannot exceed the booking price.
+                  </p>
+                </div>
+              )}
+
+              <div className="p-3 bg-secondary rounded-lg text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span>Original Price:</span>
+                  <span>{formatCurrency(selectedCancelBooking?.price || 0)}</span>
+                </div>
+                <div className="flex justify-between font-medium text-red-500">
+                  <span>Cancellation Fee:</span>
+                  <span>
+                    {formatCurrency(
+                      cancelFeeOption === "preset"
+                        ? Math.round((selectedCancelBooking?.price || 0) * 0.3)
+                        : Number(customCancelFee) || 0
+                    )}
+                  </span>
+                </div>
+                <div className="border-t border-border my-1" />
+                <div className="flex justify-between font-bold text-green-500">
+                  <span>Estimated Customer Refund:</span>
+                  <span>
+                    {formatCurrency(
+                      Math.max(
+                        0,
+                        (selectedCancelBooking?.price || 0) -
+                          (cancelFeeOption === "preset"
+                            ? Math.round((selectedCancelBooking?.price || 0) * 0.3)
+                            : Number(customCancelFee) || 0)
+                      )
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end mt-4">
+                <Button type="button" variant="outline" onClick={() => setCancellationModal(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submittingCancelAction}
+                  className="bg-gradient-primary text-white"
+                >
+                  {submittingCancelAction ? "Approving..." : "Approve Cancellation"}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

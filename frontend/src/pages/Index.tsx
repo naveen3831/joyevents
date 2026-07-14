@@ -146,7 +146,7 @@ const Index = () => {
         servicePrice: svc.price,
         date: "",
         time: "",
-        selectedAddOns: [],
+        selectedAddOns: {},
         customerAddress: "",
         customerLocation: null,
         promoCode: "",
@@ -607,22 +607,19 @@ const Index = () => {
           <DialogHeader>
             <DialogTitle>Payment & Booking Details</DialogTitle>
           </DialogHeader>
-          {selectedService && date && time && (
+          {selectedService && (
             <SimplePayment
               amount={totalPrice()}
               bookingData={{
                 serviceName: selectedService.name,
-                date: date,
-                time: time,
-                addOns: selectedAddOns.length > 0
-                  ? (selectedService.addOns || []).filter((a: any) => selectedAddOns.includes(a.name)).map((a: any) => ({ name: a.name, price: Number(a.price) }))
-                  : undefined,
+                date: "",
+                time: "",
+                addOns: undefined,
               }}
               onSuccess={handlePaymentSuccess}
               onError={handlePaymentError}
               onClose={() => {
                 setShowPaymentModal(false);
-                setShowServiceModal(true);
               }}
             />
           )}
@@ -826,6 +823,5 @@ const Index = () => {
 };
 
 export default Index;
-
 
 
