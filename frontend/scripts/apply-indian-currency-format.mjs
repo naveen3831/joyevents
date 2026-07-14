@@ -5,13 +5,13 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const srcDir = path.join(__dirname, "../src");
 
-const SKIP = new Set(["lib/utils.ts", "lib/useGoogleTranslate.ts"]);
+const SKIP = new Set(["lib/utils.js", "lib/useGoogleTranslate.js"]);
 
 function walk(dir, files = []) {
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, ent.name);
     if (ent.isDirectory()) walk(p, files);
-    else if (/\.(tsx?)$/.test(ent.name)) files.push(p);
+    else if (/\.(jsx?)$/.test(ent.name)) files.push(p);
   }
   return files;
 }

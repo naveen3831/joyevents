@@ -1,0 +1,621 @@
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { formatCurrency } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { Megaphone, Ticket, Share2, Send, Plus, Edit2, Trash2, Copy, Loader2, AlertCircle } from "lucide-react";
+import MerchantLayout from "@/components/MerchantLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { apiCreatePromoCode, apiGetPromoCodes, apiUpdatePromoCode, apiDeletePromoCode, apiSendNotification, apiListMyEvents, apiListMyServices, apiGetMarketingStats, apiListCategories } from "@/lib/api";
+const MarketingTools = () => {
+    const { token } = useAuth();
+    const location = useLocation();
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState("promo");
+    const [promoCodes, setPromoCodes] = useState([]);
+    const [events, setEvents] = useState([]);
+    const [services, setServices] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [eventCategories, setEventCategories] = useState([]);
+    const [serviceCategories, setServiceCategories] = useState([]);
+    const [ticketedEventCategories, setTicketedEventCategories] = useState([]);
+    const [fullServiceEventCategories, setFullServiceEventCategories] = useState([]);
+    const [stats, setStats] = useState(null);
+    // Promo code dialog
+    const [promoDialogOpen, setPromoDialogOpen] = useState(false);
+    const [editingPromo, setEditingPromo] = useState(null);
+    const [promoForm, setPromoForm] = useState({
+        code: "",
+        description: "",
+        appliesTo: "all",
+        applicableCategories: ["all"],
+        discountType: "percentage",
+        discountValue: 0,
+        maxUses: "",
+        expiryDate: "",
+        minBookingAmount: 0,
+        maxDiscount: ""
+    });
+    // Notification dialog
+    const [notifyDialogOpen, setNotifyDialogOpen] = useState(false);
+    const [notifyForm, setNotifyForm] = useState({
+        title: "",
+        message: "",
+        eventId: ""
+    });
+    const [submitting, setSubmitting] = useState(false);
+    useEffect(() => {
+        loadData();
+    }, [token]);
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        if (searchParams.get("createPromo") === "true" || location.state?.openCreatePromo) {
+            setEditingPromo(null);
+            setPromoForm({
+                code: "",
+                description: "",
+                appliesTo: "all",
+                applicableCategories: ["all"],
+                discountType: "percentage",
+                discountValue: 0,
+                maxUses: "",
+                expiryDate: "",
+                minBookingAmount: 0,
+                maxDiscount: ""
+            });
+            setPromoDialogOpen(true);
+            setActiveTab("promo");
+            // Clean up search query and state
+            if (searchParams.get("createPromo") === "true") {
+                window.history.replaceState(null, "", window.location.pathname);
+            }
+        }
+    }, [location.search, location.state]);
+    // Smooth real-time updates
+    useEffect(() => {
+        if (!token)
+            return;
+        const pollInterval = setInterval(async () => {
+            try {
+                const promoRes = await apiGetPromoCodes(token);
+                setPromoCodes(prev => {
+                    if (JSON.stringify(prev) !== JSON.stringify(promoRes.promoCodes)) {
+                        return promoRes.promoCodes || [];
+                    }
+                    return prev;
+                });
+            }
+            catch {
+                // silently ignore polling errors
+            }
+        }, 5000);
+        const handleMarketingUpdate = () => {
+            loadData();
+        };
+        window.addEventListener("marketingUpdated", handleMarketingUpdate);
+        return () => {
+            clearInterval(pollInterval);
+            window.removeEventListener("marketingUpdated", handleMarketingUpdate);
+        };
+    }, [token]);
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const [promoRes, eventsRes, servicesRes, statsRes, eventCatsRes, serviceCatsRes] = await Promise.all([
+                apiGetPromoCodes(token).catch(() => ({ promoCodes: [] })),
+                apiListMyEvents(token).catch(() => ({ events: [] })),
+                apiListMyServices(token).catch(() => ({ services: [] })),
+                apiGetMarketingStats(token).catch(() => null),
+                apiListCategories("event").catch(() => ({ categories: [] })),
+                apiListCategories("service").catch(() => ({ categories: [] }))
+            ]);
+            setPromoCodes(promoRes.promoCodes || []);
+            setEvents(eventsRes.events || []);
+            setServices(servicesRes.services || []);
+            setStats(statsRes);
+            const eCats = (eventCatsRes.categories || []).map((c) => c.name);
+            const sCats = (serviceCatsRes.categories || []).map((c) => c.name);
+            const eventItemCats = (eventsRes.events || []).map((e) => e.category).filter(Boolean);
+            const serviceItemCats = (servicesRes.services || []).map((s) => s.category).filter(Boolean);
+            const ticketedItemCats = (eventsRes.events || [])
+                .filter((e) => e?.eventType === "ticketed")
+                .map((e) => e.category)
+                .filter(Boolean);
+            const fullServiceItemCats = (eventsRes.events || [])
+                .filter((e) => e?.eventType === "fullService")
+                .map((e) => e.category)
+                .filter(Boolean);
+            const allCats = Array.from(new Set([...eCats, ...sCats, ...eventItemCats, ...serviceItemCats])).sort();
+            setCategories(allCats);
+            const allEventCats = Array.from(new Set([...eCats, ...eventItemCats])).sort();
+            const allServiceCats = Array.from(new Set([...sCats, ...serviceItemCats])).sort();
+            const ticketedCats = Array.from(new Set([...ticketedItemCats])).sort();
+            const fullServiceCats = Array.from(new Set([...fullServiceItemCats])).sort();
+            setEventCategories(allEventCats);
+            setServiceCategories(allServiceCats);
+            setTicketedEventCategories(ticketedCats);
+            setFullServiceEventCategories(fullServiceCats);
+        }
+        catch (error) {
+            toast.error("Failed to load marketing data");
+        }
+        finally {
+            setLoading(false);
+        }
+    };
+    const handleEditPromo = (promo) => {
+        setEditingPromo(promo);
+        setPromoForm({
+            code: promo.code || "",
+            description: promo.description || "",
+            appliesTo: promo.appliesTo || "all",
+            applicableCategories: promo.applicableCategories?.length > 0 ? promo.applicableCategories : ["all"],
+            discountType: promo.discountType || "percentage",
+            discountValue: promo.discountValue || 0,
+            maxUses: promo.maxUses != null ? String(promo.maxUses) : "",
+            expiryDate: promo.expiryDate ? promo.expiryDate.split("T")[0] : "",
+            minBookingAmount: promo.minBookingAmount || 0,
+            maxDiscount: promo.maxDiscount != null ? String(promo.maxDiscount) : "",
+        });
+        setPromoDialogOpen(true);
+    };
+    const getCategoryOptions = (appliesTo) => {
+        if (appliesTo === "services")
+            return serviceCategories;
+        if (appliesTo === "ticketedEvents")
+            return ticketedEventCategories.length > 0 ? ticketedEventCategories : eventCategories;
+        if (appliesTo === "fullServiceEvents")
+            return fullServiceEventCategories.length > 0 ? fullServiceEventCategories : eventCategories;
+        return categories;
+    };
+    const handleCreatePromo = async () => {
+        if (!promoForm.code || promoForm.discountValue <= 0) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
+        const codeRegex = /^[A-Z0-9]{3,15}$/;
+        if (!codeRegex.test(promoForm.code)) {
+            toast.error("Coupon code must be between 3 and 15 alphanumeric uppercase characters (e.g. SAVE20)");
+            return;
+        }
+        if (promoForm.description && promoForm.description.length > 150) {
+            toast.error("Description cannot exceed 150 characters");
+            return;
+        }
+        if (promoForm.discountType === "percentage" && (promoForm.discountValue < 1 || promoForm.discountValue > 100)) {
+            toast.error("Percentage discount must be between 1% and 100%");
+            return;
+        }
+        if (promoForm.discountType === "fixed" && promoForm.discountValue < 1) {
+            toast.error("Fixed discount value must be at least ₹1");
+            return;
+        }
+        setSubmitting(true);
+        try {
+            const payload = {
+                code: promoForm.code,
+                description: promoForm.description,
+                appliesTo: promoForm.appliesTo,
+                applicableCategories: promoForm.applicableCategories,
+                discountType: promoForm.discountType,
+                discountValue: promoForm.discountValue,
+                maxUses: promoForm.maxUses ? parseInt(promoForm.maxUses) : null,
+                expiryDate: promoForm.expiryDate || null,
+                minBookingAmount: promoForm.minBookingAmount,
+                maxDiscount: promoForm.maxDiscount ? parseFloat(promoForm.maxDiscount) : null
+            };
+            if (editingPromo) {
+                await apiUpdatePromoCode(editingPromo._id, payload, token);
+                toast.success("Promo code updated successfully");
+            }
+            else {
+                await apiCreatePromoCode(payload, token);
+                toast.success("Promo code created successfully");
+            }
+            window.dispatchEvent(new CustomEvent("marketingUpdated"));
+            setPromoDialogOpen(false);
+            setEditingPromo(null);
+            setPromoForm({
+                code: "",
+                description: "",
+                appliesTo: "all",
+                applicableCategories: ["all"],
+                discountType: "percentage",
+                discountValue: 0,
+                maxUses: "",
+                expiryDate: "",
+                minBookingAmount: 0,
+                maxDiscount: ""
+            });
+            await loadData();
+        }
+        catch (error) {
+            toast.error(error.message || "Failed to save promo code");
+        }
+        finally {
+            setSubmitting(false);
+        }
+    };
+    const handleDeletePromo = async (id) => {
+        if (!confirm("Are you sure you want to delete this promo code?"))
+            return;
+        try {
+            await apiDeletePromoCode(id, token);
+            toast.success("Promo code deleted");
+            window.dispatchEvent(new CustomEvent("marketingUpdated"));
+            loadData();
+        }
+        catch (error) {
+            toast.error(error.message || "Failed to delete promo code");
+        }
+    };
+    const handleSendNotification = async () => {
+        if (!notifyForm.title || !notifyForm.message) {
+            toast.error("Please fill in title and message");
+            return;
+        }
+        if (notifyForm.title.length > 50) {
+            toast.error("Notification title cannot exceed 50 characters");
+            return;
+        }
+        if (notifyForm.message.length > 250) {
+            toast.error("Notification message cannot exceed 250 characters");
+            return;
+        }
+        setSubmitting(true);
+        try {
+            const result = await apiSendNotification(notifyForm, token);
+            toast.success(`Notification sent to ${result.notificationsSent} customer(s)`);
+            setNotifyDialogOpen(false);
+            setNotifyForm({ title: "", message: "", eventId: "" });
+        }
+        catch (error) {
+            toast.error(error.message || "Failed to send notification");
+        }
+        finally {
+            setSubmitting(false);
+        }
+    };
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text);
+        toast.success("Copied to clipboard");
+    };
+    if (loading) {
+        return (<MerchantLayout>
+        <section className="py-2 sm:py-8 lg:py-10">
+          <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
+            <Loader2 className="h-5 w-5 animate-spin"/> Loading marketing tools…
+          </div>
+        </section>
+      </MerchantLayout>);
+    }
+    return (<MerchantLayout>
+      <section className="py-2 sm:py-8 lg:py-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="font-display text-3xl font-bold flex items-center gap-2">
+                <Megaphone className="h-7 w-7 text-primary"/>
+                Marketing <span className="text-gradient">Tools</span>
+              </h1>
+              <p className="text-muted-foreground text-sm mt-1">Promote your events and boost bookings</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Tabs */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8 flex gap-2 border-b border-border">
+          <button onClick={() => setActiveTab("promo")} className={`px-4 py-2 font-medium transition-all ${activeTab === "promo"
+            ? "text-primary border-b-2 border-primary"
+            : "text-muted-foreground hover:text-foreground"}`}>
+            <Ticket className="h-4 w-4 inline mr-2"/>
+            Promo Codes
+          </button>
+          <button onClick={() => setActiveTab("share")} className={`px-4 py-2 font-medium transition-all ${activeTab === "share"
+            ? "text-primary border-b-2 border-primary"
+            : "text-muted-foreground hover:text-foreground"}`}>
+            <Share2 className="h-4 w-4 inline mr-2"/>
+            Share Links
+          </button>
+          <button onClick={() => setActiveTab("notify")} className={`px-4 py-2 font-medium transition-all ${activeTab === "notify"
+            ? "text-primary border-b-2 border-primary"
+            : "text-muted-foreground hover:text-foreground"}`}>
+            <Send className="h-4 w-4 inline mr-2"/>
+            Send Notifications
+          </button>
+        </motion.div>
+
+        {/* Promo Codes Tab */}
+        {activeTab === "promo" && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="font-display text-2xl font-bold">Promo Codes</h2>
+                <p className="text-muted-foreground text-sm mt-1">Create and manage discount codes</p>
+              </div>
+              <Button onClick={() => {
+                setEditingPromo(null);
+                setPromoForm({ code: "", description: "", appliesTo: "all", applicableCategories: ["all"], discountType: "percentage", discountValue: 0, maxUses: "", expiryDate: "", minBookingAmount: 0, maxDiscount: "" });
+                setPromoDialogOpen(true);
+            }} className="bg-gradient-primary">
+                <Plus className="h-4 w-4 mr-2"/>
+                Create Promo Code
+              </Button>
+            </div>
+
+            {promoCodes.length === 0 ? (<Card>
+                <CardContent className="py-12 text-center">
+                  <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-40"/>
+                  <p className="text-muted-foreground">No promo codes yet. Create one to get started!</p>
+                </CardContent>
+              </Card>) : (<div className="grid gap-4">
+                {promoCodes.map((promo) => (<Card key={promo._id}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <code className="bg-secondary px-3 py-1 rounded font-mono font-bold text-primary">
+                              {promo.code}
+                            </code>
+                            <span className={`text-xs font-semibold px-2 py-1 rounded ${promo.isActive ? "bg-green-500/20 text-green-600" : "bg-red-500/20 text-red-600"}`}>
+                              {promo.isActive ? "Active" : "Inactive"}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{promo.description}</p>
+                          <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
+                            <span>{promo.discountType === "percentage" ? `${promo.discountValue}%` : `${formatCurrency(promo.discountValue)}`} off</span>
+                            <span>Used: {promo.currentUses}/{promo.maxUses || "∞"}</span>
+                            {promo.minBookingAmount > 0 && (<span>Min. {formatCurrency(promo.minBookingAmount)}</span>)}
+                            {promo.applicableCategories && promo.applicableCategories.length > 0 && promo.applicableCategories[0] !== "all" && (<span className="capitalize">Cat: {promo.applicableCategories[0]}</span>)}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleEditPromo(promo)}>
+                            <Edit2 className="h-4 w-4"/>
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleDeletePromo(promo._id)} className="text-red-600 hover:text-red-700">
+                            <Trash2 className="h-4 w-4"/>
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>))}
+              </div>)}
+          </motion.div>)}
+
+        {/* Share Links Tab */}
+        {activeTab === "share" && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div>
+              <h2 className="font-display text-2xl font-bold">Share Event Links</h2>
+              <p className="text-muted-foreground text-sm mt-1">Generate shareable links for your events</p>
+            </div>
+
+            {events.length === 0 ? (<Card>
+                <CardContent className="py-12 text-center">
+                  <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-40"/>
+                  <p className="text-muted-foreground">No events to share. Create an event first!</p>
+                </CardContent>
+              </Card>) : (<div className="grid gap-4">
+                {events.map((event) => (<Card key={event._id}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{event.title}</h3>
+                          <p className="text-sm text-muted-foreground mt-1">{event.description?.substring(0, 100)}</p>
+                        </div>
+                        <Button variant="outline" onClick={() => copyToClipboard(`${window.location.origin}/events/${event._id}`)}>
+                          <Copy className="h-4 w-4 mr-2"/>
+                          Copy Link
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>))}
+              </div>)}
+          </motion.div>)}
+
+        {/* Send Notifications Tab */}
+        {activeTab === "notify" && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="font-display text-2xl font-bold">Send Notifications</h2>
+                <p className="text-muted-foreground text-sm mt-1">Notify customers about new events and offers</p>
+              </div>
+              <Button onClick={() => setNotifyDialogOpen(true)} className="bg-gradient-primary">
+                <Send className="h-4 w-4 mr-2"/>
+                Send Notification
+              </Button>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Notification Templates</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+                  <p className="font-medium text-sm">New Event Announcement</p>
+                  <p className="text-xs text-muted-foreground mt-1">Notify customers about your latest event</p>
+                </div>
+                <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+                  <p className="font-medium text-sm">Special Offer</p>
+                  <p className="text-xs text-muted-foreground mt-1">Promote a limited-time discount or offer</p>
+                </div>
+                <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+                  <p className="font-medium text-sm">Event Reminder</p>
+                  <p className="text-xs text-muted-foreground mt-1">Remind customers about upcoming events</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>)}
+
+        {/* Promo Code Dialog */}
+        <Dialog open={promoDialogOpen} onOpenChange={(open) => { setPromoDialogOpen(open); if (!open)
+        setEditingPromo(null); }}>
+          <DialogContent className="max-w-md md:max-w-xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="pb-2">
+              <DialogTitle>{editingPromo ? "Edit Promo Code" : "Create Promo Code"}</DialogTitle>
+              <DialogDescription>{editingPromo ? "Update the discount code details" : "Create a new discount code for your customers"}</DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3 py-2">
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <Label className="text-xs font-semibold">Promo Code</Label>
+                  <span className="text-[10px] text-muted-foreground">{(promoForm.code || "").length}/15</span>
+                </div>
+                <Input placeholder="e.g., SUMMER20" value={promoForm.code} maxLength={15} onChange={(e) => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })} className="h-9 text-xs"/>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <Label className="text-xs font-semibold">Description</Label>
+                  <span className="text-[10px] text-muted-foreground">{(promoForm.description || "").length}/150</span>
+                </div>
+                <Input placeholder="e.g., Summer discount" value={promoForm.description} maxLength={150} onChange={(e) => setPromoForm({ ...promoForm, description: e.target.value })} className="h-9 text-xs"/>
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold">Applies To</Label>
+                <Select value={promoForm.appliesTo} onValueChange={(value) => {
+            setPromoForm({
+                ...promoForm,
+                appliesTo: value,
+                applicableCategories: ["all"]
+            });
+        }}>
+                  <SelectTrigger className="mt-1 h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All (Events + Services)</SelectItem>
+                    <SelectItem value="ticketedEvents">Ticketed Events</SelectItem>
+                    <SelectItem value="fullServiceEvents">Single Ticket Events</SelectItem>
+                    <SelectItem value="services">Services</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold">Applicable Categories</Label>
+                <Select key={promoForm.appliesTo} value={promoForm.applicableCategories?.[0] || "all"} onValueChange={(value) => setPromoForm({ ...promoForm, applicableCategories: [value] })}>
+                  <SelectTrigger className="mt-1 h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {(getCategoryOptions(promoForm.appliesTo) || []).map((cat, idx) => (<SelectItem key={idx} value={cat}>{cat}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold">Discount Type</Label>
+                <Select value={promoForm.discountType} onValueChange={(value) => setPromoForm({ ...promoForm, discountType: value })}>
+                  <SelectTrigger className="mt-1 h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percentage">Percentage (%)</SelectItem>
+                    <SelectItem value="fixed">Fixed (₹)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold">Discount Value</Label>
+                <Input type="number" placeholder="0" value={promoForm.discountValue} onChange={(e) => setPromoForm({ ...promoForm, discountValue: parseFloat(e.target.value) })} className="mt-1 h-9 text-xs"/>
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold">Minimum Booking Amount</Label>
+                <Input type="number" placeholder="e.g., 3000" value={promoForm.minBookingAmount} onChange={(e) => setPromoForm({ ...promoForm, minBookingAmount: Number(e.target.value || 0) })} className="mt-1 h-9 text-xs"/>
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold">Max Uses (Leave empty for unlimited)</Label>
+                <Input type="number" placeholder="e.g., 100" value={promoForm.maxUses} onChange={(e) => setPromoForm({ ...promoForm, maxUses: e.target.value })} className="mt-1 h-9 text-xs"/>
+              </div>
+
+              <div className="md:col-span-2">
+                <Label className="text-xs font-semibold">Expiry Date</Label>
+                <Input type="date" value={promoForm.expiryDate} onChange={(e) => setPromoForm({ ...promoForm, expiryDate: e.target.value })} className="mt-1 h-9 text-xs"/>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button variant="outline" onClick={() => setPromoDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreatePromo} disabled={submitting} className="bg-gradient-primary">
+                {submitting ? (editingPromo ? "Saving..." : "Creating...") : (editingPromo ? "Save Changes" : "Create Code")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Notification Dialog */}
+        <Dialog open={notifyDialogOpen} onOpenChange={setNotifyDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Send Notification</DialogTitle>
+              <DialogDescription>Send a notification to your customers</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <p className="text-xs text-blue-600 font-semibold">ℹ️ How it works</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Notifications will be sent to all customers who have booked your events or services.
+                </p>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <Label>Title</Label>
+                  <span className="text-[10px] text-muted-foreground">{(notifyForm.title || "").length}/50</span>
+                </div>
+                <Input placeholder="e.g., New Event Available" value={notifyForm.title} maxLength={50} onChange={(e) => setNotifyForm({ ...notifyForm, title: e.target.value })}/>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <Label>Message</Label>
+                  <span className="text-[10px] text-muted-foreground">{(notifyForm.message || "").length}/250</span>
+                </div>
+                <Textarea placeholder="Your message here..." value={notifyForm.message} maxLength={250} onChange={(e) => setNotifyForm({ ...notifyForm, message: e.target.value })} rows={4}/>
+              </div>
+
+              <div>
+                <Label>Related Event (Optional)</Label>
+                <Select value={notifyForm.eventId} onValueChange={(value) => setNotifyForm({ ...notifyForm, eventId: value })}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select an event"/>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {events.length === 0 ? (<div className="p-2 text-xs text-muted-foreground">No events available</div>) : (events.map((event) => (<SelectItem key={event._id} value={event._id}>
+                          {event.title}
+                        </SelectItem>)))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setNotifyDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSendNotification} disabled={submitting} className="bg-gradient-primary">
+                {submitting ? "Sending..." : "Send Notification"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </section>
+    </MerchantLayout>);
+};
+export default MarketingTools;

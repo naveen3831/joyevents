@@ -2,7 +2,7 @@
 
 ## Deployment-Safe Configuration
 
-The vite.config.ts has been optimized for deployment with the following fixes:
+The vite.config.js has been optimized for deployment with the following fixes:
 
 ### Issues Fixed:
 1. ✅ **ES Module Compatibility**: Added `fileURLToPath` import for proper `__dirname` resolution
