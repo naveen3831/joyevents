@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiListBookings, apiListUsers, apiGetTickets, apiGetCommissionRate } from "@/lib/api";
+import { apiListBookings, apiListUsers, apiGetTickets, apiGetCommissionRate, apiGetAdminEarningsSummary } from "@/lib/api";
 import { toast } from "sonner";
 const AdminEarnings = () => {
     const { token } = useAuth();
@@ -17,21 +17,24 @@ const AdminEarnings = () => {
     const [allUsers, setAllUsers] = useState([]);
     const [tickets, setTickets] = useState([]);
     const [bookings, setBookings] = useState([]);
+    const [adminSummary, setAdminSummary] = useState(null);
     const [activeSubTab, setActiveSubTab] = useState("summary");
     const loadData = async () => {
         if (!token)
             return;
         setLoading(true);
         try {
-            const [usersRes, ticketsRes, bookingsRes, settingsRes] = await Promise.all([
+            const [usersRes, ticketsRes, bookingsRes, settingsRes, adminSummaryRes] = await Promise.all([
                 apiListUsers(token),
                 apiGetTickets(token).catch(() => ({ tickets: [] })),
                 apiListBookings(undefined, token).catch(() => ({ bookings: [] })),
-                apiGetCommissionRate().catch(() => ({ commissionRate: 5 }))
+                apiGetCommissionRate().catch(() => ({ commissionRate: 5 })),
+                apiGetAdminEarningsSummary(token).catch(() => null)
             ]);
             setAllUsers(usersRes.users || []);
             setTickets(ticketsRes.tickets || []);
             setBookings(bookingsRes.bookings || []);
+            setAdminSummary(adminSummaryRes);
             // Settings might return percentage (e.g. 5) instead of rate (0.05)
             const rate = settingsRes.commissionRate > 1
                 ? settingsRes.commissionRate / 100
@@ -59,9 +62,19 @@ const AdminEarnings = () => {
     // Helper to calculate paid booking amount
     const getPaidAmount = (b) => (b.paymentStatus === "partially_paid" && b.isAdvancePaid) ? (b.advanceAmount || 0) : (b.price || 0);
     const isPaidBooking = (b) => b.paymentStatus === "paid" || b.paymentStatus === "partially_paid";
+    const isAdminBooking = (b) => b.assignedTo?.role === "admin" || b.commissionSummary?.adminDirect;
+    const getAdminBookingEarning = (b) => {
+        const paidAmount = getPaidAmount(b);
+        if (isAdminBooking(b))
+            return Number(b.commissionSummary?.grossAmount) || paidAmount;
+        const savedCommission = Number(b.commissionSummary?.commissionAmount);
+        if (!Number.isNaN(savedCommission) && savedCommission > 0)
+            return savedCommission;
+        return paidAmount * commissionRate;
+    };
     // 3. Calculate Booking Commission Earnings
     const paidBookings = bookings.filter(isPaidBooking);
-    const totalCommissionEarnings = paidBookings.reduce((sum, b) => sum + (getPaidAmount(b) * commissionRate), 0);
+    const totalCommissionEarnings = paidBookings.reduce((sum, b) => sum + getAdminBookingEarning(b), 0);
     // Grand Total Admin Earnings
     const totalAdminEarnings = totalMerchantEarnings + totalCommissionEarnings;
     return (<AdminLayout>
@@ -139,7 +152,7 @@ const AdminEarnings = () => {
                 <Card className="border-border bg-card">
                   <CardHeader className="pb-2">
                     <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Platform Booking Commissions
+                      Booking Admin Earnings
                     </CardDescription>
                     <CardTitle className="text-2xl font-display font-bold text-green-600 dark:text-green-400 mt-1">
                       {formatCurrency(totalCommissionEarnings)}
@@ -153,9 +166,29 @@ const AdminEarnings = () => {
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center text-xs mt-1.5">
-                      <span className="text-muted-foreground">Commissionable Bookings:</span>
+                      <span className="text-muted-foreground">Paid Bookings:</span>
                       <span className="font-semibold">{paidBookings.length} bookings</span>
                     </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                <Card className="border-green-500/30 bg-card">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Withdrawable Admin Balance
+                    </CardDescription>
+                    <CardTitle className="text-2xl font-display font-bold text-green-600 dark:text-green-400 mt-1">
+                      {formatCurrency(adminSummary?.availableBalance || 0)}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex justify-between items-center text-xs mt-2 border-t border-border/50 pt-2">
+                      <span className="text-muted-foreground">Already Withdrawn:</span>
+                      <span className="font-semibold">{formatCurrency(adminSummary?.totalWithdrawn || 0)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1.5">Only platform commissions and admin-owned booking earnings are withdrawable.</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -201,13 +234,13 @@ const AdminEarnings = () => {
 
                     <div className="space-y-2 pt-2">
                       <div className="flex justify-between text-sm">
-                        <span className="font-medium">Booking Commissions ({(commissionRate * 100).toFixed(0)}% Rate)</span>
+                        <span className="font-medium">Booking Admin Earnings</span>
                         <span className="font-bold text-green-500">{((totalCommissionEarnings / (totalAdminEarnings || 1)) * 100).toFixed(1)}%</span>
                       </div>
                       <div className="w-full h-3 rounded-full bg-secondary overflow-hidden">
                         <div className="h-full bg-green-500 transition-all" style={{ width: `${(totalCommissionEarnings / (totalAdminEarnings || 1)) * 100}%` }}/>
                       </div>
-                      <p className="text-xs text-muted-foreground">Calculated commissions deducted from customer payments made on events & services.</p>
+                      <p className="text-xs text-muted-foreground">Merchant bookings add commission only. Admin-owned events and services credit the full booking amount directly to admin.</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -229,6 +262,10 @@ const AdminEarnings = () => {
                     <div className="p-3 bg-secondary/50 rounded-lg space-y-1.5 border border-border">
                       <h5 className="font-semibold text-xs uppercase text-muted-foreground">Platform Commissions</h5>
                       <p className="text-xs text-muted-foreground">On booking payments (Paid or partially paid), the platform takes a <strong>{(commissionRate * 100).toFixed(0)}% commission</strong>. The remaining <strong>{(100 - commissionRate * 100).toFixed(0)}%</strong> is processed to the merchant's withdrawable balance.</p>
+                    </div>
+                    <div className="p-3 bg-secondary/50 rounded-lg space-y-1.5 border border-border">
+                      <h5 className="font-semibold text-xs uppercase text-muted-foreground">Admin Events & Services</h5>
+                      <p className="text-xs text-muted-foreground">Bookings assigned to admin have no commission split. The full paid amount is credited to admin earnings.</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -325,8 +362,8 @@ const AdminEarnings = () => {
             {activeSubTab === "commissions" && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4">
                 <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-bold font-display">Booking Platform Commissions</CardTitle>
-                    <CardDescription>Commission splits deducted from successful merchant bookings ({(commissionRate * 100).toFixed(0)}% commission rate)</CardDescription>
+                    <CardTitle className="text-base font-bold font-display">Booking Admin Earnings</CardTitle>
+                    <CardDescription>Merchant bookings use commission. Admin bookings credit the full paid amount to admin.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-0 overflow-hidden overflow-x-auto">
                     <Table>
@@ -336,15 +373,15 @@ const AdminEarnings = () => {
                           <TableHead className="text-muted-foreground whitespace-nowrap">Merchant</TableHead>
                           <TableHead className="text-muted-foreground whitespace-nowrap">Customer</TableHead>
                           <TableHead className="text-muted-foreground whitespace-nowrap">Paid Amount</TableHead>
-                          <TableHead className="text-muted-foreground whitespace-nowrap">Merchant Share ({(100 - commissionRate * 100).toFixed(0)}%)</TableHead>
-                          <TableHead className="text-right text-muted-foreground whitespace-nowrap">Admin Commission ({(commissionRate * 100).toFixed(0)}%)</TableHead>
+                          <TableHead className="text-muted-foreground whitespace-nowrap">Merchant Share</TableHead>
+                          <TableHead className="text-right text-muted-foreground whitespace-nowrap">Admin Earnings</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {paidBookings.map((b) => {
                     const paidVal = getPaidAmount(b);
-                    const commVal = paidVal * commissionRate;
-                    const merchVal = paidVal - commVal;
+                    const adminVal = getAdminBookingEarning(b);
+                    const merchVal = isAdminBooking(b) ? 0 : paidVal - adminVal;
                     return (<TableRow key={b._id} className="border-border hover:bg-secondary/15 transition-colors">
                               <TableCell className="align-middle font-medium py-3 whitespace-nowrap">
                                 <div className="flex flex-col">
@@ -365,13 +402,13 @@ const AdminEarnings = () => {
                                 {formatCurrency(merchVal)}
                               </TableCell>
                               <TableCell className="align-middle py-3 font-bold text-right text-green-500">
-                                +{formatCurrency(commVal)}
+                                +{formatCurrency(adminVal)}
                               </TableCell>
                             </TableRow>);
                 })}
                         {paidBookings.length === 0 && (<TableRow>
                             <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                              No commission earnings logged yet.
+                              No booking admin earnings logged yet.
                             </TableCell>
                           </TableRow>)}
                       </TableBody>

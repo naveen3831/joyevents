@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState } from "react";
 import { isSessionActive, clearSession } from "@/lib/session";
 // Create context with proper error handling
 const AuthContext = createContext(null);
+const normalizeRole = (value) => value === "user" ? "customer" : value;
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) {
@@ -29,7 +30,7 @@ export const AuthProvider = ({ children }) => {
     });
     const [role, setRoleState] = useState(() => {
         try {
-            const r = localStorage.getItem("role");
+            const r = normalizeRole(localStorage.getItem("role"));
             return r === "customer" || r === "merchant" || r === "admin" ? r : "customer";
         }
         catch {
@@ -57,10 +58,11 @@ export const AuthProvider = ({ children }) => {
         }
     };
     const setUser = (u) => {
-        setUserState(u);
+        const normalizedUser = u ? { ...u, role: normalizeRole(u.role) } : u;
+        setUserState(normalizedUser);
         try {
-            if (u)
-                localStorage.setItem("user", JSON.stringify(u));
+            if (normalizedUser)
+                localStorage.setItem("user", JSON.stringify(normalizedUser));
             else
                 localStorage.removeItem("user");
         }
@@ -69,9 +71,10 @@ export const AuthProvider = ({ children }) => {
         }
     };
     const setRole = (r) => {
-        setRoleState(r);
+        const normalizedRole = normalizeRole(r);
+        setRoleState(normalizedRole);
         try {
-            localStorage.setItem("role", r);
+            localStorage.setItem("role", normalizedRole);
         }
         catch (error) {
             console.warn('Failed to update role in localStorage:', error);
@@ -95,8 +98,9 @@ export const AuthProvider = ({ children }) => {
         }
     };
     const updateUser = (updatedUser) => {
-        setUser(updatedUser);
-        setRole(updatedUser.role);
+        const normalizedUser = updatedUser ? { ...updatedUser, role: normalizeRole(updatedUser.role) } : updatedUser;
+        setUser(normalizedUser);
+        setRole(normalizedUser?.role || "customer");
     };
     const contextValue = {
         role,

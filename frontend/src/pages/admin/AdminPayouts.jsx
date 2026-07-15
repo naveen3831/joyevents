@@ -7,13 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiListBookings, apiListUsers, apiFetchWithdrawals, apiApproveWithdrawal, apiRejectWithdrawal, apiProcessMerchantPayout } from "@/lib/api";
+import { apiListBookings, apiListUsers, apiFetchWithdrawals, apiApproveWithdrawal, apiRejectWithdrawal, apiProcessMerchantPayout, apiGetAdminEarningsSummary, apiWithdrawAdminEarnings } from "@/lib/api";
 import { toast } from "sonner";
-const COMMISSION_RATE = 0.05; // 5% commission
 const WITHDRAWAL_STATUS_BADGE = {
     pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
     approved: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
@@ -21,9 +21,10 @@ const WITHDRAWAL_STATUS_BADGE = {
     completed: "bg-green-500/15 text-green-400 border border-green-500/30",
 };
 const AdminPayouts = () => {
-    const { token } = useAuth();
+    const { token, user } = useAuth();
     const [bookings, setBookings] = useState([]);
     const [merchants, setMerchants] = useState([]);
+    const [adminSummary, setAdminSummary] = useState(null);
     const [loading, setLoading] = useState(true);
     const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
     const [selectedMerchant, setSelectedMerchant] = useState(null);
@@ -35,6 +36,10 @@ const AdminPayouts = () => {
     const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
     const [selectedWithdrawal, setSelectedWithdrawal] = useState(null);
     const [rejectionReason, setRejectionReason] = useState("");
+    const [adminWithdrawDialogOpen, setAdminWithdrawDialogOpen] = useState(false);
+    const [adminWithdrawalAmount, setAdminWithdrawalAmount] = useState("");
+    const [adminBankDetails, setAdminBankDetails] = useState({ accountHolder: "", accountNumber: "", ifscCode: "", bankName: "" });
+    const [submittingAdminWithdrawal, setSubmittingAdminWithdrawal] = useState(false);
     useEffect(() => {
         loadData();
         loadWithdrawalRequests();
@@ -42,9 +47,10 @@ const AdminPayouts = () => {
     const loadData = async () => {
         try {
             setLoading(true);
-            const [bookingsData, usersData] = await Promise.all([
+            const [bookingsData, usersData, adminSummaryData] = await Promise.all([
                 apiListBookings(undefined, token),
-                apiListUsers(token)
+                apiListUsers(token),
+                apiGetAdminEarningsSummary(token).catch(() => null)
             ]);
             // Filter completed and paid bookings
             const completedPaid = (bookingsData.bookings || []).filter((b) => b.status === "completed" && b.paymentStatus === "paid");
@@ -52,6 +58,7 @@ const AdminPayouts = () => {
             // Get all merchants
             const merchantUsers = (usersData.users || []).filter((u) => u.role === "merchant");
             setMerchants(merchantUsers);
+            setAdminSummary(adminSummaryData);
         }
         catch (error) {
             toast.error("Failed to load payout data");
@@ -63,13 +70,13 @@ const AdminPayouts = () => {
     const calculateMerchantPayouts = () => {
         const payoutMap = new Map();
         bookings.forEach((booking) => {
-            if (!booking.assignedTo)
+            if (!booking.assignedTo || booking.assignedTo.role === "admin")
                 return;
             const merchantId = booking.assignedTo._id;
             const existing = payoutMap.get(merchantId);
             const grossEarnings = booking.price || 0;
-            const commission = grossEarnings * COMMISSION_RATE;
-            const netPayout = grossEarnings - commission;
+            const commission = Number(booking.commissionSummary?.commissionAmount) || 0;
+            const netPayout = Number(booking.commissionSummary?.merchantPayout) || (grossEarnings - commission);
             const isUnpaid = !booking.payoutProcessed;
             if (existing) {
                 existing.totalEarnings += grossEarnings;
@@ -185,9 +192,68 @@ const AdminPayouts = () => {
         setPayoutNote("");
         setPayoutDialogOpen(true);
     };
+    const openAdminWithdrawDialog = () => {
+        setAdminWithdrawalAmount("");
+        setAdminBankDetails({ accountHolder: user?.name || "", accountNumber: "", ifscCode: "", bankName: "" });
+        setAdminWithdrawDialogOpen(true);
+    };
+    const handleAdminWithdraw = async () => {
+        const amountVal = Number(adminWithdrawalAmount);
+        if (String(adminWithdrawalAmount).length > 10) {
+            toast.error("Withdrawal amount cannot exceed 10 digits");
+            return;
+        }
+        if (Number.isNaN(amountVal) || amountVal < 1) {
+            toast.error("Please enter a valid amount");
+            return;
+        }
+        if (amountVal > (adminSummary?.availableBalance || 0)) {
+            toast.error("Admin can withdraw only available admin earnings");
+            return;
+        }
+        const holder = adminBankDetails.accountHolder.trim();
+        const accNum = adminBankDetails.accountNumber.trim();
+        const ifsc = adminBankDetails.ifscCode.trim().toUpperCase();
+        const bank = adminBankDetails.bankName.trim();
+        if (!holder || holder.length < 2 || holder.length > 50 || !/^[a-zA-Z\s.]+$/.test(holder)) {
+            toast.error("Enter a valid account holder name");
+            return;
+        }
+        if (!/^\d{9,18}$/.test(accNum)) {
+            toast.error("Account number must be 9 to 18 digits");
+            return;
+        }
+        if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) {
+            toast.error("Enter a valid IFSC code");
+            return;
+        }
+        if (!bank || bank.length < 2 || bank.length > 50 || !/^[a-zA-Z\s&().-]+$/.test(bank)) {
+            toast.error("Enter a valid bank name");
+            return;
+        }
+        setSubmittingAdminWithdrawal(true);
+        try {
+            const res = await apiWithdrawAdminEarnings(amountVal, {
+                accountHolder: holder,
+                accountNumber: accNum,
+                ifscCode: ifsc,
+                bankName: bank
+            }, token);
+            toast.success("Admin earnings withdrawn successfully");
+            setAdminSummary(res.summary || null);
+            setAdminWithdrawDialogOpen(false);
+            loadWithdrawalRequests();
+        }
+        catch (error) {
+            toast.error(error.message || "Failed to withdraw admin earnings");
+        }
+        finally {
+            setSubmittingAdminWithdrawal(false);
+        }
+    };
     const merchantPayouts = calculateMerchantPayouts();
     const totalPayoutAmount = merchantPayouts.reduce((sum, p) => sum + p.netPayout, 0);
-    const totalCommission = merchantPayouts.reduce((sum, p) => sum + p.commission, 0);
+    const totalCommission = adminSummary?.bookingCommissionEarnings ?? merchantPayouts.reduce((sum, p) => sum + p.commission, 0);
     return (<AdminLayout>
       <section className="py-2 sm:py-8 lg:py-10">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -265,6 +331,50 @@ const AdminPayouts = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Admin Earnings Withdrawal */}
+          <Card className="mb-8 border-green-500/30">
+            <CardHeader>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <TrendingUp className="h-6 w-6 text-green-500"/>
+                  <div>
+                    <CardTitle>Admin Earnings Withdrawal</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Withdraw only platform commissions and admin-owned booking earnings.
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={openAdminWithdrawDialog} disabled={!adminSummary || adminSummary.availableBalance <= 0}>
+                  <Wallet className="mr-2 h-4 w-4"/>
+                  Withdraw Admin Earnings
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+                <div className="rounded-lg border border-border bg-secondary/30 p-3">
+                  <p className="text-xs text-muted-foreground">Withdrawable Balance</p>
+                  <p className="font-display text-lg font-bold text-green-600">{formatCurrency(adminSummary?.availableBalance || 0)}</p>
+                </div>
+                <div className="rounded-lg border border-border bg-secondary/30 p-3">
+                  <p className="text-xs text-muted-foreground">Total Admin Earnings</p>
+                  <p className="font-display text-lg font-bold">{formatCurrency(adminSummary?.totalAdminEarnings || 0)}</p>
+                </div>
+                <div className="rounded-lg border border-border bg-secondary/30 p-3">
+                  <p className="text-xs text-muted-foreground">Already Withdrawn</p>
+                  <p className="font-display text-lg font-bold text-orange-600">{formatCurrency(adminSummary?.totalWithdrawn || 0)}</p>
+                </div>
+                <div className="rounded-lg border border-border bg-secondary/30 p-3">
+                  <p className="text-xs text-muted-foreground">Merchant Payout Funds</p>
+                  <p className="font-display text-lg font-bold text-purple-600">{formatCurrency(adminSummary?.merchantPayouts || totalPayoutAmount)}</p>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Merchant payout funds and total customer revenue are not withdrawable by admin.
+              </p>
+            </CardContent>
+          </Card>
 
           {/* Withdrawal Requests Section */}
           <Card className="mb-8 border-yellow-500/30">
@@ -508,6 +618,67 @@ const AdminPayouts = () => {
                   <Wallet className="mr-2 h-4 w-4"/>
                   Confirm Payout
                 </>)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin Withdrawal Dialog */}
+      <Dialog open={adminWithdrawDialogOpen} onOpenChange={setAdminWithdrawDialogOpen}>
+        <DialogContent className="max-w-sm p-5 gap-3">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-base font-bold">Withdraw Admin Earnings</DialogTitle>
+            <DialogDescription className="text-xs">
+              Only admin earnings can be withdrawn. Merchant payout funds stay protected.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-1">
+            <div className="rounded-md bg-secondary p-2">
+              <p className="text-xs text-muted-foreground">Available Admin Earnings</p>
+              <p className="text-lg font-bold text-green-600">{formatCurrency(adminSummary?.availableBalance || 0)}</p>
+            </div>
+
+            <div>
+              <Label className="text-xs">Withdrawal Amount</Label>
+              <Input type="number" placeholder="Enter amount" value={adminWithdrawalAmount} onChange={(e) => {
+            const val = e.target.value;
+            if (val.length <= 10)
+                setAdminWithdrawalAmount(val);
+        }} className="mt-1.5 h-9 text-xs" min="0" max={adminSummary?.availableBalance || 0}/>
+            </div>
+
+            <div className="border-t border-border pt-3">
+              <h4 className="font-semibold text-xs mb-2">Bank Details</h4>
+              <div className="space-y-2.5">
+                <div>
+                  <Label className="text-[10px]">Account Holder Name</Label>
+                  <Input placeholder="Full name" maxLength={50} value={adminBankDetails.accountHolder} onChange={(e) => setAdminBankDetails({ ...adminBankDetails, accountHolder: e.target.value })} className="mt-0.5 h-9 text-xs"/>
+                </div>
+                <div>
+                  <Label className="text-[10px]">Account Number</Label>
+                  <Input placeholder="Account number" maxLength={18} value={adminBankDetails.accountNumber} onChange={(e) => setAdminBankDetails({ ...adminBankDetails, accountNumber: e.target.value.replace(/\D/g, "") })} className="mt-0.5 h-9 text-xs"/>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-[10px]">IFSC Code</Label>
+                    <Input placeholder="IFSC code" maxLength={11} value={adminBankDetails.ifscCode} onChange={(e) => setAdminBankDetails({ ...adminBankDetails, ifscCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })} className="mt-0.5 h-9 text-xs"/>
+                  </div>
+                  <div>
+                    <Label className="text-[10px]">Bank Name</Label>
+                    <Input placeholder="Bank name" maxLength={50} value={adminBankDetails.bankName} onChange={(e) => setAdminBankDetails({ ...adminBankDetails, bankName: e.target.value })} className="mt-0.5 h-9 text-xs"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-2 flex-row gap-2 justify-end">
+            <Button variant="outline" size="sm" onClick={() => setAdminWithdrawDialogOpen(false)} disabled={submittingAdminWithdrawal} className="h-9 text-xs">
+              Cancel
+            </Button>
+            <Button onClick={handleAdminWithdraw} disabled={submittingAdminWithdrawal} size="sm" className="h-9 text-xs">
+              {submittingAdminWithdrawal ? "Withdrawing..." : "Withdraw"}
             </Button>
           </DialogFooter>
         </DialogContent>

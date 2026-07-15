@@ -41,8 +41,12 @@ const Register = () => {
         }
     };
     return (<Layout>
-      <section className="flex min-h-[80vh] items-center justify-center py-12 px-4">
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-2xl rounded-2xl border border-border bg-card p-8">
+      <section className="relative flex min-h-[80vh] items-center justify-center py-12 px-4 bg-gradient-dark overflow-hidden">
+        {/* Background Glowing Ambient Orbs */}
+        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-primary/10 blur-[100px] pointer-events-none animate-pulse duration-[6000ms]"/>
+        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[300px] h-[300px] rounded-full bg-amber-500/5 blur-[90px] pointer-events-none"/>
+
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative w-full max-w-2xl rounded-2xl shadow-2xl p-8 glass overflow-hidden">
           <div className="mb-8 text-center">
             <h1 className="font-display text-3xl font-bold">Create Your Account</h1>
             <p className="mt-2 text-sm text-muted-foreground">Sign up to get started with JoyEvents</p>
@@ -53,7 +57,7 @@ const Register = () => {
               <Label className="text-sm text-muted-foreground">Full Name</Label>
               <div className="relative mt-1">
                 <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
-                <Input placeholder="John Doe" maxLength={NAME_MAX_LENGTH} className="border-border bg-secondary pl-10" value={name} onChange={(e) => setName(sanitizeNameInput(e.target.value))}/>
+                <Input placeholder="John Doe" maxLength={NAME_MAX_LENGTH} className="border-border bg-secondary/50 hover:bg-secondary/80 focus:bg-background focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 pl-10 h-10 rounded-xl transition-all duration-200" value={name} onChange={(e) => setName(sanitizeNameInput(e.target.value))}/>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{NAME_HINT}</p>
             </div>
@@ -61,7 +65,7 @@ const Register = () => {
               <Label className="text-sm text-muted-foreground">Email</Label>
               <div className="relative mt-1">
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
-                <Input type="text" inputMode="email" autoComplete="email" placeholder="user@gmail.com" maxLength={EMAIL_MAX_LENGTH} className="border-border bg-secondary pl-10" value={email} onChange={(e) => setEmail(sanitizeEmailInput(e.target.value))}/>
+                <Input type="text" inputMode="email" autoComplete="email" placeholder="user@gmail.com" maxLength={EMAIL_MAX_LENGTH} className="border-border bg-secondary/50 hover:bg-secondary/80 focus:bg-background focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 pl-10 h-10 rounded-xl transition-all duration-200" value={email} onChange={(e) => setEmail(sanitizeEmailInput(e.target.value))}/>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{EMAIL_HINT}</p>
             </div>
@@ -69,7 +73,7 @@ const Register = () => {
               <Label className="text-sm text-muted-foreground">Password</Label>
               <div className="relative mt-1">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
-                <Input type={showPassword ? "text" : "password"} maxLength={30} placeholder="••••••••" className="border-border bg-secondary pl-10 pr-10" value={password} onChange={(e) => setPassword(e.target.value)}/>
+                <Input type={showPassword ? "text" : "password"} maxLength={30} placeholder="••••••••" className="border-border bg-secondary/50 hover:bg-secondary/80 focus:bg-background focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 pl-10 pr-10 h-10 rounded-xl transition-all duration-200" value={password} onChange={(e) => setPassword(e.target.value)}/>
                 <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
                   {showPassword ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
                 </button>

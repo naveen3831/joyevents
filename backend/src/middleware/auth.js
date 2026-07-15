@@ -9,7 +9,7 @@ export async function verifyToken(req, res, next) {
     const secret = process.env.JWT_SECRET;
     if (!secret) return res.status(500).json({ error: "JWT secret not configured" });
     const payload = jwt.verify(token, secret);
-    const user = await User.findById(payload.sub).select("_id name email role status mobile merchantStatus merchantDetails quotationAmount maxEvents maxServices walletBalance");
+    const user = await User.findById(payload.sub).select("_id name email role status mobile merchantStatus merchantDetails quotationAmount maxEvents maxServices walletBalance referralCode");
     if (!user) return res.status(401).json({ error: "Unauthorized" });
     if (user.status === "deactivated") {
       return res.status(403).json({ error: "Your account has been deactivated. Please contact the administrator." });

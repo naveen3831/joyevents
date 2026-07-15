@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
 import { Briefcase, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Tag, Upload } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
+import AdminLayout from "@/components/AdminLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
@@ -28,7 +29,8 @@ const validateImage = (file) => {
     }
     return { isValid: true };
 };
-const MerchantServices = () => {
+const MerchantServices = ({ layout = "merchant" } = {}) => {
+    const PageLayout = layout === "admin" ? AdminLayout : MerchantLayout;
     const { token } = useAuth();
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -291,7 +293,7 @@ const MerchantServices = () => {
             setDeleting(null);
         }
     };
-    return (<MerchantLayout>
+    return (<PageLayout>
       <section className="py-2 sm:py-8 lg:py-10">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
           <div>
@@ -526,6 +528,6 @@ const MerchantServices = () => {
             </div>)}
         </div>
       </section>
-    </MerchantLayout>);
+    </PageLayout>);
 };
 export default MerchantServices;

@@ -802,8 +802,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
                               </Button>)}
 
                             {/* 3. Rate */}
-                            {((b.event && (b.status === "confirmed" || b.status === "paid" || b.status === "completed")) ||
-                    (!b.event && b.status === "completed")) && (<Button size="sm" variant={b.rating?.score ? "default" : "outline"} className={`gap-1 ${b.rating?.score ? "bg-gradient-primary text-primary-foreground" : ""}`} onClick={() => openRatingModal(b)}>
+                            {b.status === "completed" && (<Button size="sm" variant={b.rating?.score ? "default" : "outline"} className={`gap-1 ${b.rating?.score ? "bg-gradient-primary text-primary-foreground" : ""}`} onClick={() => openRatingModal(b)}>
                                 <Star className="h-3.5 w-3.5"/>
                                 {b.rating?.score ? `${b.rating.score}/5` : "Rate"}
                               </Button>)}

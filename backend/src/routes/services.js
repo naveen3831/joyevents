@@ -47,7 +47,7 @@ router.get("/", async (_req, res) => {
 });
 
 // Merchant: list only their own services
-router.get("/my-services", verifyToken, requireRole("merchant"), async (req, res) => {
+router.get("/my-services", verifyToken, requireRole("merchant", "admin"), async (req, res) => {
   try {
     const services = await Service.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
 
@@ -194,7 +194,7 @@ router.post("/", verifyToken, requireRole("merchant", "admin"), upload.fields([
   { name: 'gallery', maxCount: 4 }
 ]), async (req, res) => {
   try {
-    const { name, description, price, category, highlights, active } = req.body || {};
+    const { name, description, price, category, highlights, active, allowGuests, maxGuests } = req.body || {};
     if (!name || !price) return res.status(400).json({ error: "name and price are required" });
 
     if (req.user.role === "merchant") {
@@ -266,6 +266,8 @@ router.post("/", verifyToken, requireRole("merchant", "admin"), upload.fields([
       gallery: galleryUrls,
       active: active !== "false",
       addOns: parsedAddOns,
+      allowGuests: allowGuests === "true" || allowGuests === true,
+      maxGuests: parseInt(maxGuests) || 100,
       createdBy: req.user._id
     });
     res.status(201).json({ service });
@@ -280,7 +282,7 @@ router.patch("/:id", verifyToken, requireRole("merchant", "admin"), upload.field
   { name: 'gallery', maxCount: 4 }
 ]), async (req, res) => {
   try {
-    const { name, description, price, category, highlights, active, qrCodeCustomUrl, qrCodeActive } = req.body || {};
+    const { name, description, price, category, highlights, active, allowGuests, maxGuests, qrCodeCustomUrl, qrCodeActive } = req.body || {};
     const update = {};
     if (name !== undefined) {
       if (name.length > 100) return res.status(400).json({ error: "Name cannot exceed 100 characters" });
@@ -302,6 +304,14 @@ router.patch("/:id", verifyToken, requireRole("merchant", "admin"), upload.field
       update.category = category;
     }
     if (active !== undefined)      update.active = active !== "false";
+    if (allowGuests !== undefined) update.allowGuests = allowGuests === "true" || allowGuests === true;
+    if (maxGuests !== undefined) {
+      const numMaxGuests = Number(maxGuests);
+      if (Number.isNaN(numMaxGuests) || numMaxGuests < 1 || !Number.isInteger(numMaxGuests)) {
+        return res.status(400).json({ error: "Max guests must be a whole number of 1 or greater" });
+      }
+      update.maxGuests = numMaxGuests;
+    }
     if (qrCodeCustomUrl !== undefined) {
       if (qrCodeCustomUrl !== "") {
         const trimmed = qrCodeCustomUrl.trim();
@@ -361,7 +371,7 @@ router.patch("/:id", verifyToken, requireRole("merchant", "admin"), upload.field
     const service = await Service.findById(req.params.id);
     if (!service) return res.status(404).json({ error: "Service not found" });
     
-    // Check if user is admin or owner of the service
+    // Check if user is creator of the service
     if (req.user.role !== "admin" && service.createdBy?.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: "Not authorized to update this service" });
     }
@@ -379,7 +389,7 @@ router.delete("/:id", verifyToken, requireRole("merchant", "admin"), async (req,
     const service = await Service.findById(req.params.id);
     if (!service) return res.status(404).json({ error: "Service not found" });
     
-    // Check if user is admin or owner of the service
+    // Check if user is creator of the service
     if (req.user.role !== "admin" && service.createdBy?.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: "Not authorized to delete this service" });
     }

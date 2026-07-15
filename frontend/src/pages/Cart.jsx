@@ -9,15 +9,11 @@ import CustomerLayout from "@/components/CustomerLayout";
 import { Button } from "@/components/ui/button";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
-import SimplePayment from "@/components/SimplePayment";
-import { apiVerifyToken } from "@/lib/api";
 const Cart = () => {
     const { cartItems, removeFromCart, clearCart } = useCart();
-    const { token, user, updateUser } = useAuth();
+    const { token } = useAuth();
     const navigate = useNavigate();
     const [checkoutLoading, setCheckoutLoading] = useState(false);
-    const [showPaymentModal, setShowPaymentModal] = useState(false);
-    const [useWallet, setUseWallet] = useState(false);
     // Group items by type
     const eventItems = cartItems.filter(item => item.type === "event");
     const serviceItems = cartItems.filter(item => item.type === "service");
@@ -26,54 +22,18 @@ const Cart = () => {
     const servicesSubtotal = serviceItems.reduce((sum, item) => sum + item.price, 0);
     const totalDiscount = cartItems.reduce((sum, item) => sum + (item.discountAmount || 0), 0);
     const grandTotal = eventsSubtotal + servicesSubtotal;
-    // Wallet Calculations
-    const walletBalance = user?.walletBalance || 0;
-    const walletApplied = useWallet ? Math.min(walletBalance, eventsSubtotal) : 0;
-    const remainingAmountToPayNow = eventsSubtotal - walletApplied;
     const imgSrc = (image) => !image ? "" : image.startsWith("http") ? image : `${API_URL}${image}`;
     const handleCheckoutClick = () => {
         if (cartItems.length === 0)
             return;
-        if (eventItems.length > 0) {
-            if (useWallet && remainingAmountToPayNow === 0) {
-                // Paid completely via wallet! Process immediately
-                executeBulkBookings(null, "wallet", walletApplied);
-            }
-            else {
-                // Show payment modal for remaining/full amount
-                setShowPaymentModal(true);
-            }
-        }
-        else {
-            // If only services, checkout is free/immediate submission for approval
-            handleFreeCheckout();
-        }
+        executeBulkBookings();
     };
-    const executeBulkBookings = async (paymentDetails, paymentMethod = "card", walletOverrideAmount) => {
+    const executeBulkBookings = async () => {
         setCheckoutLoading(true);
         try {
-            let walletRemaining = walletOverrideAmount !== undefined ? walletOverrideAmount : walletApplied;
             const promises = cartItems.map(async (item) => {
                 const isEvent = item.type === "event";
-                const initialStatus = isEvent ? "confirmed" : "pending_approval";
-                const initialPaymentStatus = isEvent ? "paid" : "pending";
-                const payId = isEvent ? `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}` : "";
-                // Calculate wallet portion for this item
-                let itemWalletPaid = 0;
-                let itemUseWallet = false;
-                let itemPaymentMethod = paymentMethod;
-                if (isEvent && walletRemaining > 0) {
-                    const itemSubtotal = item.price;
-                    itemWalletPaid = Math.min(walletRemaining, itemSubtotal);
-                    walletRemaining -= itemWalletPaid;
-                    itemUseWallet = itemWalletPaid > 0;
-                    if (itemWalletPaid >= itemSubtotal) {
-                        itemPaymentMethod = "wallet";
-                    }
-                    else {
-                        itemPaymentMethod = "mixed";
-                    }
-                }
+                const initialStatus = isEvent ? "awaiting_payment" : "pending_approval";
                 // Construct booking payload
                 const payload = {
                     serviceName: item.type === "service" ? item.name : undefined,
@@ -85,12 +45,8 @@ const Cart = () => {
                     time: item.time,
                     isEvent: isEvent,
                     status: initialStatus,
-                    paymentStatus: initialPaymentStatus,
-                    paymentId: payId,
-                    paymentMethod: isEvent ? itemPaymentMethod : "card",
-                    paymentDetails: isEvent ? (itemPaymentMethod === "wallet" ? {} : paymentDetails) : undefined,
-                    useWallet: itemUseWallet,
-                    walletAmountPaid: itemWalletPaid,
+                    paymentStatus: "pending",
+                    deferPayment: isEvent,
                     quantity: item.details.quantity || 1,
                     selectedTickets: item.details.selectedTickets || {},
                     selectedSession: item.details.selectedSession || "",
@@ -100,7 +56,12 @@ const Cart = () => {
                     seatNumbers: item.details.selectedSeatNumbers || [],
                     promoCode: item.appliedPromo ? {
                         code: item.appliedPromo.code || "",
+                        _id: item.appliedPromo._id || null,
                         promoCodeId: item.appliedPromo._id || null,
+                        kind: item.appliedPromo.kind || "",
+                        referrerId: item.appliedPromo.referrerId || null,
+                        referrerName: item.appliedPromo.referrerName || "",
+                        bonusAmount: item.appliedPromo.bonusAmount || 0,
                         discountType: item.appliedPromo.discountType || "",
                         discountValue: item.appliedPromo.discountValue || 0,
                         discountAmount: item.discountAmount,
@@ -123,15 +84,7 @@ const Cart = () => {
                 return res.json();
             });
             await Promise.all(promises);
-            // Sync wallet balance locally
-            try {
-                const verifyRes = await apiVerifyToken(token);
-                if (verifyRes.user) {
-                    updateUser(verifyRes.user);
-                }
-            }
-            catch (e) { }
-            toast.success("All bookings processed successfully!");
+            toast.success("Bookings created. Review and pay from My Bookings.");
             clearCart();
             navigate("/customer-dashboard/bookings");
         }
@@ -141,13 +94,6 @@ const Cart = () => {
         finally {
             setCheckoutLoading(false);
         }
-    };
-    const handleFreeCheckout = async () => {
-        await executeBulkBookings();
-    };
-    const handlePaymentSuccess = async (paymentDetails) => {
-        setShowPaymentModal(false);
-        await executeBulkBookings(paymentDetails);
     };
     if (cartItems.length === 0) {
         return (<CustomerLayout>
@@ -190,10 +136,10 @@ const Cart = () => {
             {/* Left - Cart items */}
             <div className="flex-1 space-y-6">
               <AnimatePresence>
-                {cartItems.map((item) => (<motion.div key={item.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -50 }} className="relative flex flex-col sm:flex-row rounded-2xl border border-white/10 bg-black/30 backdrop-blur-xl overflow-hidden hover:border-white/20 transition-all">
+                {cartItems.map((item) => (<motion.div key={item.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -50 }} className="relative flex flex-col md:flex-row rounded-2xl border border-border bg-card shadow-card overflow-hidden hover:border-primary/40 hover:shadow-elevated transition-all">
                     {/* Item Thumbnail */}
-                    <div className="w-full sm:w-48 aspect-[4/3] sm:aspect-square bg-secondary shrink-0 relative">
-                      {imgSrc(item.image) ? (<img src={imgSrc(item.image)} alt={item.name} className="h-full w-full object-cover"/>) : (<div className="flex h-full items-center justify-center">
+                    <div className="w-full md:w-72 xl:w-80 aspect-[16/10] md:aspect-[4/3] bg-secondary/60 dark:bg-secondary shrink-0 relative overflow-hidden border-b md:border-b-0 md:border-r border-border">
+                      {imgSrc(item.image) ? (<img src={imgSrc(item.image)} alt={item.name} className="h-full w-full object-contain p-2"/>) : (<div className="flex h-full items-center justify-center">
                           {item.type === "event" ? (<Calendar className="h-12 w-12 opacity-10"/>) : (<Briefcase className="h-12 w-12 opacity-10"/>)}
                         </div>)}
                       <span className={`absolute top-3 left-3 rounded-full text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 shadow-md ${item.type === "event" ? "bg-primary text-primary-foreground" : "bg-amber-500 text-black"}`}>
@@ -202,7 +148,7 @@ const Cart = () => {
                     </div>
 
                     {/* Item Content */}
-                    <div className="flex-1 p-6 flex flex-col justify-between">
+                    <div className="flex-1 p-6 sm:p-7 flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start gap-4">
                           <div>
@@ -227,7 +173,7 @@ const Cart = () => {
                                   <span className="font-semibold shrink-0">Session:</span>
                                   <span className="capitalize">{item.details.selectedSession} Session</span>
                                 </div>)}
-                              {item.details.selectedTickets && Object.keys(item.details.selectedTickets).length > 0 && (<div className="flex items-start gap-1.5 mt-1 bg-white/5 rounded-lg p-2">
+                              {item.details.selectedTickets && Object.keys(item.details.selectedTickets).length > 0 && (<div className="flex items-start gap-1.5 mt-1 bg-secondary/50 rounded-lg p-2">
                                   <Ticket className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5"/>
                                   <div>
                                     <span className="font-semibold block mb-0.5">Tickets:</span>
@@ -245,14 +191,14 @@ const Cart = () => {
 
                           {/* Service Configuration details */}
                           {item.type === "service" && (<>
-                              {item.details.customerLocation && (<div className="flex items-start gap-1.5 mt-1 bg-white/5 rounded-lg p-2">
+                              {item.details.customerLocation && (<div className="flex items-start gap-1.5 mt-1 bg-secondary/50 rounded-lg p-2">
                                   <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5"/>
                                   <div className="break-all">
                                     <span className="font-semibold block mb-0.5">Location:</span>
                                     {item.details.customerLocation.address}
                                   </div>
                                 </div>)}
-                              {item.details.addOns && item.details.addOns.length > 0 && (<div className="flex items-start gap-1.5 mt-1 bg-white/5 rounded-lg p-2">
+                              {item.details.addOns && item.details.addOns.length > 0 && (<div className="flex items-start gap-1.5 mt-1 bg-secondary/50 rounded-lg p-2">
                                   <Briefcase className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5"/>
                                   <div>
                                     <span className="font-semibold block mb-0.5">Selected Add-ons:</span>
@@ -264,10 +210,11 @@ const Cart = () => {
                                 </div>)}
                             </>)}
                         </div>
+
                       </div>
 
                       {/* Item Pricing */}
-                      <div className="border-t border-white/5 mt-4 pt-3 flex items-center justify-between">
+                      <div className="border-t border-border mt-6 pt-4 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {item.appliedPromo && (<span className="inline-flex items-center gap-1 text-[10px] bg-green-500/10 text-green-500 border border-green-500/20 px-2 py-0.5 rounded font-mono">
                               <Percent className="h-3 w-3"/> {item.appliedPromo.code}
@@ -308,16 +255,8 @@ const Cart = () => {
                     </div>)}
                 </div>
 
-                {/* Total / Checkout Pay instructions */}
+                {/* Total / Checkout instructions */}
                 <div className="space-y-4">
-                  {/* Wallet Balance Integration */}
-                  {walletBalance > 0 && eventItems.length > 0 && (<div className="flex items-center gap-2.5 p-3 rounded-xl border border-primary/20 bg-primary/5 hover:border-primary/40 transition-colors select-none">
-                      <input id="useWalletCart" type="checkbox" checked={useWallet} onChange={(e) => setUseWallet(e.target.checked)} className="h-4 w-4 rounded accent-primary cursor-pointer shrink-0"/>
-                      <label htmlFor="useWalletCart" className="text-xs font-bold cursor-pointer flex-1">
-                        Apply Wallet Balance (Available: <span className="text-primary font-black">{formatCurrency(walletBalance)}</span>)
-                      </label>
-                    </div>)}
-
                   <div className="flex justify-between items-baseline">
                     <span className="font-bold text-base">Grand Total</span>
                     <span className="font-display font-black text-2xl text-gradient">
@@ -325,37 +264,22 @@ const Cart = () => {
                     </span>
                   </div>
 
-                  {useWallet && walletApplied > 0 && (<div className="space-y-1.5 border-t border-white/5 pt-3 text-xs">
-                      <div className="flex justify-between font-medium">
-                        <span className="text-muted-foreground">Events Subtotal</span>
-                        <span>{formatCurrency(eventsSubtotal)}</span>
-                      </div>
-                      <div className="flex justify-between text-green-500 font-medium">
-                        <span>Wallet Deduction</span>
-                        <span>-{formatCurrency(walletApplied)}</span>
-                      </div>
-                      <div className="flex justify-between font-bold text-sm">
-                        <span>Remaining Due Now</span>
-                        <span className="text-primary">{formatCurrency(remainingAmountToPayNow)}</span>
-                      </div>
-                    </div>)}
-
                   {eventItems.length > 0 && serviceItems.length > 0 && (<div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-xs text-muted-foreground leading-relaxed">
-                      💡 **Mixed Checkout Details:** You will pay for event tickets (**{formatCurrency(eventsSubtotal)}**) immediately. The remaining service booking requests will be sent to the vendors for review without direct charges today.
+                      Review checkout: your event and service bookings will be created first. Pay for event bookings from My Bookings after reviewing them.
                     </div>)}
 
                   {eventItems.length > 0 && serviceItems.length === 0 && (<div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-xs text-muted-foreground leading-relaxed">
-                      💳 Event checkout charges your card immediately. Event bookings are generated instantly.
+                      Event bookings are created first. Review your booking details, then use Pay Now from My Bookings.
                     </div>)}
 
                   {serviceItems.length > 0 && eventItems.length === 0 && (<div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-4 text-xs text-muted-foreground leading-relaxed">
-                      📋 Service requests do not require immediate payments. Vendors will review your requests and send quotations.
+                      Service requests do not require immediate payments. Vendors will review your requests and send quotations.
                     </div>)}
 
-                  <Button onClick={handleCheckoutClick} disabled={checkoutLoading} className="w-full h-12 text-base bg-gradient-primary hover:opacity-90 font-bold">
+                  <Button onClick={handleCheckoutClick} disabled={checkoutLoading} className="w-full h-12 text-base bg-gradient-primary hover:opacity-90 font-bold disabled:opacity-50">
                     {checkoutLoading ? (<>
                         <Loader2 className="h-4 w-4 animate-spin mr-2"/> Processing…
-                      </>) : eventItems.length > 0 ? (remainingAmountToPayNow === 0 ? (`Pay ${formatCurrency(walletApplied)} with Wallet & Book`) : (`Pay & Book Events — ${formatCurrency(remainingAmountToPayNow)}`)) : ("Submit Booking Requests")}
+                      </>) : eventItems.length > 0 ? ("Create Bookings & Review") : ("Submit Booking Requests")}
                   </Button>
                 </div>
               </div>
@@ -363,20 +287,6 @@ const Cart = () => {
           </div>
         </div>
       </div>
-
-      {/* Payment Modal for event checkout */}
-      {showPaymentModal && eventItems.length > 0 && (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="font-display text-xl font-bold">Secure Event Payment</h2>
-            </div>
-            <SimplePayment amount={eventsSubtotal} initUseWallet={useWallet} bookingData={{
-                eventName: eventItems.length === 1 ? eventItems[0].name : `${eventItems.length} Event Tickets`,
-                date: new Date().toISOString().split("T")[0],
-                time: new Date().toTimeString().split(" ")[0].slice(0, 5)
-            }} onSuccess={handlePaymentSuccess} onError={() => { }} onClose={() => setShowPaymentModal(false)}/>
-          </div>
-        </div>)}
     </CustomerLayout>);
 };
 export default Cart;

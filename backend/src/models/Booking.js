@@ -84,6 +84,14 @@ const bookingSchema = new mongoose.Schema(
       finalPrice: { type: Number, default: 0 },
       appliedAt: { type: Date, default: null }
     },
+    referral: {
+      code: { type: String, default: "" },
+      referrer: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+      discountAmount: { type: Number, default: 0 },
+      bonusAmount: { type: Number, default: 0 },
+      bonusCredited: { type: Boolean, default: false },
+      bonusCreditedAt: { type: Date, default: null }
+    },
     // Add-ons selected by customer
     addOns: [{
       name:     { type: String },

@@ -123,6 +123,136 @@ async function calculateMerchantEarnings(merchantId) {
   };
 }
 
+async function calculateAdminEarnings(adminId) {
+  const paidBookings = await Booking.find({
+    paymentStatus: { $in: ["paid", "partially_paid"] }
+  }).populate("assignedTo", "role").lean();
+
+  const bookingIds = paidBookings.map((booking) => booking._id);
+  const transactions = await Transaction.find({
+    status: "completed",
+    type: { $in: ["earning", "commission_deduction"] },
+    booking: { $in: bookingIds }
+  }).lean();
+
+  const transactionSummaries = new Map();
+  for (const transaction of transactions) {
+    if (!transaction.booking) continue;
+    const bookingId = transaction.booking.toString();
+    const summary = transactionSummaries.get(bookingId) || { earning: 0, commission: 0 };
+    if (transaction.type === "earning") summary.earning += Number(transaction.amount) || 0;
+    if (transaction.type === "commission_deduction") summary.commission += Number(transaction.amount) || 0;
+    transactionSummaries.set(bookingId, summary);
+  }
+
+  const commissionRate = await getCommissionRate();
+  let totalAdminEarnings = 0;
+  let bookingCommissionEarnings = 0;
+  let adminDirectEarnings = 0;
+  let totalRevenue = 0;
+  let merchantPayouts = 0;
+
+  for (const booking of paidBookings) {
+    const paidAmount = getPaidAmount(booking);
+    const snapshot = booking.commissionSnapshot;
+    const transactionSummary = transactionSummaries.get(booking._id.toString());
+    const isAdminBooking = booking.assignedTo?.role === "admin";
+    totalRevenue += paidAmount;
+
+    if (isAdminBooking) {
+      const adminAmount = transactionSummary?.earning
+        || Number(snapshot?.grossAmount)
+        || paidAmount;
+      adminDirectEarnings += adminAmount;
+      totalAdminEarnings += adminAmount;
+      continue;
+    }
+
+    const commissionAmount = transactionSummary?.commission
+      || Number(snapshot?.commissionAmount)
+      || (booking.assignedTo ? paidAmount * commissionRate : 0);
+    const payoutAmount = transactionSummary?.earning
+      || Number(snapshot?.merchantPayout)
+      || (booking.assignedTo ? paidAmount - commissionAmount : 0);
+
+    bookingCommissionEarnings += commissionAmount;
+    totalAdminEarnings += commissionAmount;
+    merchantPayouts += payoutAmount;
+  }
+
+  const adminWithdrawals = await Withdrawal.find({
+    merchant: adminId,
+    status: { $in: ["pending", "approved", "completed"] }
+  }).lean();
+  const totalWithdrawn = adminWithdrawals.reduce((sum, withdrawal) => sum + (Number(withdrawal.amount) || 0), 0);
+  const availableBalance = totalAdminEarnings - totalWithdrawn;
+
+  return {
+    totalAdminEarnings: roundMoney(totalAdminEarnings),
+    bookingCommissionEarnings: roundMoney(bookingCommissionEarnings),
+    adminDirectEarnings: roundMoney(adminDirectEarnings),
+    merchantPayouts: roundMoney(merchantPayouts),
+    totalRevenue: roundMoney(totalRevenue),
+    totalWithdrawn: roundMoney(totalWithdrawn),
+    availableBalance: roundMoney(Math.max(0, availableBalance)),
+    paidBookings: paidBookings.length
+  };
+}
+
+function validateWithdrawalPayload(amount, bankDetails) {
+  if (String(amount).length > 10) {
+    return { error: "Withdrawal amount cannot exceed 10 digits" };
+  }
+  const numAmount = Number(amount);
+  if (Number.isNaN(numAmount) || numAmount < 1) {
+    return { error: "Please enter a valid amount (minimum Rs. 1)" };
+  }
+  if (!bankDetails) {
+    return { error: "Bank details are required" };
+  }
+
+  const holder = (bankDetails.accountHolder || "").trim();
+  if (!holder) return { error: "Account holder name is required" };
+  if (holder.length < 2 || holder.length > 50) {
+    return { error: "Account holder name must be between 2 and 50 characters" };
+  }
+  if (!/^[a-zA-Z\s.]+$/.test(holder)) {
+    return { error: "Account holder name can only contain letters, spaces, and dots" };
+  }
+
+  const accNum = (bankDetails.accountNumber || "").trim();
+  if (!accNum) return { error: "Account number is required" };
+  if (!/^\d+$/.test(accNum)) return { error: "Account number must contain only numbers" };
+  if (accNum.length < 9 || accNum.length > 18) {
+    return { error: "Account number must be between 9 and 18 digits" };
+  }
+
+  const ifsc = (bankDetails.ifscCode || "").trim().toUpperCase();
+  if (!ifsc) return { error: "IFSC Code is required" };
+  if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) {
+    return { error: "Invalid IFSC Code format" };
+  }
+
+  const bankName = (bankDetails.bankName || "").trim();
+  if (!bankName) return { error: "Bank name is required" };
+  if (bankName.length < 2 || bankName.length > 50) {
+    return { error: "Bank name must be between 2 and 50 characters" };
+  }
+  if (!/^[a-zA-Z\s&().-]+$/.test(bankName)) {
+    return { error: "Bank name contains invalid characters" };
+  }
+
+  return {
+    amount: numAmount,
+    bankDetails: {
+      accountHolder: holder,
+      accountNumber: accNum,
+      ifscCode: ifsc,
+      bankName
+    }
+  };
+}
+
 // Merchant: Get earnings dashboard data
 router.get("/dashboard", verifyToken, async (req, res) => {
   try {
@@ -384,6 +514,63 @@ router.patch("/withdrawal/:id/reject", verifyToken, requireRole("admin"), async 
     res.json({ success: true, withdrawal });
   } catch (error) {
     res.status(500).json({ error: "Failed to reject withdrawal" });
+  }
+});
+
+// Admin: Summary of only admin-owned earnings that can be withdrawn
+router.get("/admin/summary", verifyToken, requireRole("admin"), async (req, res) => {
+  try {
+    const summary = await calculateAdminEarnings(req.user._id);
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch admin earnings summary" });
+  }
+});
+
+// Admin: Withdraw only admin earnings, not total revenue or merchant payout funds
+router.post("/admin/withdraw", verifyToken, requireRole("admin"), async (req, res) => {
+  try {
+    const validated = validateWithdrawalPayload(req.body.amount, req.body.bankDetails);
+    if (validated.error) {
+      return res.status(400).json({ error: validated.error });
+    }
+
+    const summary = await calculateAdminEarnings(req.user._id);
+    if (validated.amount > summary.availableBalance) {
+      return res.status(400).json({ error: "Admin can withdraw only available admin earnings" });
+    }
+
+    const transactionId = `ADM-WD-${Date.now()}`;
+    const withdrawal = await Withdrawal.create({
+      merchant: req.user._id,
+      amount: validated.amount,
+      bankDetails: validated.bankDetails,
+      status: "completed",
+      requestedAt: new Date(),
+      approvedAt: new Date(),
+      completedAt: new Date(),
+      transactionId
+    });
+
+    await Transaction.create({
+      merchant: req.user._id,
+      type: "withdrawal",
+      amount: validated.amount,
+      description: `Admin earnings withdrawal of ${formatCurrency(validated.amount)}`,
+      status: "completed",
+      relatedId: withdrawal._id.toString(),
+      metadata: { scope: "admin_earnings", transactionId }
+    });
+
+    res.json({
+      success: true,
+      withdrawal,
+      transactionId,
+      summary: await calculateAdminEarnings(req.user._id),
+      message: "Admin earnings withdrawn successfully"
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to withdraw admin earnings" });
   }
 });
 

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
-import { ImageIcon, Loader2, AlertCircle, Ticket, Calendar, Trash2, Pencil, Plus, X, Clock, MapPin, DollarSign, Upload } from "lucide-react";
+import { Calendar, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, DollarSign, Upload, Ticket } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiListEvents, apiCreateEventWithImage, apiUpdateEventWithImage, apiDeleteEvent, apiListCategories, apiCreateCategory } from "@/lib/api";
+import { apiListMyEvents, apiCreateEventWithImage, apiUpdateEventWithImage, apiDeleteEvent, apiListCategories, apiCreateCategory } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 
@@ -42,8 +42,8 @@ const getTodayString = () => {
     return `${yyyy}-${mm}-${dd}`;
 };
 
-const AdminEvents = () => {
-    const { token, user } = useAuth();
+const AdminMyEvents = () => {
+    const { token } = useAuth();
     const [events, setEvents] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -106,7 +106,7 @@ const AdminEvents = () => {
     const loadEvents = async () => {
         try {
             const [eventsRes, catsRes] = await Promise.all([
-                apiListEvents().catch(() => ({ events: [] })),
+                apiListMyEvents(token).catch(() => ({ events: [] })),
                 apiListCategories("event").catch(() => ({ categories: [] }))
             ]);
             const loadedEvents = eventsRes.events || [];
@@ -438,10 +438,10 @@ const AdminEvents = () => {
       <section className="py-2 sm:py-8 lg:py-10">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="font-display text-xs sm:text-3xl font-bold truncate">
-              Events
+            <h1 className="font-display text-3xl font-bold">
+              My <span className="text-gradient">Events</span>
             </h1>
-            <p className="text-muted-foreground text-sm mt-1 font-semibold">View all events — Manage and edit events created by you</p>
+            <p className="text-muted-foreground text-sm mt-1">Manage your created events - edit or delete only what you own</p>
           </div>
           <Button onClick={openCreate} className="bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow">
             <Plus className="mr-2 h-4 w-4"/> Add Event
@@ -452,13 +452,10 @@ const AdminEvents = () => {
             <Loader2 className="h-5 w-5 animate-spin"/> Loading…
           </div>) : events.length === 0 ? (<div className="rounded-xl border border-border bg-card p-10 text-center text-muted-foreground">
             <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-40"/>
-            No events available.
-          </div>) : (<div className="grid grid-cols-2 gap-3 md:gap-6 md:grid-cols-2 lg:grid-cols-3 items-stretch">
-            {events.map((ev) => {
-                const isOwner = ev.createdBy?._id === user?._id || ev.createdBy === user?._id;
-                return (<motion.div key={ev._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="group rounded-xl border border-border bg-card overflow-hidden hover-lift flex flex-col h-full">
-                {/* Image - fixed height */}
-                <div className="relative h-44 flex-shrink-0 overflow-hidden bg-secondary">
+            No events yet. Create your first event to get started. Only your events are shown here.
+          </div>) : (<div className="grid grid-cols-2 gap-3 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {events.map((ev) => (<motion.div key={ev._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
+                <div className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-52">
                   {imgSrc(ev.image) ? (<img src={imgSrc(ev.image)} alt={ev.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center text-muted-foreground">
                       <ImageIcon className="h-12 w-12 opacity-30"/>
                     </div>)}
@@ -467,110 +464,121 @@ const AdminEvents = () => {
                     {ev.category}
                   </span>
                   <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {isOwner ? (<>
-                        <button onClick={() => openEdit(ev)} className="rounded-full bg-black/60 p-2 hover:bg-primary hover:text-primary-foreground transition-colors">
-                          <Pencil className="h-4 w-4"/>
-                        </button>
-                        <button onClick={() => handleDelete(ev._id)} disabled={deletingId === ev._id} className="rounded-full bg-black/60 p-2 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50">
-                          {deletingId === ev._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
-                        </button>
-                      </>) : (<span className="text-xs text-muted-foreground px-2 py-1 bg-black/60 rounded-full">
-                        View Only
-                      </span>)}
+                    <button onClick={() => openEdit(ev)} className="rounded-full bg-black/60 p-2 hover:bg-primary hover:text-primary-foreground transition-colors">
+                      <Pencil className="h-4 w-4"/>
+                    </button>
+                    <button onClick={() => handleDelete(ev._id)} disabled={deletingId === ev._id} className="rounded-full bg-black/60 p-2 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50">
+                      {deletingId === ev._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
+                    </button>
                   </div>
                 </div>
 
-                {/* Info - flex-grow so all cards stretch to same height */}
-                <div className="p-4 flex flex-col flex-1">
-                  <h3 className="font-display font-semibold text-base leading-tight">{ev.title}</h3>
+                <div className="p-2 sm:p-5 flex flex-col flex-1">
+                  <h3 className="font-display font-semibold text-lg line-clamp-1">{ev.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{ev.location}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(ev.datetime).toLocaleString()}</p>
 
-                  {/* Available Tickets - fixed height scrollable area */}
-                  {ev.eventType === "ticketed" && ((() => {
-                    const allTickets = ev.hasMultipleSessions
-                        ? [
-                            ...(ev.sessions?.day?.tickets || []),
-                            ...(ev.sessions?.night?.tickets || []),
-                        ]
-                        : (ev.tickets || []);
-                    if (allTickets.length === 0)
-                        return null;
-                    return (<div className="mt-2 border-b border-border pb-2">
-                          <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1 mb-1">
-                            <Ticket className="h-3 w-3"/> Available Tickets:
-                          </p>
-                          <div className="space-y-0.5 max-h-20 overflow-y-auto">
-                            {allTickets.map((ticket, idx) => {
-                            const remaining = (ticket.available || 0) - (ticket.sold || 0);
-                            const isSoldOut = remaining <= 0;
-                            return (<div key={`${ticket.type}-${idx}`} className="flex items-center justify-between text-xs">
-                                  <span className="capitalize text-muted-foreground">{ticket.type}:</span>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-primary font-semibold">{formatCurrency(ticket.price)}</span>
-                                    <span className={isSoldOut ? "text-red-500 font-semibold" : "text-green-500 font-semibold"}>
-                                      {isSoldOut ? "Sold Out" : `${remaining} left`}
-                                    </span>
-                                  </div>
+                  {ev.eventType === "ticketed" && (<div className="mt-3 border-t border-border pt-2">
+                      <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1 mb-1">
+                        <Ticket className="h-3 w-3"/> Tickets Booked:
+                      </p>
+                      {(() => {
+                        const allTickets = [];
+                        if (ev.hasMultipleSessions && ev.sessions) {
+                            ["day", "night"].forEach((s) => {
+                                if (ev.sessions[s]?.enabled && ev.sessions[s]?.tickets) {
+                                    ev.sessions[s].tickets.forEach((t) => {
+                                        const existing = allTickets.find(x => x.type === t.type);
+                                        if (existing) {
+                                            existing.available += t.available || 0;
+                                            existing.sold += t.sold || 0;
+                                        }
+                                        else
+                                            allTickets.push({ type: t.type, available: t.available || 0, sold: t.sold || 0 });
+                                    });
+                                }
+                            });
+                        }
+                        else if (ev.tickets?.length) {
+                            ev.tickets.forEach((t) => allTickets.push({ type: t.type, available: t.available || 0, sold: t.sold || 0 }));
+                        }
+                        const totalSold = allTickets.reduce((s, t) => s + t.sold, 0);
+                        const totalAvailable = allTickets.reduce((s, t) => s + t.available, 0);
+                        return (<>
+                            <div className="flex items-center gap-1 text-xs mb-1">
+                              <span className="font-semibold text-primary">{totalSold}</span>
+                              <span className="text-muted-foreground">/ {totalAvailable} total</span>
+                              {totalSold >= totalAvailable && totalAvailable > 0 && <span className="ml-1 text-red-500 font-semibold">Sold Out</span>}
+                            </div>
+                            {allTickets.map((t) => {
+                                const remaining = t.available - t.sold;
+                                return (<div key={t.type} className="flex items-center justify-between text-xs">
+                                  <span className="capitalize text-muted-foreground">{t.type}:</span>
+                                  <span className={remaining <= 0 ? "text-red-500 font-semibold" : "text-green-500 font-semibold"}>
+                                    {t.sold}/{t.available} {remaining <= 0 ? "· Sold Out" : `· ${remaining} left`}
+                                  </span>
                                 </div>);
-                        })}
-                          </div>
-                        </div>);
-                })())}
+                            })}
+                          </>);
+                    })()}
+                    </div>)}
 
-                  {/* Spacer pushes footer to bottom */}
-                  <div className="flex-1 flex flex-col justify-end mt-2 gap-0.5">
-                    <p className="text-xs text-muted-foreground truncate">{ev.location}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(ev.datetime).toLocaleString()}</p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-sm font-semibold text-primary">
-                        {ev.eventType === "ticketed"
+                  {ev.eventType === "fullService" && (<div className="mt-2 flex items-center gap-1 text-xs">
+                      <span className="text-muted-foreground">👥 Attendees:</span>
+                      <span className="font-semibold text-primary">{ev.attendeesCount || 0}</span>
+                      {ev.maxAttendees > 0 && <span className="text-muted-foreground">/ {ev.maxAttendees}</span>}
+                    </div>)}
+
+                  <div className="flex-1"/>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-primary">
+                      {ev.eventType === "ticketed"
                     ? (() => {
-                        const allTickets = ev.hasMultipleSessions
-                            ? [
-                                ...(ev.sessions?.day?.tickets || []),
-                                ...(ev.sessions?.night?.tickets || []),
-                            ]
-                            : (ev.tickets || []);
-                        const prices = allTickets.map((t) => t.price).filter((p) => p > 0);
-                        if (prices.length === 0)
+                        const allPrices = [];
+                        if (ev.hasMultipleSessions && ev.sessions) {
+                            ["day", "night"].forEach((s) => { if (ev.sessions[s]?.enabled)
+                                ev.sessions[s].tickets?.forEach((t) => { if (t.price > 0)
+                                    allPrices.push(t.price); }); });
+                        }
+                        else {
+                            (ev.tickets || []).forEach((t) => { if (t.price > 0)
+                                allPrices.push(t.price); });
+                        }
+                        if (!allPrices.length)
                             return "Free";
-                        const min = Math.min(...prices);
-                        const max = Math.max(...prices);
+                        const min = Math.min(...allPrices), max = Math.max(...allPrices);
                         return min === max ? `${formatCurrency(min)}` : `${formatCurrency(min)} – ${formatCurrency(max)}`;
                     })()
                     : `${formatCurrency(ev.price)}`}
-                      </span>
-                      <span className={`rounded-full px-2 py-1 text-xs font-semibold capitalize ${ev.status === "upcoming" ? "bg-blue-500/15 text-blue-400" :
-                    ev.status === "ongoing" ? "bg-green-500/15 text-green-400" :
-                        "bg-gray-500/15 text-gray-400"}`}>
-                        {ev.status}
-                      </span>
-                    </div>
+                    </span>
+                    <span className={`rounded-full px-2 py-1 text-xs font-semibold capitalize ${ev.status === "upcoming" ? "bg-blue-500/15 text-blue-400" : ev.status === "ongoing" ? "bg-green-500/15 text-green-400" : "bg-gray-500/15 text-gray-400"}`}>
+                      {ev.status}
+                    </span>
                   </div>
                 </div>
-              </motion.div>);
-            })}
+              </motion.div>))}
           </div>)}
-      </section>
 
-      {/* Modal */}
-      {showModal && (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-            <button className="absolute top-4 right-4 text-muted-foreground hover:text-foreground" onClick={() => setShowModal(false)}>
-              <X className="h-5 w-5"/>
-            </button>
+        {/* Modal */}
+        {showModal && (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="relative w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+              <button className="absolute top-4 right-4 text-muted-foreground hover:text-foreground" onClick={() => setShowModal(false)}>
+                <X className="h-5 w-5"/>
+              </button>
 
-            <h2 className="font-display text-2xl font-bold mb-1">
-              {editingId ? "Edit Event" : "Create New Event"}
-            </h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              {editingId ? "Update event details" : "Fill in the details to publish your event"}
-            </p>
+              <h2 className="font-display text-2xl font-bold mb-1">
+                {editingId ? "Edit Event" : "Create New Event"}
+              </h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                {editingId ? "Update event details" : "Fill in the details to publish your event"}
+              </p>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label className="text-sm text-muted-foreground mb-2 block">Event Cover Image (JPG, PNG, WEBP. Max 5MB)</Label>
-                <div className="flex h-48 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-card transition-colors hover:border-primary" onClick={() => fileInputRef.current?.click()}>
-                  <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" onChange={(e) => {
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label className="text-sm text-muted-foreground mb-2 block">Event Cover Image (JPG, PNG, WEBP. Max 5MB)</Label>
+                  <div className="flex h-48 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-card transition-colors hover:border-primary" onClick={() => fileInputRef.current?.click()}>
+                    <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" onChange={(e) => {
                 if (e.target.files && e.target.files[0]) {
                     const file = e.target.files[0];
                     const validation = validateImage(file);
@@ -583,189 +591,110 @@ const AdminEvents = () => {
                     setImagePreview(URL.createObjectURL(file));
                 }
             }} className="hidden"/>
-                  {imagePreview ? (<img src={imagePreview} alt="Preview" className="h-full w-full object-cover rounded-xl"/>) : (<div className="text-center">
-                      <ImageIcon className="mx-auto h-8 w-8 text-muted-foreground"/>
-                      <p className="mt-2 text-sm text-muted-foreground">Click to upload event cover image</p>
-                    </div>)}
+                    {imagePreview ? (<img src={imagePreview} alt="Preview" className="h-full w-full object-cover rounded-xl"/>) : (<div className="text-center">
+                        <ImageIcon className="mx-auto h-8 w-8 text-muted-foreground"/>
+                        <p className="mt-2 text-sm text-muted-foreground">Click to upload event cover image</p>
+                      </div>)}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <Label className="text-sm text-muted-foreground mb-2 block flex items-center gap-2">
-                  <Upload className="h-4 w-4"/>
-                  Gallery Images (Up to 4 images. JPG, PNG, WEBP. Max 5MB each)
-                </Label>
-                <div className="flex h-32 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-card transition-colors hover:border-primary" onClick={() => galleryInputRef.current?.click()}>
-                  <input ref={galleryInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" multiple onChange={handleGalleryUpload} className="hidden"/>
-                  {galleryPreviews.length === 0 ? (<div className="text-center">
-                      <ImageIcon className="mx-auto h-8 w-8 text-muted-foreground"/>
-                      <p className="mt-2 text-sm text-muted-foreground">Click to upload gallery images (max 4)</p>
-                    </div>) : (<div className="grid grid-cols-4 gap-2 p-2">
-                      {galleryPreviews.map((preview, idx) => (<div key={idx} className="relative aspect-square overflow-hidden rounded-lg">
-                          <img src={preview} alt={`Gallery ${idx + 1}`} className="h-full w-full object-cover"/>
-                          <button type="button" onClick={() => removeGalleryImage(idx)} className="absolute top-1 right-1 rounded-full bg-red-500 p-1 text-white hover:bg-red-600">
-                            <X className="h-3 w-3"/>
-                          </button>
-                        </div>))}
-                      {galleryPreviews.length < 4 && (<div className="flex h-full items-center justify-center text-muted-foreground">
-                          <Plus className="h-6 w-6"/>
-                        </div>)}
-                    </div>)}
+                <div>
+                  <Label className="text-sm text-muted-foreground mb-2 block flex items-center gap-2">
+                    <Upload className="h-4 w-4"/>
+                    Gallery Images (Up to 4 images. JPG, PNG, WEBP. Max 5MB each)
+                  </Label>
+                  <div className="flex h-32 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-card transition-colors hover:border-primary" onClick={() => galleryInputRef.current?.click()}>
+                    <input ref={galleryInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" multiple onChange={handleGalleryUpload} className="hidden"/>
+                    {galleryPreviews.length === 0 ? (<div className="text-center">
+                        <ImageIcon className="mx-auto h-8 w-8 text-muted-foreground"/>
+                        <p className="mt-2 text-sm text-muted-foreground">Click to upload gallery images (max 4)</p>
+                      </div>) : (<div className="grid grid-cols-4 gap-2 p-2">
+                        {galleryPreviews.map((preview, idx) => (<div key={idx} className="relative aspect-square overflow-hidden rounded-lg">
+                            <img src={preview} alt={`Gallery ${idx + 1}`} className="h-full w-full object-cover"/>
+                            <button type="button" onClick={() => removeGalleryImage(idx)} className="absolute top-1 right-1 rounded-full bg-red-500 p-1 text-white hover:bg-red-600">
+                              <X className="h-3 w-3"/>
+                            </button>
+                          </div>))}
+                        {galleryPreviews.length < 4 && (<div className="flex h-full items-center justify-center text-muted-foreground">
+                            <Plus className="h-6 w-6"/>
+                          </div>)}
+                      </div>)}
+                  </div>
+                  {galleryPreviews.length > 0 && (<p className="mt-2 text-xs text-muted-foreground">
+                      {galleryPreviews.length} / 4 images selected
+                    </p>)}
                 </div>
-                {galleryPreviews.length > 0 && (<p className="mt-2 text-xs text-muted-foreground">
-                    {galleryPreviews.length} / 4 images selected
-                  </p>)}
-              </div>
 
-              <div>
-                <div className="flex justify-between items-center">
-                  <Label className="text-sm text-muted-foreground">Event Title</Label>
-                  <span className="text-xs text-muted-foreground">{(form.title || '').length}/100</span>
-                </div>
-                <Input value={form.title} onChange={(e) => {
+                <div>
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm text-muted-foreground">Event Title</Label>
+                    <span className="text-xs text-muted-foreground">{(form.title || '').length}/100</span>
+                  </div>
+                  <Input value={form.title} onChange={(e) => {
                 setForm({ ...form, title: e.target.value });
                 if (formErrors.title)
                     setFormErrors(prev => ({ ...prev, title: "" }));
             }} placeholder="Enter event title" maxLength={100} required aria-invalid={Boolean(formErrors.title)}/>
-                {formErrors.title && <p className="text-xs text-red-500 mt-1">{formErrors.title}</p>}
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center">
-                  <Label className="text-sm text-muted-foreground">Description</Label>
-                  <span className="text-xs text-muted-foreground">{(form.description || '').length}/1000</span>
+                  {formErrors.title && <p className="text-xs text-red-500 mt-1">{formErrors.title}</p>}
                 </div>
-                <Textarea value={form.description} onChange={(e) => {
+
+                <div>
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm text-muted-foreground">Description</Label>
+                    <span className="text-xs text-muted-foreground">{(form.description || '').length}/1000</span>
+                  </div>
+                  <Textarea value={form.description} onChange={(e) => {
                 setForm({ ...form, description: e.target.value });
                 if (formErrors.description)
                     setFormErrors(prev => ({ ...prev, description: "" }));
             }} placeholder="Describe your event..." rows={3} maxLength={1000} required aria-invalid={Boolean(formErrors.description)}/>
-                {formErrors.description && <p className="text-xs text-red-500 mt-1">{formErrors.description}</p>}
-              </div>
+                  {formErrors.description && <p className="text-xs text-red-500 mt-1">{formErrors.description}</p>}
+                </div>
 
-              <div>
-                <Label className="text-sm text-muted-foreground font-semibold mb-2 block">Event Type</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button type="button" onClick={() => {
+                <div>
+                  <Label className="text-sm text-muted-foreground font-semibold mb-2 block">Event Type</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button type="button" onClick={() => {
                 setEventType("fullService");
                 setSelectedSession(null);
                 setTicketTypes([]);
             }} className={`p-3 rounded-lg border-2 transition-all font-medium ${eventType === "fullService"
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border bg-card hover:border-primary/50"}`}>
-                    <div className="text-lg">🎉</div>
-                    Single Ticket Event
-                  </button>
-                  <button type="button" onClick={() => {
+                      <div className="text-lg">🎉</div>
+                      Single Ticket Event
+                    </button>
+                    <button type="button" onClick={() => {
                 setEventType("ticketed");
                 setSelectedSession(null);
                 setTicketTypes([]);
             }} className={`p-3 rounded-lg border-2 transition-all font-medium ${eventType === "ticketed"
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border bg-card hover:border-primary/50"}`}>
-                    <div className="text-lg">🎫</div>
-                    Ticketed Event
-                  </button>
+                      <div className="text-lg">🎫</div>
+                      Ticketed Event
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {eventType === "ticketed" && (<div>
-                  <Label className="text-sm text-muted-foreground font-semibold mb-2 block">Ticketed Event Type</Label>
-                  <select value={ticketedType || ""} onChange={(e) => {
+                {eventType === "ticketed" && (<div>
+                    <Label className="text-sm text-muted-foreground font-semibold mb-2 block">Ticketed Event Type</Label>
+                    <select value={ticketedType || ""} onChange={(e) => {
                     const value = e.target.value;
                     setTicketedType(value || null);
                     setTicketTypes([]);
                 }} className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground">
-                    <option value="">Select ticket type...</option>
-                    <option value="normal">🎫 Normal Tickets (Single Session)</option>
-                    <option value="dayNight">☀️🌙 Day/Night Sessions (Separate Sessions)</option>
-                  </select>
-                </div>)}
+                      <option value="">Select ticket type...</option>
+                      <option value="normal">🎫 Normal Tickets (Single Session)</option>
+                      <option value="dayNight">☀️🌙 Day/Night Sessions (Separate Sessions)</option>
+                    </select>
+                  </div>)}
 
-              {eventType === "ticketed" && ticketedType === "normal" && (<div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                  <Label className="text-sm text-muted-foreground font-semibold mb-3 block">
-                    🎫 Normal Tickets - Ticket Pricing & Availability
-                  </Label>
-                  <p className="text-xs text-muted-foreground mb-4">Set prices and available quantity for each ticket tier</p>
-                  <div className="grid gap-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="h-3 w-3"/> 🥈 Silver Price (₹)</Label>
-                        <Input type="number" min="1" step="1" value={ticketTypes[0]?.price || ""} onChange={(e) => {
-                    const updated = [...ticketTypes];
-                    if (!updated[0])
-                        updated[0] = { name: "silver", price: "", available: "100" };
-                    updated[0].price = e.target.value;
-                    setTicketTypes(updated);
-                }} placeholder="Price (min ₹1)" className="mt-1 bg-card border-border" required/>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Available Tickets</Label>
-                        <Input type="number" min="1" value={ticketTypes[0]?.available || "100"} onChange={(e) => {
-                    const updated = [...ticketTypes];
-                    if (!updated[0])
-                        updated[0] = { name: "silver", price: "", available: "100" };
-                    updated[0].available = e.target.value;
-                    setTicketTypes(updated);
-                }} placeholder="Quantity" className="mt-1 bg-card border-border" required/>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="h-3 w-3"/> 🥇 Gold Price (₹)</Label>
-                        <Input type="number" min="1" step="1" value={ticketTypes[1]?.price || ""} onChange={(e) => {
-                    const updated = [...ticketTypes];
-                    if (!updated[1])
-                        updated[1] = { name: "gold", price: "", available: "100" };
-                    updated[1].price = e.target.value;
-                    setTicketTypes(updated);
-                }} placeholder="Price (min ₹1)" className="mt-1 bg-card border-border" required/>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Available Tickets</Label>
-                        <Input type="number" min="1" value={ticketTypes[1]?.available || "100"} onChange={(e) => {
-                    const updated = [...ticketTypes];
-                    if (!updated[1])
-                        updated[1] = { name: "gold", price: "", available: "100" };
-                    updated[1].available = e.target.value;
-                    setTicketTypes(updated);
-                }} placeholder="Quantity" className="mt-1 bg-card border-border" required/>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="h-3 w-3"/> 💎 Diamond Price (₹)</Label>
-                        <Input type="number" min="1" step="1" value={ticketTypes[2]?.price || ""} onChange={(e) => {
-                    const updated = [...ticketTypes];
-                    if (!updated[2])
-                        updated[2] = { name: "diamond", price: "", available: "100" };
-                    updated[2].price = e.target.value;
-                    setTicketTypes(updated);
-                }} placeholder="Price (min ₹1)" className="mt-1 bg-card border-border" required/>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Available Tickets</Label>
-                        <Input type="number" min="1" value={ticketTypes[2]?.available || "100"} onChange={(e) => {
-                    const updated = [...ticketTypes];
-                    if (!updated[2])
-                        updated[2] = { name: "diamond", price: "", available: "100" };
-                    updated[2].available = e.target.value;
-                    setTicketTypes(updated);
-                }} placeholder="Quantity" className="mt-1 bg-card border-border" required/>
-                      </div>
-                    </div>
-                  </div>
-                </div>)}
-              {ticketError && (<p className="text-xs text-red-500 mt-2">{ticketError}</p>)}
-
-              {eventType === "ticketed" && ticketedType === "dayNight" && (<div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                  <Label className="text-sm text-muted-foreground font-semibold mb-3 block">
-                    ☀️🌙 Day & Night Sessions - Ticket Pricing & Availability
-                  </Label>
-                  <p className="text-xs text-muted-foreground mb-4">Set separate prices and quantities for day and night sessions</p>
-                  
-                  <div className="mb-6 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                    <p className="text-sm font-semibold text-blue-600 mb-3">☀️ Day Session (09:00 AM)</p>
+                {eventType === "ticketed" && ticketedType === "normal" && (<div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                    <Label className="text-sm text-muted-foreground font-semibold mb-3 block">
+                      🎫 Normal Tickets - Ticket Pricing & Availability
+                    </Label>
+                    <p className="text-xs text-muted-foreground mb-4">Set prices and available quantity for each ticket tier</p>
                     <div className="grid gap-4">
                       <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -799,153 +728,232 @@ const AdminEvents = () => {
                     updated[1].price = e.target.value;
                     setTicketTypes(updated);
                 }} placeholder="Price (min ₹1)" className="mt-1 bg-card border-border" required/>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Available Tickets</Label>
-                        <Input type="number" min="1" value={ticketTypes[1]?.available || "100"} onChange={(e) => {
+                        </div>
+                        <div>
+                          <Label className="text-sm text-muted-foreground">Available Tickets</Label>
+                          <Input type="number" min="1" value={ticketTypes[1]?.available || "100"} onChange={(e) => {
                     const updated = [...ticketTypes];
                     if (!updated[1])
                         updated[1] = { name: "gold", price: "", available: "100" };
                     updated[1].available = e.target.value;
                     setTicketTypes(updated);
                 }} placeholder="Quantity" className="mt-1 bg-card border-border" required/>
+                        </div>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="h-3 w-3"/> 💎 Diamond Price (₹)</Label>
-                        <Input type="number" min="1" step="1" value={ticketTypes[2]?.price || ""} onChange={(e) => {
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="h-3 w-3"/> 💎 Diamond Price (₹)</Label>
+                          <Input type="number" min="1" step="1" value={ticketTypes[2]?.price || ""} onChange={(e) => {
                     const updated = [...ticketTypes];
                     if (!updated[2])
                         updated[2] = { name: "diamond", price: "", available: "100" };
                     updated[2].price = e.target.value;
                     setTicketTypes(updated);
                 }} placeholder="Price (min ₹1)" className="mt-1 bg-card border-border" required/>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Available Tickets</Label>
-                        <Input type="number" min="1" value={ticketTypes[2]?.available || "100"} onChange={(e) => {
+                        </div>
+                        <div>
+                          <Label className="text-sm text-muted-foreground">Available Tickets</Label>
+                          <Input type="number" min="1" value={ticketTypes[2]?.available || "100"} onChange={(e) => {
                     const updated = [...ticketTypes];
                     if (!updated[2])
                         updated[2] = { name: "diamond", price: "", available: "100" };
                     updated[2].available = e.target.value;
                     setTicketTypes(updated);
                 }} placeholder="Quantity" className="mt-1 bg-card border-border" required/>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </div>)}
+                {ticketError && (<p className="text-xs text-red-500 mt-2">{ticketError}</p>)}
 
-                <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
-                  <p className="text-sm font-semibold text-indigo-600 mb-3">🌙 Night Session (06:00 PM)</p>
-                  <div className="grid gap-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="h-3 w-3"/> 🥈 Silver Price (₹)</Label>
-                        <Input type="number" min="1" step="1" value={ticketTypes[3]?.price || ""} onChange={(e) => {
+                {eventType === "ticketed" && ticketedType === "dayNight" && (<div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                    <Label className="text-sm text-muted-foreground font-semibold mb-3 block">
+                      ☀️🌙 Day & Night Sessions - Ticket Pricing & Availability
+                    </Label>
+                    <p className="text-xs text-muted-foreground mb-4">Set separate prices and quantities for day and night sessions</p>
+                    
+                    <div className="mb-6 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                      <p className="text-sm font-semibold text-blue-600 mb-3">☀️ Day Session (09:00 AM)</p>
+                      <div className="grid gap-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="h-3 w-3"/> 🥈 Silver Price (₹)</Label>
+                            <Input type="number" min="1" step="1" value={ticketTypes[0]?.price || ""} onChange={(e) => {
+                    const updated = [...ticketTypes];
+                    if (!updated[0])
+                        updated[0] = { name: "silver", price: "", available: "100" };
+                    updated[0].price = e.target.value;
+                    setTicketTypes(updated);
+                }} placeholder="Price (min ₹1)" className="mt-1 bg-card border-border" required/>
+                          </div>
+                          <div>
+                            <Label className="text-sm text-muted-foreground">Available Tickets</Label>
+                            <Input type="number" min="1" value={ticketTypes[0]?.available || "100"} onChange={(e) => {
+                    const updated = [...ticketTypes];
+                    if (!updated[0])
+                        updated[0] = { name: "silver", price: "", available: "100" };
+                    updated[0].available = e.target.value;
+                    setTicketTypes(updated);
+                }} placeholder="Quantity" className="mt-1 bg-card border-border" required/>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="h-3 w-3"/> 🥇 Gold Price (₹)</Label>
+                            <Input type="number" min="1" step="1" value={ticketTypes[1]?.price || ""} onChange={(e) => {
+                    const updated = [...ticketTypes];
+                    if (!updated[1])
+                        updated[1] = { name: "gold", price: "", available: "100" };
+                    updated[1].price = e.target.value;
+                    setTicketTypes(updated);
+                }} placeholder="Price (min ₹1)" className="mt-1 bg-card border-border" required/>
+                          </div>
+                          <div>
+                            <Label className="text-sm text-muted-foreground">Available Tickets</Label>
+                            <Input type="number" min="1" value={ticketTypes[1]?.available || "100"} onChange={(e) => {
+                    const updated = [...ticketTypes];
+                    if (!updated[1])
+                        updated[1] = { name: "gold", price: "", available: "100" };
+                    updated[1].available = e.target.value;
+                    setTicketTypes(updated);
+                }} placeholder="Quantity" className="mt-1 bg-card border-border" required/>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="h-3 w-3"/> 💎 Diamond Price (₹)</Label>
+                            <Input type="number" min="1" step="1" value={ticketTypes[2]?.price || ""} onChange={(e) => {
+                    const updated = [...ticketTypes];
+                    if (!updated[2])
+                        updated[2] = { name: "diamond", price: "", available: "100" };
+                    updated[2].price = e.target.value;
+                    setTicketTypes(updated);
+                }} placeholder="Price (min ₹1)" className="mt-1 bg-card border-border" required/>
+                          </div>
+                          <div>
+                            <Label className="text-sm text-muted-foreground">Available Tickets</Label>
+                            <Input type="number" min="1" value={ticketTypes[2]?.available || "100"} onChange={(e) => {
+                    const updated = [...ticketTypes];
+                    if (!updated[2])
+                        updated[2] = { name: "diamond", price: "", available: "100" };
+                    updated[2].available = e.target.value;
+                    setTicketTypes(updated);
+                }} placeholder="Quantity" className="mt-1 bg-card border-border" required/>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+                      <p className="text-sm font-semibold text-indigo-600 mb-3">🌙 Night Session (06:00 PM)</p>
+                      <div className="grid gap-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="h-3 w-3"/> 🥈 Silver Price (₹)</Label>
+                            <Input type="number" min="1" step="1" value={ticketTypes[3]?.price || ""} onChange={(e) => {
                     const updated = [...ticketTypes];
                     if (!updated[3])
                         updated[3] = { name: "silver", price: "", available: "100" };
                     updated[3].price = e.target.value;
                     setTicketTypes(updated);
                 }} placeholder="Price (min ₹1)" className="mt-1 bg-card border-border" required/>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Available Tickets</Label>
-                        <Input type="number" min="1" value={ticketTypes[3]?.available || "100"} onChange={(e) => {
+                          </div>
+                          <div>
+                            <Label className="text-sm text-muted-foreground">Available Tickets</Label>
+                            <Input type="number" min="1" value={ticketTypes[3]?.available || "100"} onChange={(e) => {
                     const updated = [...ticketTypes];
                     if (!updated[3])
                         updated[3] = { name: "silver", price: "", available: "100" };
                     updated[3].available = e.target.value;
                     setTicketTypes(updated);
                 }} placeholder="Quantity" className="mt-1 bg-card border-border" required/>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="h-3 w-3"/> 🥇 Gold Price (₹)</Label>
-                        <Input type="number" min="1" step="1" value={ticketTypes[4]?.price || ""} onChange={(e) => {
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="h-3 w-3"/> 🥇 Gold Price (₹)</Label>
+                            <Input type="number" min="1" step="1" value={ticketTypes[4]?.price || ""} onChange={(e) => {
                     const updated = [...ticketTypes];
                     if (!updated[4])
                         updated[4] = { name: "gold", price: "", available: "100" };
                     updated[4].price = e.target.value;
                     setTicketTypes(updated);
                 }} placeholder="Price (min ₹1)" className="mt-1 bg-card border-border" required/>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Available Tickets</Label>
-                        <Input type="number" min="1" value={ticketTypes[4]?.available || "100"} onChange={(e) => {
+                          </div>
+                          <div>
+                            <Label className="text-sm text-muted-foreground">Available Tickets</Label>
+                            <Input type="number" min="1" value={ticketTypes[4]?.available || "100"} onChange={(e) => {
                     const updated = [...ticketTypes];
                     if (!updated[4])
                         updated[4] = { name: "gold", price: "", available: "100" };
                     updated[4].available = e.target.value;
                     setTicketTypes(updated);
                 }} placeholder="Quantity" className="mt-1 bg-card border-border" required/>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="h-3 w-3"/> 💎 Diamond Price (₹)</Label>
-                        <Input type="number" min="1" step="1" value={ticketTypes[5]?.price || ""} onChange={(e) => {
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-sm text-muted-foreground flex items-center gap-1"><Ticket className="h-3 w-3"/> 💎 Diamond Price (₹)</Label>
+                            <Input type="number" min="1" step="1" value={ticketTypes[5]?.price || ""} onChange={(e) => {
                     const updated = [...ticketTypes];
                     if (!updated[5])
                         updated[5] = { name: "diamond", price: "", available: "100" };
                     updated[5].price = e.target.value;
                     setTicketTypes(updated);
                 }} placeholder="Price (min ₹1)" className="mt-1 bg-card border-border" required/>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Available Tickets</Label>
-                        <Input type="number" min="1" value={ticketTypes[5]?.available || "100"} onChange={(e) => {
+                          </div>
+                          <div>
+                            <Label className="text-sm text-muted-foreground">Available Tickets</Label>
+                            <Input type="number" min="1" value={ticketTypes[5]?.available || "100"} onChange={(e) => {
                     const updated = [...ticketTypes];
                     if (!updated[5])
                         updated[5] = { name: "diamond", price: "", available: "100" };
                     updated[5].available = e.target.value;
                     setTicketTypes(updated);
                 }} placeholder="Quantity" className="mt-1 bg-card border-border" required/>
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  </div>)}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3"/> Date</Label>
+                    <Input type="date" value={form.date} min={getTodayString()} onChange={(e) => setForm({ ...form, date: e.target.value })} required/>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3"/> Time</Label>
+                    <Input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} required/>
                   </div>
                 </div>
-              </div>)}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3"/> Date</Label>
-                <Input type="date" value={form.date} min={getTodayString()} onChange={(e) => setForm({ ...form, date: e.target.value })} required/>
-              </div>
-              <div>
-                <Label className="text-sm text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3"/> Time</Label>
-                <Input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} required/>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center">
-                <Label className="text-sm text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3"/> Location</Label>
-                <span className="text-xs text-muted-foreground">{(form.location || '').length}/150</span>
-              </div>
-              <Input value={form.location} onChange={(e) => {
+                <div>
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3"/> Location</Label>
+                    <span className="text-xs text-muted-foreground">{(form.location || '').length}/150</span>
+                  </div>
+                  <Input value={form.location} onChange={(e) => {
                 setForm({ ...form, location: e.target.value });
                 if (formErrors.location)
                     setFormErrors(prev => ({ ...prev, location: "" }));
             }} placeholder="Event venue" maxLength={150} required aria-invalid={Boolean(formErrors.location)}/>
-              {formErrors.location && <p className="text-xs text-red-500 mt-1">{formErrors.location}</p>}
-            </div>
+                  {formErrors.location && <p className="text-xs text-red-500 mt-1">{formErrors.location}</p>}
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {eventType === "fullService" && (<div>
-                  <Label className="text-sm text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3"/> Price (₹)</Label>
-                  <Input type="number" min="1" step="1" value={form.price} onChange={(e) => {
+                <div className="grid grid-cols-2 gap-4">
+                  {eventType === "fullService" && (<div>
+                      <Label className="text-sm text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3"/> Price (₹)</Label>
+                      <Input type="number" min="1" step="1" value={form.price} onChange={(e) => {
                     setForm({ ...form, price: e.target.value });
                     if (formErrors.price)
                         setFormErrors(prev => ({ ...prev, price: "" }));
                 }} placeholder="1" required aria-invalid={Boolean(formErrors.price)}/>
-                  {formErrors.price && <p className="text-xs text-red-500 mt-1">{formErrors.price}</p>}
-                </div>)}
-              <div>
-                <Label className="text-sm text-muted-foreground">Category</Label>
-                <select value={form.category} onChange={(e) => {
+                      {formErrors.price && <p className="text-xs text-red-500 mt-1">{formErrors.price}</p>}
+                    </div>)}
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Category</Label>
+                    <select value={form.category} onChange={(e) => {
                 const val = e.target.value;
                 if (val === "__new__") {
                     setShowNewCatInput(true);
@@ -958,60 +966,61 @@ const AdminEvents = () => {
                 if (formErrors.category)
                     setFormErrors(prev => ({ ...prev, category: "" }));
             }} className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground" required>
-                  <option value="">Select category...</option>
-                  {categories.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
-                  <option value="__new__" className="text-primary font-semibold font-bold">+ Create New Category</option>
-                </select>
+                      <option value="">Select category...</option>
+                      {categories.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
+                      <option value="__new__" className="text-primary font-semibold font-bold">+ Create New Category</option>
+                    </select>
 
-                {showNewCatInput && (<div className="mt-2 flex gap-2">
-                    <Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="New category name" maxLength={50} className="flex-1"/>
-                    <Button type="button" onClick={handleCreateCategory} disabled={creatingCat} size="sm" className="bg-primary hover:bg-primary/95 text-primary-foreground">
-                      {creatingCat ? <Loader2 className="h-4 w-4 animate-spin"/> : "Add"}
-                    </Button>
-                    <Button type="button" onClick={() => {
+                    {showNewCatInput && (<div className="mt-2 flex gap-2">
+                        <Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="New category name" maxLength={50} className="flex-1"/>
+                        <Button type="button" onClick={handleCreateCategory} disabled={creatingCat} size="sm" className="bg-primary hover:bg-primary/95 text-primary-foreground">
+                          {creatingCat ? <Loader2 className="h-4 w-4 animate-spin"/> : "Add"}
+                        </Button>
+                        <Button type="button" onClick={() => {
                     setShowNewCatInput(false);
                     setNewCatName("");
                     setForm({ ...form, category: categories[0] || "General" });
                 }} variant="ghost" size="sm">
-                      Cancel
-                    </Button>
-                  </div>)}
-              </div>
-            </div>
+                          Cancel
+                        </Button>
+                      </div>)}
+                  </div>
+                </div>
 
-            {eventType === "fullService" && (<div>
-                <Label className="text-sm text-muted-foreground flex items-center gap-1">
-                  👥 Max Attendees <span className="text-xs text-muted-foreground ml-1">(0 = unlimited)</span>
-                </Label>
-                <Input type="number" min="0" step="1" max="9999" value={form.maxAttendees} onChange={(e) => {
+                {eventType === "fullService" && (<div>
+                    <Label className="text-sm text-muted-foreground flex items-center gap-1">
+                      👥 Max Attendees <span className="text-xs text-muted-foreground ml-1">(0 = unlimited)</span>
+                    </Label>
+                    <Input type="number" min="0" step="1" max="9999" value={form.maxAttendees} onChange={(e) => {
                     setForm({ ...form, maxAttendees: e.target.value });
                     if (formErrors.maxAttendees)
                         setFormErrors(prev => ({ ...prev, maxAttendees: "" }));
                 }} placeholder="e.g. 100 (leave 0 for unlimited)"/>
-                {formErrors.maxAttendees && <p className="text-xs text-red-500 mt-1">{formErrors.maxAttendees}</p>}
-              </div>)}
+                    {formErrors.maxAttendees && <p className="text-xs text-red-500 mt-1">{formErrors.maxAttendees}</p>}
+                  </div>)}
 
-            <div>
-              <Label className="text-sm text-muted-foreground">Status</Label>
-              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground">
-                <option value="upcoming">Upcoming</option>
-                <option value="ongoing">Ongoing</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Status</Label>
+                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground">
+                    <option value="upcoming">Upcoming</option>
+                    <option value="ongoing">Ongoing</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
 
-            <div className="flex gap-3 pt-4">
-              <Button type="submit" className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90" size="lg">
-                {editingId ? "Update Event" : "Create Event"}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => setShowModal(false)} size="lg">
-                Cancel
-              </Button>
+                <div className="flex gap-3 pt-4">
+                  <Button type="submit" className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90" size="lg">
+                    {editingId ? "Update Event" : "Create Event"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setShowModal(false)} size="lg">
+                    Cancel
+                  </Button>
+                </div>
+              </form>
             </div>
-          </form>
-        </div>
-      </div>)}
+          </div>)}
+      </section>
     </AdminLayout>);
 };
 
-export default AdminEvents;
+export default AdminMyEvents;

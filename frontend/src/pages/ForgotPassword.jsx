@@ -38,8 +38,12 @@ const ForgotPassword = () => {
     };
     const loginHref = `/login${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ""}`;
     return (<Layout>
-      <section className="flex min-h-[80vh] items-center justify-center py-12 px-4">
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-2xl border border-border bg-card p-8">
+      <section className="relative flex min-h-[80vh] items-center justify-center py-12 px-4 bg-gradient-dark overflow-hidden">
+        {/* Background Glowing Ambient Orbs */}
+        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] rounded-full bg-primary/10 blur-[100px] pointer-events-none animate-pulse duration-[6000ms]"/>
+        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[200px] h-[200px] rounded-full bg-amber-500/5 blur-[90px] pointer-events-none"/>
+
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative w-full max-w-md rounded-2xl shadow-2xl p-8 glass overflow-hidden">
           {done ? (<div className="text-center space-y-4">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/15">
                 <CheckCircle className="h-8 w-8 text-green-500"/>
@@ -65,7 +69,7 @@ const ForgotPassword = () => {
                   <Label className="text-sm text-muted-foreground">Email</Label>
                   <div className="relative mt-1">
                     <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
-                    <Input type="text" inputMode="email" autoComplete="email" placeholder="user@gmail.com" maxLength={EMAIL_MAX_LENGTH} className="border-border bg-secondary pl-10" value={email} onChange={(e) => setEmail(sanitizeEmailInput(e.target.value))} required/>
+                    <Input type="text" inputMode="email" autoComplete="email" placeholder="user@gmail.com" maxLength={EMAIL_MAX_LENGTH} className="border-border bg-secondary/50 hover:bg-secondary/80 focus:bg-background focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 pl-10 h-10 rounded-xl transition-all duration-200" value={email} onChange={(e) => setEmail(sanitizeEmailInput(e.target.value))} required/>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{EMAIL_HINT}</p>
                 </div>

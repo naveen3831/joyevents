@@ -796,6 +796,60 @@ export async function apiValidatePromoCode(code, amount, eventId, serviceId, tok
     }
     return res.json();
 }
+export async function apiGetMyReferral(token) {
+    const res = await fetch(`${API_URL}/api/referrals/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to load referral details");
+    }
+    return res.json();
+}
+export async function apiGetAdminReferrals(token) {
+    const res = await fetch(`${API_URL}/api/referrals/admin`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to load referral settings");
+    }
+    return res.json();
+}
+export async function apiSaveAdminReferrals(settings, token) {
+    const res = await fetch(`${API_URL}/api/referrals/admin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(settings)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to save referral settings");
+    }
+    return res.json();
+}
+export async function apiGetMerchantReferrals(token) {
+    const res = await fetch(`${API_URL}/api/referrals/merchant`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to load merchant referral details");
+    }
+    return res.json();
+}
+export async function apiSaveMerchantReferrals(settings, token) {
+    const res = await fetch(`${API_URL}/api/referrals/merchant`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(settings)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to save merchant referral settings");
+    }
+    return res.json();
+}
 export async function apiTrackPromoUsage(promoCodeId, customerId, bookingId) {
     const res = await fetch(`${API_URL}/api/marketing/track-usage/${promoCodeId}`, {
         method: "POST",
@@ -826,6 +880,28 @@ export async function apiGetPendingWithdrawals(token) {
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.error || "Failed to fetch pending withdrawals");
+    }
+    return res.json();
+}
+export async function apiGetAdminEarningsSummary(token) {
+    const res = await fetch(`${API_URL}/api/earnings/admin/summary`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to fetch admin earnings summary");
+    }
+    return res.json();
+}
+export async function apiWithdrawAdminEarnings(amount, bankDetails, token) {
+    const res = await fetch(`${API_URL}/api/earnings/admin/withdraw`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ amount, bankDetails })
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to withdraw admin earnings");
     }
     return res.json();
 }

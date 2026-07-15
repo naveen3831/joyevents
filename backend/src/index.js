@@ -18,6 +18,7 @@ import favoriteRoutes from "./routes/favorites.js";
 import settingsRoutes from "./routes/settings.js";
 import contactRoutes from "./routes/contact.js";
 import recommendationRoutes from "./routes/recommendations.js";
+import referralRoutes from "./routes/referrals.js";
 import { connectDB } from "./config/db.js";
 import { getSmtpConfig, isSmtpConfigured } from "./utils/sendEmail.js";
 
@@ -123,6 +124,7 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/recommendations", recommendationRoutes);
 app.use("/api/merchant", merchantRoutes);
+app.use("/api/referrals", referralRoutes);
 
 // Serve frontend build only in non-Docker / single-process mode (PM2 / local)
 // In Docker, Nginx serves the frontend and proxies /api → this backend.

@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, X, User, Store, Shield, ChevronDown, Heart, Briefcase, ShoppingBag } from "lucide-react";
+import { Calendar, X, User, Store, Shield, ChevronDown, Heart, Briefcase, ShoppingBag, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -144,7 +144,7 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }) => {
             {navLinks.map((link) => {
             if (link.label === "Events") {
                 return (<DropdownMenu key={link.to}>
-                    <DropdownMenuTrigger className={`flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary whitespace-nowrap ${location.pathname === link.to ? "text-primary" : "text-muted-foreground"}`}>
+                    <DropdownMenuTrigger className={`flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary whitespace-nowrap ${location.pathname === link.to ? "text-primary" : "text-foreground/75 hover:text-primary"}`}>
                       Events <ChevronDown className="h-4 w-4"/>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="center" className="w-48 bg-background/95 backdrop-blur-md border-border text-foreground">
@@ -162,7 +162,7 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }) => {
             }
             if (link.label === "Our Services") {
                 return (<DropdownMenu key={link.to}>
-                    <DropdownMenuTrigger className={`flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary whitespace-nowrap ${location.pathname === link.to ? "text-primary" : "text-muted-foreground"}`}>
+                    <DropdownMenuTrigger className={`flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary whitespace-nowrap ${location.pathname === link.to ? "text-primary" : "text-foreground/75 hover:text-primary"}`}>
                       Services <ChevronDown className="h-4 w-4"/>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="center" className="w-48 bg-background/95 backdrop-blur-md border-border text-foreground">
@@ -178,7 +178,7 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }) => {
                     </DropdownMenuContent>
                   </DropdownMenu>);
             }
-            return (<Link key={link.to} to={link.to} className={`text-sm font-medium transition-colors hover:text-primary whitespace-nowrap ${location.pathname === link.to ? "text-primary" : "text-muted-foreground"}`}>
+            return (<Link key={link.to} to={link.to} className={`text-sm font-medium transition-colors hover:text-primary whitespace-nowrap ${location.pathname === link.to ? "text-primary" : "text-foreground/75 hover:text-primary"}`}>
                   {link.label}
                 </Link>);
         })}
@@ -186,10 +186,10 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }) => {
 
           <div className="hidden items-center gap-2 lg:flex flex-nowrap shrink-0">
             {isLoggedIn && role === "customer" && (<>
-                <Link to="/customer-dashboard/favorites" className="relative text-muted-foreground hover:text-primary transition-colors shrink-0" title="Favorites">
+                <Link to="/customer-dashboard/favorites" className="relative text-foreground/75 hover:text-primary transition-colors shrink-0" title="Favorites">
                   <Heart className="h-5 w-5"/>
                 </Link>
-                <Link to="/customer-dashboard/cart" className="relative text-muted-foreground hover:text-primary transition-colors shrink-0" title="Cart">
+                <Link to="/customer-dashboard/cart" className="relative text-foreground/75 hover:text-primary transition-colors shrink-0" title="Cart">
                   <ShoppingBag className="h-5 w-5"/>
                   {cartCount > 0 && (<span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground shadow-sm">
                       {cartCount}
@@ -197,6 +197,18 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }) => {
                 </Link>
               </>)}
             {isLoggedIn && (<NotificationBell />)}
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="w-9 h-9 text-muted-foreground hover:text-foreground shrink-0 rounded-lg relative flex items-center justify-center"
+              title="Toggle theme"
+            >
+              <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-foreground" />
+              <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-foreground" />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
 
 
             {isLoggedIn && (<div className="flex items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-medium text-foreground whitespace-nowrap shrink-0">
@@ -286,6 +298,19 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }) => {
                 <span className="text-sm font-medium">{roleLabels[role]}</span>
                 <div className="ml-auto"><NotificationBell /></div>
               </div>)}
+
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-secondary/50">
+              <span className="text-sm font-medium text-muted-foreground">Theme</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="w-8 h-8 text-muted-foreground hover:text-foreground rounded-lg relative flex items-center justify-center"
+              >
+                <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-foreground" />
+                <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-foreground" />
+              </Button>
+            </div>
 
             {!isAuthPage && (isLoggedIn ? (<button onClick={handleLogout} className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-500/10 transition-colors">
                   Logout
@@ -384,6 +409,19 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }) => {
                       <span className="text-sm font-semibold">{roleLabels[role]}</span>
                       <div className="ml-auto"><NotificationBell /></div>
                     </div>)}
+
+                  <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-secondary/50">
+                    <span className="text-sm font-medium text-muted-foreground">Theme</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                      className="w-8 h-8 text-muted-foreground hover:text-foreground rounded-lg relative flex items-center justify-center"
+                    >
+                      <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-foreground" />
+                      <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-foreground" />
+                    </Button>
+                  </div>
 
                   {!isAuthPage && (isLoggedIn ? (<button onClick={handleLogout} className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-500/10 transition-colors">
                         {t("logout")}

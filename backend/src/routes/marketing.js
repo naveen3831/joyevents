@@ -1,11 +1,27 @@
 import { Router } from "express";
+import Booking from "../models/Booking.js";
 import PromoCode from "../models/PromoCode.js";
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import { verifyToken } from "../middleware/auth.js";
 import { formatCurrency } from "../utils/formatCurrency.js";
+import { getReferralSettings } from "../utils/referrals.js";
 
 const router = Router();
+
+function buildReferralReuseQuery({ customer, referralCode, eventId, serviceId }) {
+  const itemFilters = [];
+  if (eventId) itemFilters.push({ event: eventId });
+  if (serviceId) itemFilters.push({ service: serviceId });
+  if (itemFilters.length === 0) return null;
+
+  return {
+    customer,
+    "referral.code": referralCode,
+    "referral.referrer": { $ne: null },
+    $or: itemFilters
+  };
+}
 
 // Merchant: Create promo code
 router.post("/promo-codes", verifyToken, async (req, res) => {
@@ -109,10 +125,59 @@ router.post("/validate-promo", async (req, res) => {
       return res.status(400).json({ error: "Promo code is required" });
     }
 
-    const promo = await PromoCode.findOne({ code: code.toUpperCase(), isActive: true });
+    const normalizedCode = code.toUpperCase();
+    const promo = await PromoCode.findOne({ code: normalizedCode, isActive: true });
     
     if (!promo) {
-      return res.status(404).json({ error: "Invalid promo code" });
+      const settings = await getReferralSettings();
+      const referrer = settings.isActive
+        ? await User.findOne({ referralCode: normalizedCode, status: "active" }).select("_id name referralCode")
+        : null;
+
+      if (!referrer) {
+        return res.status(404).json({ error: "Invalid promo code" });
+      }
+
+      if (userId && referrer._id.toString() === userId.toString()) {
+        return res.status(400).json({ error: "You cannot use your own referral code" });
+      }
+
+      if (userId) {
+        const reuseQuery = buildReferralReuseQuery({
+          customer: userId,
+          referralCode: normalizedCode,
+          eventId,
+          serviceId
+        });
+
+        if (!reuseQuery) {
+          return res.status(400).json({ error: "Select an event or service before applying a referral code" });
+        }
+
+        const previouslyUsedReferral = await Booking.findOne(reuseQuery).select("_id");
+        if (previouslyUsedReferral) {
+          return res.status(400).json({
+            error: "You have already used this referral code for this event or service"
+          });
+        }
+      }
+
+      const referralDiscount = Math.min(Number(settings.discountAmount) || 0, Number(amount) || 0);
+      return res.json({
+        success: true,
+        promo: {
+          code: normalizedCode,
+          discountType: "fixed",
+          discountValue: referralDiscount,
+          maxDiscount: referralDiscount,
+          _id: null,
+          kind: "referral",
+          referrerId: referrer._id,
+          referrerName: referrer.name,
+          bonusAmount: Number(settings.bonusAmount) || 0
+        },
+        discount: referralDiscount
+      });
     }
 
     // Check if expired

@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
 import { ArrowLeft, Calendar, AlertCircle, MapPin, ExternalLink, Check, X, Loader2, CreditCard, Star } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
+import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -28,7 +29,8 @@ const STATUS_BADGE = {
     refund_pending: "bg-purple-500/15 text-purple-400 border border-purple-500/30 font-bold animate-pulse",
     refunded: "bg-red-500/15 text-red-400 border border-red-500/30 font-bold",
 };
-const MerchantBookings = () => {
+const MerchantBookings = ({ layout = "merchant" } = {}) => {
+    const PageLayout = layout === "admin" ? AdminLayout : MerchantLayout;
     const { token } = useAuth();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -181,7 +183,7 @@ const MerchantBookings = () => {
             setSubmittingCancelAction(false);
         }
     };
-    return (<MerchantLayout>
+    return (<PageLayout>
       <section className="py-2 sm:py-8 lg:py-10">
         <div className="container mx-auto">
           {/* Header with Back Button */}
@@ -486,6 +488,6 @@ const MerchantBookings = () => {
             </form>
           </div>
         </div>)}
-    </MerchantLayout>);
+    </PageLayout>);
 };
 export default MerchantBookings;

@@ -57,7 +57,7 @@ router.get("/", async (_req, res) => {
 });
 
 // Merchant: list only their own events (must come before /:id route)
-router.get("/my-events", verifyToken, requireRole("merchant"), async (req, res) => {
+router.get("/my-events", verifyToken, requireRole("merchant", "admin"), async (req, res) => {
   try {
 
     // First try to get events with createdBy field
@@ -71,7 +71,7 @@ router.get("/my-events", verifyToken, requireRole("merchant"), async (req, res) 
       // This is a temporary fix - in production you'd want to properly assign ownership
       const eventsWithoutCreatedBy = allEvents.filter(event => !event.createdBy);
 
-      if (eventsWithoutCreatedBy.length > 0) {
+      if (req.user.role === "merchant" && eventsWithoutCreatedBy.length > 0) {
         // Temporarily return all events without createdBy
         events = eventsWithoutCreatedBy;
       }
@@ -265,7 +265,7 @@ router.get("/debug-events", verifyToken, requireRole("merchant"), async (req, re
 });
 
 // Admin & Merchant: create event (with optional image and gallery images)
-router.post("/", verifyToken, upload.fields([
+router.post("/", verifyToken, requireRole("merchant", "admin"), upload.fields([
   { name: 'image', maxCount: 1 },
   { name: 'gallery', maxCount: 4 }
 ]), async (req, res) => {
@@ -402,6 +402,13 @@ router.patch("/:id", verifyToken, upload.fields([
       if (category.trim().length > 50) return res.status(400).json({ error: "Category cannot exceed 50 characters" });
       update.category = category;
     }
+    if (price !== undefined) {
+      const numPrice = Number(price);
+      if (isNaN(numPrice) || numPrice < 0) {
+        return res.status(400).json({ error: "Price must be a valid number" });
+      }
+      update.price = numPrice;
+    }
     if (status !== undefined) update.status = status;
     if (live !== undefined) update.live = live;
     if (isSuspended !== undefined) update.isSuspended = isSuspended;
@@ -423,8 +430,15 @@ router.patch("/:id", verifyToken, upload.fields([
       }
     }
     if (qrCodeActive !== undefined) update.qrCodeActive = qrCodeActive;
-    if (eventType !== undefined) update.eventType = eventType;
-    if (maxAttendees !== undefined && eventType === "fullService") update.maxAttendees = parseInt(maxAttendees) || 0;
+    if (eventType !== undefined) {
+      update.eventType = eventType;
+      if (eventType === "fullService") {
+        update.hasMultipleSessions = false;
+        update.sessions = { day: { enabled: false, tickets: [] }, night: { enabled: false, tickets: [] } };
+        update.tickets = [];
+      }
+    }
+    if (maxAttendees !== undefined && (eventType === "fullService" || eventType === undefined)) update.maxAttendees = parseInt(maxAttendees) || 0;
 
 
     // Upload new main image to Cloudinary if provided
@@ -517,12 +531,8 @@ router.patch("/:id", verifyToken, upload.fields([
     // For other updates, require admin or creator
     const isLiveUpdateOnly = Object.keys(update).length === 1 && 'live' in update;
 
-    if (req.user.role !== "admin") {
-      if (!isLiveUpdateOnly && event.createdBy?.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ error: "Not authorized to update this event" });
-      }
-      if (isLiveUpdateOnly) {
-      }
+    if (req.user.role !== "admin" && event.createdBy?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: "Not authorized to update this event" });
     }
 
     const updatedEvent = await Event.findByIdAndUpdate(req.params.id, update, { new: true });

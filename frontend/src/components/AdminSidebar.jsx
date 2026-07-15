@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LayoutDashboard, Users, Calendar, Settings, Briefcase, DollarSign, BarChart3, Activity, User, CreditCard, Calculator, RefreshCcw, Wallet, BookOpen, ChevronDown, X, Sparkles, Menu, LogOut, Home } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, Settings, Briefcase, DollarSign, BarChart3, Activity, User, CreditCard, Calculator, RefreshCcw, Wallet, BookOpen, ChevronDown, X, Sparkles, Menu, LogOut, Home, Gift } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { clearSession } from "@/lib/session";
 const links = [
@@ -10,6 +10,8 @@ const links = [
     { to: "/admin-dashboard/events", label: "Events", icon: Calendar },
     { to: "/admin-dashboard/event-monitoring", label: "Event Monitoring", icon: Activity },
     { to: "/admin-dashboard/services", label: "Services", icon: Briefcase },
+    { to: "/admin-dashboard/my-events", label: "My Events", icon: Calendar },
+    { to: "/admin-dashboard/my-services", label: "My Services", icon: Briefcase },
     { to: "/admin-dashboard/bookings", label: "Bookings", icon: BookOpen },
     {
         label: "Payments", icon: DollarSign,
@@ -23,6 +25,7 @@ const links = [
     },
     { to: "/admin-dashboard/reports", label: "Reports & Analytics", icon: BarChart3 },
     { to: "/admin-dashboard/ai-recommendations", label: "AI Recommendations", icon: Sparkles },
+    { to: "/admin-dashboard/referrals", label: "Referrals", icon: Gift },
     { to: "/admin-dashboard/homepage", label: "Homepage CMS", icon: Home },
     { to: "/admin-dashboard/settings", label: "Settings", icon: Settings },
     { to: "/admin-dashboard/profile", label: "My Profile", icon: User },

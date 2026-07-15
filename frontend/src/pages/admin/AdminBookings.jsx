@@ -40,11 +40,12 @@ const STATUS_LABELS = BOOKING_STATUS_OPTIONS.reduce((acc, status) => {
     return acc;
 }, {});
 const AdminBookings = () => {
-    const { token } = useAuth();
+    const { token, user } = useAuth();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+    const [bookingView, setBookingView] = useState("all");
     useEffect(() => {
         const load = async () => {
             try {
@@ -72,8 +73,11 @@ const AdminBookings = () => {
         const merchant = b.assignedTo?.name || b.assignedTo?.email || "";
         const matchSearch = [name, customer, merchant].some(s => s.toLowerCase().includes(search.toLowerCase()));
         const matchStatus = statusFilter === "all" || b.status === statusFilter;
-        return matchSearch && matchStatus;
+        const isAdminBooking = b.assignedTo?.role === "admin" || b.assignedTo?._id === user?._id || b.assignedTo?.email === user?.email;
+        const matchView = bookingView === "all" || isAdminBooking;
+        return matchSearch && matchStatus && matchView;
     });
+    const adminBookingsCount = bookings.filter((b) => b.assignedTo?.role === "admin" || b.assignedTo?._id === user?._id || b.assignedTo?.email === user?.email).length;
     return (<AdminLayout>
       <section className="py-2 sm:py-8 lg:py-10">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -82,13 +86,21 @@ const AdminBookings = () => {
               <BookOpen className="h-5 w-5"/>
             </div>
             <div>
-              <h1 className="font-display text-xs sm:text-3xl font-bold truncate">All <span className="text-gradient">Bookings</span></h1>
-              <p className="text-muted-foreground text-sm">All bookings from all merchants and customers</p>
+              <h1 className="font-display text-xs sm:text-3xl font-bold truncate">{bookingView === "admin" ? "Admin" : "All"} <span className="text-gradient">Bookings</span></h1>
+              <p className="text-muted-foreground text-sm">{bookingView === "admin" ? "Bookings assigned to admin services and events" : "All bookings from all merchants and customers"}</p>
             </div>
           </div>
 
           {/* Filters */}
           <div className="flex flex-wrap gap-3 mt-6 mb-4">
+            <div className="flex rounded-lg border border-border bg-card p-1">
+              <button type="button" onClick={() => setBookingView("all")} className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${bookingView === "all" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                All Bookings
+              </button>
+              <button type="button" onClick={() => setBookingView("admin")} className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${bookingView === "admin" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                Admin Bookings
+              </button>
+            </div>
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
               <Input placeholder="Search by service, customer, merchant..." value={search} maxLength={30} onChange={e => setSearch(e.target.value)} className="pl-9"/>
@@ -101,7 +113,7 @@ const AdminBookings = () => {
               </select>
             </div>
             <div className="flex items-center text-sm text-muted-foreground bg-secondary px-3 py-2 rounded-lg">
-              {filtered.length} booking{filtered.length !== 1 ? "s" : ""}
+              {filtered.length} booking{filtered.length !== 1 ? "s" : ""}{bookingView === "all" ? ` (${adminBookingsCount} admin)` : ""}
             </div>
           </div>
 

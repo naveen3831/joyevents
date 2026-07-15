@@ -37,6 +37,7 @@ function toSafeUser(user) {
     maxEvents: user.maxEvents,
     maxServices: user.maxServices,
     walletBalance: user.walletBalance || 0,
+    referralCode: user.referralCode || (user._id ? `JOY-${user._id.toString().slice(-6).toUpperCase()}` : ""),
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

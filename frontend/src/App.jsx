@@ -54,9 +54,11 @@ const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
 const AdminEarnings = lazy(() => import("./pages/admin/AdminEarnings"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminEvents = lazy(() => import("./pages/admin/AdminEvents"));
+const AdminMyEvents = lazy(() => import("./pages/admin/AdminMyEvents"));
 const AdminMetrics = lazy(() => import("./pages/admin/AdminMetrics"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminServices = lazy(() => import("./pages/admin/AdminServices"));
+const AdminMyServices = lazy(() => import("./pages/admin/AdminMyServices"));
 const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
 const AdminEventMonitoring = lazy(() => import("./pages/admin/AdminEventMonitoring"));
 const CreateEvent = lazy(() => import("./pages/CreateEvent"));
@@ -97,6 +99,9 @@ const MerchantRecommendations = lazy(() => import("./pages/MerchantRecommendatio
 const AdminRecommendations = lazy(() => import("./pages/admin/AdminRecommendations"));
 const Cart = lazy(() => import("./pages/Cart"));
 const CustomerWallet = lazy(() => import("./pages/CustomerWallet"));
+const CustomerReferral = lazy(() => import("./pages/CustomerReferral"));
+const MerchantReferrals = lazy(() => import("./pages/MerchantReferrals"));
+const AdminReferrals = lazy(() => import("./pages/admin/AdminReferrals"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const queryClient = new QueryClient();
 // Loading component
@@ -146,6 +151,7 @@ const AppRoutes = () => {
         <Route path="/customer-dashboard/ai-recommendations" element={<ProtectedRoute allowedRoles={["customer"]}><AIRecommendations /></ProtectedRoute>}/>
         <Route path="/customer-dashboard/cart" element={<ProtectedRoute allowedRoles={["customer"]}><Cart /></ProtectedRoute>}/>
         <Route path="/customer-dashboard/wallet" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerWallet /></ProtectedRoute>}/>
+        <Route path="/customer-dashboard/referral" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerReferral /></ProtectedRoute>}/>
         
         {/* Merchant Routes */}
         <Route path="/merchant-dashboard/events" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantEvents /></ProtectedRoute>}/>
@@ -159,6 +165,7 @@ const AppRoutes = () => {
         <Route path="/merchant-dashboard/bookings" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantBookings /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/earnings" element={<ProtectedRoute allowedRoles={["merchant"]}><EarningsDashboard /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/marketing" element={<ProtectedRoute allowedRoles={["merchant"]}><MarketingTools /></ProtectedRoute>}/>
+        <Route path="/merchant-dashboard/referrals" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantReferrals /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/qr-codes" element={<ProtectedRoute allowedRoles={["merchant"]}><QRCodeGenerator /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/settings" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantSettings /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/ai-recommendations" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantRecommendations /></ProtectedRoute>}/>
@@ -173,6 +180,7 @@ const AppRoutes = () => {
         {/* Admin Routes */}
         <Route path="/admin-dashboard/users" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUsers /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/events" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEvents /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/my-events" element={<ProtectedRoute allowedRoles={["admin"]}><AdminMyEvents /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/utilities" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUtilities /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/profile" element={<ProtectedRoute allowedRoles={["admin"]}><AdminProfile /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/event-monitoring" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEventMonitoring /></ProtectedRoute>}/>
@@ -180,20 +188,23 @@ const AppRoutes = () => {
         <Route path="/admin-dashboard/settings" element={<ProtectedRoute allowedRoles={["admin"]}><AdminSettings /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/homepage" element={<ProtectedRoute allowedRoles={["admin"]}><AdminHomepageSettings /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/services" element={<ProtectedRoute allowedRoles={["admin"]}><AdminServices /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/my-services" element={<ProtectedRoute allowedRoles={["admin"]}><AdminMyServices /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/payments" element={<ProtectedRoute allowedRoles={["admin"]}><AdminPayments /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/commissions" element={<ProtectedRoute allowedRoles={["admin"]}><AdminCommissions /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/refunds" element={<ProtectedRoute allowedRoles={["admin"]}><AdminRefunds /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/payouts" element={<ProtectedRoute allowedRoles={["admin"]}><AdminPayouts /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/bookings" element={<ProtectedRoute allowedRoles={["admin"]}><AdminBookings /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/my-bookings" element={<ProtectedRoute allowedRoles={["admin"]}><MerchantBookings layout="admin" /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/earnings" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEarnings /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/reports" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReports /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/ai-recommendations" element={<ProtectedRoute allowedRoles={["admin"]}><AdminRecommendations /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/referrals" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReferrals /></ProtectedRoute>}/>
         <Route path="/create-event" element={<ProtectedRoute allowedRoles={["merchant"]}><CreateEvent /></ProtectedRoute>}/>
         <Route path="*" element={<NotFound />}/>
       </Routes>
     </Suspense>);
 };
-const App = () => (<ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
+const App = () => (<ThemeProvider attribute="class" defaultTheme="dark">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

@@ -164,7 +164,7 @@ const CustomerWallet = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             {/* Balance Card */}
-            <Card className="md:col-span-2 relative overflow-hidden bg-gradient-to-br from-indigo-950/40 via-black/40 to-card border-primary/20 backdrop-blur-xl">
+            <Card className="md:col-span-2 relative overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card dark:from-indigo-950/40 dark:via-black/40 dark:to-card border-primary/20 shadow-card">
               <CardContent className="p-8 flex flex-col justify-between h-full min-h-[220px]">
                 <div className="flex justify-between items-start">
                   <div>
@@ -190,7 +190,7 @@ const CustomerWallet = () => {
             </Card>
 
             {/* Quick Stats Card */}
-            <Card className="bg-black/30 border-white/5 backdrop-blur-xl flex flex-col justify-center p-6">
+            <Card className="bg-card border-border shadow-card flex flex-col justify-center p-6">
               <CardHeader className="p-0 pb-4">
                 <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                   <History className="h-4 w-4 text-primary"/> Wallet Activity
@@ -203,15 +203,15 @@ const CustomerWallet = () => {
                 </div>
                 <div className="flex justify-between items-center text-xs sm:text-sm">
                   <span className="text-muted-foreground">Recent Refund Inflow</span>
-                  <span className="font-bold text-green-500">
+                  <span className="font-bold text-green-600 dark:text-green-500">
                     {formatCurrency(transactions
-            .filter(t => t.type === "refund")
+            .filter(t => t.type === "refund" || t.type === "referral_bonus")
             .reduce((sum, t) => sum + t.amount, 0))}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-xs sm:text-sm">
                   <span className="text-muted-foreground">Total Outflow</span>
-                  <span className="font-bold text-red-400">
+                  <span className="font-bold text-red-500 dark:text-red-400">
                     {formatCurrency(transactions
             .filter(t => t.type === "withdrawal")
             .reduce((sum, t) => sum + Math.abs(t.amount), 0))}
@@ -224,7 +224,7 @@ const CustomerWallet = () => {
           {/* Transactions List */}
           <div>
             <h3 className="text-xl font-bold font-display mb-4">Transaction History</h3>
-            <Card className="bg-black/20 border-white/5 backdrop-blur-md overflow-hidden">
+            <Card className="bg-card border-border shadow-card overflow-hidden">
               <CardContent className="p-0">
                 {loading ? (<div className="p-12 text-center text-muted-foreground flex items-center justify-center gap-2">
                     <Loader2 className="h-5 w-5 animate-spin"/> Loading transactions...
@@ -234,21 +234,21 @@ const CustomerWallet = () => {
                   </div>) : (<div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-white/5 bg-white/5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        <tr className="border-b border-border bg-secondary/60 dark:bg-white/5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                           <th className="px-6 py-4">Transaction</th>
                           <th className="px-6 py-4">Description</th>
                           <th className="px-6 py-4">Date & Time</th>
                           <th className="px-6 py-4 text-right">Amount</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5 text-sm">
+                      <tbody className="divide-y divide-border text-sm">
                         {transactions.map((tx) => {
-                const isDeposit = tx.type === "refund"; // credit
-                return (<tr key={tx._id} className="hover:bg-white/5 transition-colors">
+                const isDeposit = tx.type === "refund" || tx.type === "referral_bonus"; // credit
+                return (<tr key={tx._id} className="hover:bg-secondary/50 dark:hover:bg-white/5 transition-colors">
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold border ${isDeposit
-                        ? "bg-green-500/10 text-green-400 border-green-500/20"
-                        : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
+                        ? "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20"
+                        : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"}`}>
                                   {isDeposit ? (<>
                                       <ArrowDownLeft className="h-3 w-3"/> Deposit
                                     </>) : (<>
@@ -263,7 +263,7 @@ const CustomerWallet = () => {
                               <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
                                 {new Date(tx.createdAt).toLocaleDateString()} {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </td>
-                              <td className={`px-6 py-4 text-right font-bold font-mono whitespace-nowrap ${isDeposit ? "text-green-400" : "text-red-400"}`}>
+                              <td className={`px-6 py-4 text-right font-bold font-mono whitespace-nowrap ${isDeposit ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                                 {isDeposit ? "+" : "-"}{formatCurrency(Math.abs(tx.amount))}
                               </td>
                             </tr>);

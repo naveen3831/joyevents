@@ -50,10 +50,18 @@ const userSchema = new mongoose.Schema(
     maxEvents: { type: Number, default: 5 },
     maxServices: { type: Number, default: 5 },
     walletBalance: { type: Number, default: 0 },
+    referralCode: { type: String, unique: true, sparse: true, uppercase: true, trim: true },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
   },
   { timestamps: true }
 );
+
+userSchema.pre("save", function setReferralCode(next) {
+  if (!this.referralCode && this._id) {
+    this.referralCode = `JOY-${this._id.toString().slice(-6).toUpperCase()}`;
+  }
+  next();
+});
 
 export default mongoose.models.User || mongoose.model("User", userSchema);

@@ -14,26 +14,54 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiGetCommissionRate, apiListBookings, apiSaveCommissionRate } from "@/lib/api";
 import { toast } from "sonner";
 const getCommissionDetails = (booking) => {
+    const isAdminBooking = booking.assignedTo?.role === "admin" || booking.commissionSummary?.adminDirect;
     if (booking.commissionSummary) {
+        const revenue = booking.commissionSummary.grossAmount || booking.price || 0;
+        if (isAdminBooking) {
+            return {
+                revenue,
+                commission: 0,
+                payout: 0,
+                adminEarning: revenue,
+                rateLabel: "No commission",
+                isSaved: true,
+                isAdminBooking
+            };
+        }
         return {
-            revenue: booking.commissionSummary.grossAmount || booking.price || 0,
+            revenue,
             commission: booking.commissionSummary.commissionAmount || 0,
             payout: booking.commissionSummary.merchantPayout || 0,
+            adminEarning: booking.commissionSummary.commissionAmount || 0,
             rateLabel: booking.commissionSummary.commissionRate !== null
                 ? `${booking.commissionSummary.commissionRate}%`
                 : booking.commissionSummary.commissionRates?.length
                     ? "Mixed"
                     : "Saved",
-            isSaved: true
+            isSaved: true,
+            isAdminBooking
         };
     }
     const revenue = booking.price || 0;
+    if (isAdminBooking) {
+        return {
+            revenue,
+            commission: 0,
+            payout: 0,
+            adminEarning: revenue,
+            rateLabel: "No commission",
+            isSaved: false,
+            isAdminBooking
+        };
+    }
     return {
         revenue,
         commission: 0,
         payout: 0,
+        adminEarning: 0,
         rateLabel: "Not saved",
-        isSaved: false
+        isSaved: false,
+        isAdminBooking
     };
 };
 const AdminCommissions = () => {
@@ -108,7 +136,7 @@ const AdminCommissions = () => {
         ...getCommissionDetails(booking)
     }));
     const totalRevenue = commissionRows.reduce((sum, row) => sum + row.revenue, 0);
-    const totalCommission = commissionRows.reduce((sum, row) => sum + row.commission, 0);
+    const totalAdminEarnings = commissionRows.reduce((sum, row) => sum + row.adminEarning, 0);
     const totalMerchantPayout = commissionRows.reduce((sum, row) => sum + row.payout, 0);
     return (<AdminLayout>
       <section className="py-2 sm:py-8 lg:py-10">
@@ -196,8 +224,8 @@ const AdminCommissions = () => {
                     <TrendingUp className="h-5 w-5 text-green-400"/>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Platform Commission</p>
-                    <p className="font-display text-xs sm:text-2xl font-bold truncate">{formatCurrency(totalCommission)}</p>
+                    <p className="text-sm text-muted-foreground">Admin Earnings</p>
+                    <p className="font-display text-xs sm:text-2xl font-bold truncate">{formatCurrency(totalAdminEarnings)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -251,14 +279,14 @@ const AdminCommissions = () => {
                         <TableHead>Merchant</TableHead>
                         <TableHead>Price</TableHead>
                         <TableHead>Commission Rate</TableHead>
-                        <TableHead>Commission Amount</TableHead>
+                        <TableHead>Admin Earnings</TableHead>
                         <TableHead>Merchant Payout</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {commissionRows.map(({ booking, commission, payout, rateLabel, isSaved }) => {
+                      {commissionRows.map(({ booking, adminEarning, payout, rateLabel, isSaved, isAdminBooking }) => {
                 return (<TableRow key={booking._id}>
                             <TableCell className="font-mono text-xs">{booking._id.slice(-8)}</TableCell>
                             <TableCell>
@@ -278,12 +306,12 @@ const AdminCommissions = () => {
                             </TableCell>
                             <TableCell className="font-semibold">{formatCurrency(booking.price)}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" className={isSaved ? "bg-green-500/15 text-green-400" : "bg-yellow-500/15 text-yellow-400"}>
+                              <Badge variant="outline" className={isAdminBooking ? "bg-blue-500/15 text-blue-400" : isSaved ? "bg-green-500/15 text-green-400" : "bg-yellow-500/15 text-yellow-400"}>
                                 {rateLabel}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-green-500 font-semibold">
-                              {formatCurrency(commission, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              {formatCurrency(adminEarning, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </TableCell>
                             <TableCell className="text-purple-500 font-semibold">
                               {formatCurrency(payout, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

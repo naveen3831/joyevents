@@ -49,6 +49,13 @@ export const CartProvider = ({ children }) => {
         setCartItems((prev) => prev.filter((item) => item.id !== id));
         toast.success("Item removed from cart");
     };
+    const updateCartItem = (id, updater) => {
+        setCartItems((prev) => prev.map((item) => {
+            if (item.id !== id)
+                return item;
+            return typeof updater === "function" ? updater(item) : { ...item, ...updater };
+        }));
+    };
     const clearCart = () => {
         setCartItems([]);
     };
@@ -56,6 +63,7 @@ export const CartProvider = ({ children }) => {
             cartItems,
             addToCart,
             removeFromCart,
+            updateCartItem,
             clearCart,
             cartCount: cartItems.length,
         }}>

@@ -685,9 +685,8 @@ const MyRequests = () => {
                                 🎫 Ticket
                               </Button>)}
 
-                            {/* 3. Rate — events: confirmed/paid/completed | services: completed only */}
-                            {((b.event && (b.status === "confirmed" || b.status === "paid" || b.status === "completed")) ||
-                    (!b.event && b.status === "completed")) && (<Button size="sm" variant={b.rating?.score ? "default" : "outline"} className={`gap-1 ${b.rating?.score ? "bg-gradient-primary text-primary-foreground" : "border-yellow-500/40 text-yellow-500 hover:bg-yellow-500/10"}`} onClick={() => openRatingModal(b)}>
+                            {/* 3. Rate — only after completion */}
+                            {b.status === "completed" && (<Button size="sm" variant={b.rating?.score ? "default" : "outline"} className={`gap-1 ${b.rating?.score ? "bg-gradient-primary text-primary-foreground" : "border-yellow-500/40 text-yellow-500 hover:bg-yellow-500/10"}`} onClick={() => openRatingModal(b)}>
                                 ⭐ {b.rating?.score ? `${b.rating.score}/5` : "Rate"}
                               </Button>)}
 

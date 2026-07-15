@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Search, Loader2, CalendarDays, ArrowLeft, Mail, Star, ShoppingBag } from "lucide-react";
+import { Search, Loader2, CalendarDays, ArrowLeft, Mail, Star, ShoppingBag, Percent } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
-import { apiListEvents, apiGetFavorites, apiAddFavorite, apiRemoveFavorite, apiGetAllPromoCodes } from "@/lib/api";
+import { apiListEvents, apiGetFavorites, apiAddFavorite, apiRemoveFavorite, apiGetAllPromoCodes, apiValidatePromoCode } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import ContactMerchantModal from "@/components/ContactMerchantModal";
@@ -37,6 +37,10 @@ const CustomerBrowseEvents = () => {
     const [cartSession, setCartSession] = useState("");
     const [cartTickets, setCartTickets] = useState({});
     const [cartFullServiceQty, setCartFullServiceQty] = useState(1);
+    const [promoCode, setPromoCode] = useState("");
+    const [appliedPromo, setAppliedPromo] = useState(null);
+    const [promoError, setPromoError] = useState("");
+    const [validatePromoLoading, setValidatePromoLoading] = useState(false);
     // Filters
     const [showFilters, setShowFilters] = useState(false);
     const [searchParams] = useSearchParams();
@@ -158,6 +162,71 @@ const CustomerBrowseEvents = () => {
         }
         return list;
     }, [events, search, selectedCategory, selectedType, sortBy, priceMin, priceMax]);
+    const getCartEventTotalRaw = () => {
+        if (!selectedEventForCart)
+            return 0;
+        if (selectedEventForCart.eventType !== "ticketed")
+            return (selectedEventForCart.price || 0) * cartFullServiceQty;
+        const sess = cartSession || (selectedEventForCart.hasMultipleSessions ? "" : null);
+        const tickets = selectedEventForCart.hasMultipleSessions
+            ? (selectedEventForCart.sessions?.[sess]?.tickets || [])
+            : (selectedEventForCart.tickets || []);
+        return Object.entries(cartTickets).reduce((sum, [type, qty]) => {
+            const ticket = tickets.find((t) => t.type === type);
+            return sum + (ticket?.price || 0) * Number(qty || 0);
+        }, 0);
+    };
+    const getCartEventDiscount = () => {
+        if (!appliedPromo || !selectedEventForCart)
+            return 0;
+        const base = getCartEventTotalRaw();
+        let discount = 0;
+        if (appliedPromo.discountType === "percentage") {
+            discount = (base * appliedPromo.discountValue) / 100;
+            if (appliedPromo.maxDiscount)
+                discount = Math.min(discount, appliedPromo.maxDiscount);
+        }
+        else {
+            discount = appliedPromo.discountValue;
+        }
+        return Math.min(base, discount);
+    };
+    const getCartEventTotal = () => {
+        const base = getCartEventTotalRaw();
+        const discount = getCartEventDiscount();
+        return Math.max(0, base - discount);
+    };
+    const handleApplyPromo = async () => {
+        if (!promoCode.trim()) {
+            setPromoError("Please enter a promo code");
+            return;
+        }
+        setValidatePromoLoading(true);
+        setPromoError("");
+        try {
+            const basePrice = getCartEventTotalRaw();
+            if (basePrice <= 0) {
+                setPromoError("Select tickets first to validate code");
+                setValidatePromoLoading(false);
+                return;
+            }
+            const res = await apiValidatePromoCode(promoCode.toUpperCase(), basePrice, selectedEventForCart._id, undefined, token || undefined);
+            setAppliedPromo(res.promo);
+            toast.success(`Promo code applied! You saved ${formatCurrency(res.discount)}`);
+        }
+        catch (err) {
+            setPromoError(err.message || "Invalid promo code");
+            setAppliedPromo(null);
+        }
+        finally {
+            setValidatePromoLoading(false);
+        }
+    };
+    const handleRemovePromo = () => {
+        setPromoCode("");
+        setAppliedPromo(null);
+        setPromoError("");
+    };
     const handleAddEventToCartDirect = () => {
         if (!isLoggedIn) {
             const dashboardUrl = `/customer-dashboard/browse-events`;
@@ -185,33 +254,17 @@ const CustomerBrowseEvents = () => {
                 return;
             }
         }
-        // Calculate prices
-        let basePrice = 0;
-        if (selectedEventForCart.eventType === "ticketed") {
-            if (selectedEventForCart.hasMultipleSessions && cartSession) {
-                const tickets = selectedEventForCart.sessions?.[cartSession]?.tickets || [];
-                Object.entries(cartTickets).forEach(([type, qty]) => {
-                    const t = tickets.find((t) => t.type === type);
-                    basePrice += (t?.price || 0) * qty;
-                });
-            }
-            else {
-                Object.entries(cartTickets).forEach(([type, qty]) => {
-                    const t = selectedEventForCart.tickets?.find((t) => t.type === type);
-                    basePrice += (t?.price || 0) * qty;
-                });
-            }
-        }
-        else {
-            basePrice = selectedEventForCart.price * cartFullServiceQty;
-        }
+        const basePrice = getCartEventTotalRaw();
+        const discount = getCartEventDiscount();
+        const finalPrice = Math.max(0, basePrice - discount);
         addToCart({
             type: "event",
             itemId: selectedEventForCart._id,
             name: selectedEventForCart.title,
-            price: basePrice,
+            price: finalPrice,
             originalPrice: basePrice,
-            discountAmount: 0,
+            discountAmount: discount,
+            appliedPromo: appliedPromo || undefined,
             date: new Date(selectedEventForCart.datetime).toISOString().split("T")[0],
             time: new Date(selectedEventForCart.datetime).toTimeString().split(" ")[0].slice(0, 5),
             image: selectedEventForCart.image,
@@ -228,6 +281,9 @@ const CustomerBrowseEvents = () => {
         setCartSession("");
         setCartTickets({});
         setCartFullServiceQty(1);
+        setPromoCode("");
+        setAppliedPromo(null);
+        setPromoError("");
     };
     const handleToggleFavorite = async (eventId) => {
         if (!isLoggedIn || !token) {
@@ -449,9 +505,9 @@ const CustomerBrowseEvents = () => {
                       </Button>
                       <Button className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 flex items-center justify-center gap-1.5" onClick={() => {
                     setSelectedEventForCart(event);
-                    if (event.hasMultipleSessions) {
-                        setCartSession(event.sessions?.day?.enabled ? "day" : "night");
-                    }
+                    setCartSession("");
+                    setCartTickets({});
+                    setCartFullServiceQty(1);
                 }}>
                         <ShoppingBag className="h-4 w-4"/> Add to Cart
                       </Button>
@@ -465,8 +521,12 @@ const CustomerBrowseEvents = () => {
         </div>
       </section>
       {contactEvent && (<ContactMerchantModal itemTitle={contactEvent.title} eventId={contactEvent._id} onClose={() => setContactEvent(null)}/>)}
-      <Dialog open={!!selectedEventForCart} onOpenChange={(open) => { if (!open)
-        setSelectedEventForCart(null); }}>
+      <Dialog open={!!selectedEventForCart} onOpenChange={(open) => { if (!open) {
+        setSelectedEventForCart(null);
+        setCartSession("");
+        setCartTickets({});
+        setCartFullServiceQty(1);
+    } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Configure Event Booking</DialogTitle>
@@ -475,17 +535,31 @@ const CustomerBrowseEvents = () => {
               <div>
                 <h4 className="font-semibold text-sm mb-1">Event</h4>
                 <p className="text-sm text-muted-foreground">{selectedEventForCart.title}</p>
+                <div className="mt-3 grid gap-2 rounded-xl border border-border bg-secondary/30 p-3 text-xs text-muted-foreground">
+                  <div className="flex justify-between gap-3">
+                    <span>Date</span>
+                    <span className="font-medium text-foreground">{new Date(selectedEventForCart.datetime).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span>Time</span>
+                    <span className="font-medium text-foreground">{new Date(selectedEventForCart.datetime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+                  </div>
+                  {selectedEventForCart.location && (<div className="flex justify-between gap-3">
+                      <span>Location</span>
+                      <span className="font-medium text-foreground text-right">{selectedEventForCart.location}</span>
+                    </div>)}
+                </div>
               </div>
 
               {selectedEventForCart.eventType === "ticketed" ? (<>
                   {selectedEventForCart.hasMultipleSessions && (<div>
                       <label className="text-xs font-semibold text-muted-foreground block mb-2">Select Session</label>
                       <div className="flex gap-4">
-                        {selectedEventForCart.sessions?.day?.enabled && (<Button type="button" variant={cartSession === "day" ? "default" : "outline"} className="flex-1" onClick={() => setCartSession("day")}>
-                            Day Session
+                        {selectedEventForCart.sessions?.day?.enabled && (<Button type="button" variant={cartSession === "day" ? "default" : "outline"} className="flex-1" onClick={() => { setCartSession("day"); setCartTickets({}); }}>
+                            Day Session {selectedEventForCart.sessions?.day?.time ? `(${selectedEventForCart.sessions.day.time})` : ""}
                           </Button>)}
-                        {selectedEventForCart.sessions?.night?.enabled && (<Button type="button" variant={cartSession === "night" ? "default" : "outline"} className="flex-1" onClick={() => setCartSession("night")}>
-                            Night Session
+                        {selectedEventForCart.sessions?.night?.enabled && (<Button type="button" variant={cartSession === "night" ? "default" : "outline"} className="flex-1" onClick={() => { setCartSession("night"); setCartTickets({}); }}>
+                            Night Session {selectedEventForCart.sessions?.night?.time ? `(${selectedEventForCart.sessions.night.time})` : ""}
                           </Button>)}
                       </div>
                     </div>)}
@@ -498,21 +572,26 @@ const CustomerBrowseEvents = () => {
                     const tickets = selectedEventForCart.hasMultipleSessions
                         ? (selectedEventForCart.sessions?.[sess]?.tickets || [])
                         : (selectedEventForCart.tickets || []);
-                    return tickets.map((t) => (<div key={t.type} className="flex items-center justify-between">
+                    return tickets.map((t) => {
+                        const remaining = (t.available || 0) - (t.sold || 0);
+                        const qty = cartTickets[t.type] || 0;
+                        return (<div key={t.type} className="flex items-center justify-between">
                             <div>
                               <span className="text-sm font-semibold capitalize">{t.type} Tier</span>
                               <span className="text-xs text-muted-foreground block">{formatCurrency(t.price)}</span>
+                              <span className={`text-[10px] ${remaining <= 0 ? "text-red-500" : "text-muted-foreground"}`}>{remaining <= 0 ? "Sold out" : `${remaining} left`}</span>
                             </div>
                             <div className="flex items-center gap-3">
-                              <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => setCartTickets(prev => ({ ...prev, [t.type]: Math.max(0, (prev[t.type] || 0) - 1) }))}>
+                              <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" disabled={qty <= 0} onClick={() => setCartTickets(prev => ({ ...prev, [t.type]: Math.max(0, (prev[t.type] || 0) - 1) }))}>
                                 -
                               </Button>
-                              <span className="text-sm font-bold w-4 text-center">{cartTickets[t.type] || 0}</span>
-                              <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => setCartTickets(prev => ({ ...prev, [t.type]: (prev[t.type] || 0) + 1 }))}>
+                              <span className="text-sm font-bold w-4 text-center">{qty}</span>
+                              <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" disabled={remaining <= 0 || qty >= remaining} onClick={() => setCartTickets(prev => ({ ...prev, [t.type]: (prev[t.type] || 0) + 1 }))}>
                                 +
                               </Button>
                             </div>
-                          </div>));
+                          </div>);
+                    });
                 })()}
                     </div>
                   </div>
@@ -529,8 +608,61 @@ const CustomerBrowseEvents = () => {
                   </div>
                 </div>)}
 
+              {/* Promo Code Validation */}
+              <div className="border-t border-border pt-4 space-y-2">
+                <label className="text-xs font-semibold text-muted-foreground block">Promo Code</label>
+                {appliedPromo ? (
+                  <div className="flex items-center justify-between bg-green-500/10 border border-green-500/20 px-3 py-2 rounded-xl text-xs">
+                    <div className="flex items-center gap-2 text-green-600 font-medium">
+                      <Percent className="h-3.5 w-3.5" />
+                      <span>{appliedPromo.code} Applied ({appliedPromo.discountType === "percentage" ? `${appliedPromo.discountValue}%` : formatCurrency(appliedPromo.discountValue)} off)</span>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={handleRemovePromo} className="text-red-500 hover:text-red-600 h-7 px-2 text-xs">
+                      Remove
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      placeholder="ENTER PROMO CODE"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      className="h-9 rounded-xl text-xs uppercase"
+                    />
+                    <Button 
+                      type="button" 
+                      onClick={handleApplyPromo} 
+                      disabled={validatePromoLoading}
+                      className="bg-primary hover:bg-primary/95 text-primary-foreground h-9 px-3 rounded-xl shrink-0 text-xs"
+                    >
+                      {validatePromoLoading ? "Applying..." : "Apply"}
+                    </Button>
+                  </div>
+                )}
+                {promoError && <p className="text-[10px] text-red-500 font-semibold mt-1">{promoError}</p>}
+              </div>
+
+              <div className="rounded-xl border border-primary/20 bg-primary/10 p-4 space-y-2">
+                {getCartEventDiscount() > 0 && (<>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Subtotal</span>
+                      <span>{formatCurrency(getCartEventTotalRaw())}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-green-600 font-medium">
+                      <span>Promo Discount</span>
+                      <span>-{formatCurrency(getCartEventDiscount())}</span>
+                    </div>
+                    <div className="h-px bg-primary/20 my-1"/>
+                  </>)}
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Booking total</span>
+                  <span className="font-display text-xl font-bold text-gradient">{formatCurrency(getCartEventTotal())}</span>
+                </div>
+              </div>
+
               <Button onClick={handleAddEventToCartDirect} className="w-full bg-gradient-primary">
-                Add to Cart
+                Add to Cart - {formatCurrency(getCartEventTotal())}
               </Button>
             </div>)}
         </DialogContent>

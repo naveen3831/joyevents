@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
 import { Calendar, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, DollarSign, Upload, Ticket } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
+import AdminLayout from "@/components/AdminLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -36,7 +37,8 @@ const getTodayString = () => {
     const dd = String(today.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
 };
-const MerchantEvents = () => {
+const MerchantEvents = ({ layout = "merchant" } = {}) => {
+    const PageLayout = layout === "admin" ? AdminLayout : MerchantLayout;
     const { token } = useAuth();
     const [events, setEvents] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -418,7 +420,7 @@ const MerchantEvents = () => {
         setGalleryFiles(prev => prev.filter((_, i) => i !== index));
         setGalleryPreviews(prev => prev.filter((_, i) => i !== index));
     };
-    return (<MerchantLayout>
+    return (<PageLayout>
       <section className="py-2 sm:py-8 lg:py-10">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -1018,6 +1020,6 @@ const MerchantEvents = () => {
             </div>
           </div>)}
       </section>
-    </MerchantLayout>);
+    </PageLayout>);
 };
 export default MerchantEvents;

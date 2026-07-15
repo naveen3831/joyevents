@@ -5,6 +5,7 @@ import Notification from "../models/Notification.js";
 import Transaction from "../models/Transaction.js";
 import { verifyToken, requireRole } from "../middleware/auth.js";
 import { formatCurrency } from "../utils/formatCurrency.js";
+import { awardReferralBonusForBooking, getReferralSettings } from "../utils/referrals.js";
 
 const router = Router();
 
@@ -12,6 +13,24 @@ function normalizeCommissionRate(value) {
   const rate = Number(value);
   if (!Number.isFinite(rate)) return 5;
   return Math.min(100, Math.max(1, rate));
+}
+
+function isAdminAssignee(user) {
+  return user?.role === "admin";
+}
+
+function buildReferralReuseQuery({ customer, referralCode, eventId, serviceId }) {
+  const itemFilters = [];
+  if (eventId) itemFilters.push({ event: eventId });
+  if (serviceId) itemFilters.push({ service: serviceId });
+  if (itemFilters.length === 0) return null;
+
+  return {
+    customer,
+    "referral.code": referralCode,
+    "referral.referrer": { $ne: null },
+    $or: itemFilters
+  };
 }
 
 // Helper function to create notifications
@@ -125,7 +144,8 @@ router.post("/", verifyToken, async (req, res) => {
       customerLocation,
       promoCode,
       originalPrice,
-      discount
+      discount,
+      deferPayment
     } = req.body || {};
 
 
@@ -226,13 +246,13 @@ router.post("/", verifyToken, async (req, res) => {
     if (eventId) {
       const Event = (await import("../models/Event.js")).default;
       const event = await Event.findById(eventId).populate("createdBy", "name email role");
-      if (event && event.createdBy && event.createdBy.role === "merchant") {
+      if (event && event.createdBy && ["merchant", "admin"].includes(event.createdBy.role)) {
         merchantToNotify = event.createdBy;
       }
     } else if (req.body.serviceId) {
       const Service = (await import("../models/Service.js")).default;
       const service = await Service.findById(req.body.serviceId).populate("createdBy", "name email role");
-      if (service && service.createdBy && service.createdBy.role === "merchant") {
+      if (service && service.createdBy && ["merchant", "admin"].includes(service.createdBy.role)) {
         merchantToNotify = service.createdBy;
       }
     }
@@ -256,10 +276,11 @@ router.post("/", verifyToken, async (req, res) => {
 
     // Determine initial status based on whether it's an event or service
     const isService = !!req.body.serviceId;
+    const shouldDeferEventPayment = !isService && !!deferPayment;
     // Events are confirmed immediately after payment, Services need merchant approval
-    const initialStatus = isService ? "pending_approval" : "confirmed";
-    const initialPaymentStatus = isService ? "pending" : "paid";
-    const payId = isService ? "" : `PAY-${Date.now()}`;
+    const initialStatus = isService ? "pending_approval" : shouldDeferEventPayment ? "awaiting_payment" : "confirmed";
+    const initialPaymentStatus = isService || shouldDeferEventPayment ? "pending" : "paid";
+    const payId = isService || shouldDeferEventPayment ? "" : `PAY-${Date.now()}`;
 
     // Wallet balance deductions handling
     const useWallet = !!req.body.useWallet;
@@ -271,6 +292,47 @@ router.post("/", verifyToken, async (req, res) => {
         finalPaymentMethod = "wallet";
       } else {
         finalPaymentMethod = "mixed";
+      }
+    }
+
+    let referralData = {};
+    if (promoCode?.code) {
+      const settings = await getReferralSettings();
+      const referrer = settings.isActive
+        ? await User.findOne({ referralCode: String(promoCode.code).toUpperCase(), status: "active" })
+        : null;
+
+      if (referrer && referrer._id.toString() === req.user._id.toString()) {
+        return res.status(400).json({ error: "You cannot use your own referral code" });
+      }
+
+      if (referrer) {
+        const normalizedReferralCode = String(referrer.referralCode || promoCode.code).toUpperCase();
+        const reuseQuery = buildReferralReuseQuery({
+          customer: req.user._id,
+          referralCode: normalizedReferralCode,
+          eventId,
+          serviceId: req.body.serviceId
+        });
+
+        if (!reuseQuery) {
+          return res.status(400).json({ error: "Select an event or service before applying a referral code" });
+        }
+
+        const previouslyUsedReferral = await Booking.findOne(reuseQuery).select("_id");
+        if (previouslyUsedReferral) {
+          return res.status(400).json({
+            error: "You have already used this referral code for this event or service"
+          });
+        }
+
+        referralData = {
+          code: normalizedReferralCode,
+          referrer: referrer._id,
+          discountAmount: Math.min(Number(discount) || 0, Number(originalPrice) || Number(price)),
+          bonusAmount: Number(settings.bonusAmount) || 0,
+          bonusCredited: false
+        };
       }
     }
 
@@ -309,6 +371,7 @@ router.post("/", verifyToken, async (req, res) => {
         finalPrice: Number(price),
         appliedAt: new Date()
       } : {},
+      referral: referralData,
       // Add-ons selected by customer
       addOns: Array.isArray(req.body.addOns) ? req.body.addOns : [],
       guestCount: Number(req.body.guestCount) || 0,
@@ -436,15 +499,15 @@ router.post("/", verifyToken, async (req, res) => {
       }
     }
 
-    // Create Transaction record for event bookings (payment is immediate)
-    if (!isService && merchantToNotify && Number(price) > 0) {
+    // Create Transaction record for event bookings only when payment is immediate.
+    if (!isService && !shouldDeferEventPayment && merchantToNotify && Number(price) > 0) {
       try {
         const Transaction = (await import("../models/Transaction.js")).default;
         const Settings = (await import("../models/Settings.js")).default;
 
         // Get commission rate from settings (default 10%)
         const commissionSetting = await Settings.findOne({ key: "commissionRate" });
-        const commissionRate = normalizeCommissionRate(commissionSetting?.value);
+        const commissionRate = isAdminAssignee(merchantToNotify) ? 0 : normalizeCommissionRate(commissionSetting?.value);
         const commissionAmount = Math.round((Number(price) * commissionRate) / 100);
         const merchantEarning = Number(price) - commissionAmount;
 
@@ -469,17 +532,19 @@ router.post("/", verifyToken, async (req, res) => {
           metadata: { bookingId: booking._id, eventName: eventName || serviceName, grossAmount: Number(price), commissionRate, commissionAmount }
         });
 
-        // Commission deduction transaction
-        await Transaction.create({
-          merchant: merchantToNotify._id,
-          booking: booking._id,
-          type: "commission_deduction",
-          amount: commissionAmount,
-          description: `Platform commission (${commissionRate}%) for: ${eventName || serviceName}`,
-          status: "completed",
-          relatedId: payId,
-          metadata: { bookingId: booking._id, commissionRate, grossAmount: Number(price) }
-        });
+        if (commissionAmount > 0) {
+          // Commission deduction transaction
+          await Transaction.create({
+            merchant: merchantToNotify._id,
+            booking: booking._id,
+            type: "commission_deduction",
+            amount: commissionAmount,
+            description: `Platform commission (${commissionRate}%) for: ${eventName || serviceName}`,
+            status: "completed",
+            relatedId: payId,
+            metadata: { bookingId: booking._id, commissionRate, grossAmount: Number(price) }
+          });
+        }
       } catch (txErr) {
         console.error("Failed to create transaction records:", txErr.message);
       }
@@ -488,9 +553,13 @@ router.post("/", verifyToken, async (req, res) => {
     // Determine notification message based on whether it's an event or service
     const customerMessage = isService 
       ? `Your booking request for ${serviceName || eventName} has been submitted for merchant approval.`
+      : shouldDeferEventPayment
+      ? `Your booking for ${serviceName || eventName} has been created. Please review it and complete payment from My Bookings.`
       : `Your booking for ${serviceName || eventName} has been confirmed! Your tickets are now available in your dashboard.`;
     const merchantMessage = isService
       ? `You have received a new booking request for ${serviceName || eventName} that requires your approval.`
+      : shouldDeferEventPayment
+      ? `A new event booking has been created for ${serviceName || eventName} and is awaiting customer payment.`
       : `A new booking has been confirmed for ${serviceName || eventName}. Payment has been received.`;
 
     // Create notification for customer about new booking
@@ -507,11 +576,11 @@ router.post("/", verifyToken, async (req, res) => {
     if (merchantToNotify) {
       await createNotification(
         merchantToNotify._id,
-        isService ? "New Approval Request" : "New Paid Booking",
+        isService ? "New Approval Request" : shouldDeferEventPayment ? "New Booking Awaiting Payment" : "New Paid Booking",
         merchantMessage,
         "booking",
         booking._id,
-        "/merchant-bookings"
+        merchantToNotify.role === "admin" ? "/admin-dashboard/my-bookings" : "/merchant-bookings"
       );
     }
 
@@ -536,13 +605,13 @@ router.post("/", verifyToken, async (req, res) => {
     }
 
     // Track promo code usage if applied
-    if (promoCode && (promoCode._id || promoCode.code)) {
+    if (promoCode && !referralData.referrer && (promoCode._id || promoCode.promoCodeId || promoCode.code)) {
       console.log(`🎟️ Tracking promo usage: ${promoCode.code} for user ${req.user._id} on booking ${booking._id}`);
       try {
         const PromoCode = (await import("../models/PromoCode.js")).default;
         
         // Find by ID or Code
-        const query = promoCode._id ? { _id: promoCode._id } : { code: promoCode.code };
+        const query = promoCode._id || promoCode.promoCodeId ? { _id: promoCode._id || promoCode.promoCodeId } : { code: promoCode.code };
         
         const updatedPromo = await PromoCode.findOneAndUpdate(
           query,
@@ -592,11 +661,32 @@ router.get("/", verifyToken, requireRole("admin"), async (req, res) => {
       .lean();
 
     const bookingIds = bookings.map((booking) => booking._id);
+    const allTransactions = await Transaction.find({ booking: { $in: bookingIds } })
+      .sort({ createdAt: -1 })
+      .lean();
     const transactions = await Transaction.find({
       booking: { $in: bookingIds },
       status: "completed",
       type: { $in: ["earning", "commission_deduction"] }
     }).lean();
+
+    const transactionRecordsByBooking = new Map();
+    for (const transaction of allTransactions) {
+      if (!transaction.booking) continue;
+      const bookingId = transaction.booking.toString();
+      const existing = transactionRecordsByBooking.get(bookingId) || [];
+      existing.push({
+        _id: transaction._id,
+        type: transaction.type,
+        amount: transaction.amount,
+        status: transaction.status,
+        description: transaction.description,
+        relatedId: transaction.relatedId,
+        metadata: transaction.metadata,
+        createdAt: transaction.createdAt
+      });
+      transactionRecordsByBooking.set(bookingId, existing);
+    }
 
     const summaries = new Map();
     for (const transaction of transactions) {
@@ -632,12 +722,31 @@ router.get("/", verifyToken, requireRole("admin"), async (req, res) => {
     }
 
     const bookingsWithCommission = bookings.map((booking) => {
+      if (isAdminAssignee(booking.assignedTo)) {
+        const grossAmount = Number(booking.commissionSnapshot?.grossAmount) || Number(booking.price) || 0;
+        return {
+          ...booking,
+          transactionRecords: transactionRecordsByBooking.get(booking._id.toString()) || [],
+          commissionSummary: {
+            commissionAmount: 0,
+            merchantPayout: Math.round(grossAmount * 100) / 100,
+            grossAmount: Math.round(grossAmount * 100) / 100,
+            commissionRate: 0,
+            commissionRates: [0],
+            fromTransactions: false,
+            fromSnapshot: Boolean(booking.commissionSnapshot),
+            adminDirect: true
+          }
+        };
+      }
+
       const summary = summaries.get(booking._id.toString());
       if (!summary) {
         const snapshot = booking.commissionSnapshot;
         if (snapshot && Number(snapshot.grossAmount) > 0) {
           return {
             ...booking,
+            transactionRecords: transactionRecordsByBooking.get(booking._id.toString()) || [],
             commissionSummary: {
               commissionAmount: Math.round((Number(snapshot.commissionAmount) || 0) * 100) / 100,
               merchantPayout: Math.round((Number(snapshot.merchantPayout) || 0) * 100) / 100,
@@ -652,6 +761,7 @@ router.get("/", verifyToken, requireRole("admin"), async (req, res) => {
 
         return {
           ...booking,
+          transactionRecords: transactionRecordsByBooking.get(booking._id.toString()) || [],
           commissionSummary: null
         };
       }
@@ -659,6 +769,7 @@ router.get("/", verifyToken, requireRole("admin"), async (req, res) => {
       const grossAmount = summary.grossAmount || summary.commissionAmount + summary.merchantPayout || booking.price || 0;
       return {
         ...booking,
+        transactionRecords: transactionRecordsByBooking.get(booking._id.toString()) || [],
         commissionSummary: {
           commissionAmount: Math.round(summary.commissionAmount * 100) / 100,
           merchantPayout: Math.round(summary.merchantPayout * 100) / 100,
@@ -715,7 +826,7 @@ router.get("/my", verifyToken, async (req, res) => {
 });
 
 // Merchant: assigned bookings (all statuses assigned to this merchant)
-router.get("/assigned", verifyToken, requireRole("merchant"), async (req, res) => {
+router.get("/assigned", verifyToken, requireRole("merchant", "admin"), async (req, res) => {
   try {
     const bookings = await Booking.find({ assignedTo: req.user._id })
       .populate("customer", "name email")
@@ -814,7 +925,7 @@ router.patch("/:id/assign", verifyToken, requireRole("admin"), async (req, res) 
 });
 
 // Merchant: mark booking as completed
-router.patch("/:id/complete", verifyToken, requireRole("merchant"), async (req, res) => {
+router.patch("/:id/complete", verifyToken, requireRole("merchant", "admin"), async (req, res) => {
   try {
     const existing = await Booking.findOne({ _id: req.params.id, assignedTo: req.user._id });
     if (!existing) return res.status(404).json({ error: "Booking not found or not assigned to you" });
@@ -827,6 +938,8 @@ router.patch("/:id/complete", verifyToken, requireRole("merchant"), async (req, 
       { status: "completed", completedAt: new Date() },
       { new: true }
     ).populate("customer", "name email");
+
+    await awardReferralBonusForBooking(booking);
 
     // Create notification for customer about completion
     await createNotification(
@@ -858,7 +971,7 @@ router.patch("/:id/complete", verifyToken, requireRole("merchant"), async (req, 
 });
 
 // Merchant: Update booking status
-router.patch("/:id/status", verifyToken, requireRole("merchant"), async (req, res) => {
+router.patch("/:id/status", verifyToken, requireRole("merchant", "admin"), async (req, res) => {
   try {
     const { status } = req.body;
 
@@ -896,6 +1009,10 @@ router.patch("/:id/status", verifyToken, requireRole("merchant"), async (req, re
 
     if (finalStatus === "cancelled" && currentBooking.status !== "cancelled") {
       await decrementEventTickets(currentBooking);
+    }
+
+    if (finalStatus === "completed") {
+      await awardReferralBonusForBooking(booking);
     }
 
     // Determine notification message based on status
@@ -960,7 +1077,7 @@ router.patch("/:id/status", verifyToken, requireRole("merchant"), async (req, re
 });
 
 // Merchant: approve booking (requires payment from customer if it's a service)
-router.patch("/:id/approve", verifyToken, requireRole("merchant"), async (req, res) => {
+router.patch("/:id/approve", verifyToken, requireRole("merchant", "admin"), async (req, res) => {
   try {
     const { paymentType = "full", customAdvanceAmount } = req.body; // "full" or "advance"
     const booking = await Booking.findById(req.params.id);
@@ -1167,7 +1284,7 @@ router.patch("/:id/pay", verifyToken, async (req, res) => {
         const Settings = (await import("../models/Settings.js")).default;
 
         const commissionSetting = await Settings.findOne({ key: "commissionRate" });
-        const commissionRate = normalizeCommissionRate(commissionSetting?.value);
+        const commissionRate = isAdminAssignee(updatedBooking.assignedTo) ? 0 : normalizeCommissionRate(commissionSetting?.value);
 
         const amountForTransaction = paymentType === "advance"
           ? updatedBooking.advanceAmount
@@ -1201,16 +1318,18 @@ router.patch("/:id/pay", verifyToken, async (req, res) => {
           metadata: { bookingId: updatedBooking._id, bookingName, grossAmount: amountForTransaction, commissionRate, commissionAmount, paymentType }
         });
 
-        await Transaction.create({
-          merchant: updatedBooking.assignedTo._id,
-          booking: updatedBooking._id,
-          type: "commission_deduction",
-          amount: commissionAmount,
-          description: `Platform commission (${commissionRate}%) for: ${bookingName}`,
-          status: "completed",
-          relatedId: payId,
-          metadata: { bookingId: updatedBooking._id, commissionRate, grossAmount: amountForTransaction, paymentType }
-        });
+        if (commissionAmount > 0) {
+          await Transaction.create({
+            merchant: updatedBooking.assignedTo._id,
+            booking: updatedBooking._id,
+            type: "commission_deduction",
+            amount: commissionAmount,
+            description: `Platform commission (${commissionRate}%) for: ${bookingName}`,
+            status: "completed",
+            relatedId: payId,
+            metadata: { bookingId: updatedBooking._id, commissionRate, grossAmount: amountForTransaction, paymentType }
+          });
+        }
       } catch (txErr) {
         console.error("Failed to create transaction records for service payment:", txErr.message);
       }
@@ -1259,7 +1378,7 @@ router.patch("/:id/pay", verifyToken, async (req, res) => {
 });
 
 // Merchant: reject booking
-router.patch("/:id/reject", verifyToken, requireRole("merchant"), async (req, res) => {
+router.patch("/:id/reject", verifyToken, requireRole("merchant", "admin"), async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
 
@@ -1497,9 +1616,9 @@ router.patch("/:id/rate", verifyToken, async (req, res) => {
       return res.status(403).json({ error: "Not authorized to rate this booking" });
     }
     
-    // Check if booking is confirmed, paid, or completed
-    if (!["confirmed", "paid", "completed"].includes(booking.status)) {
-      return res.status(400).json({ error: "Can only rate confirmed or completed bookings" });
+    // Ratings are allowed only after the service or event is completed.
+    if (booking.status !== "completed") {
+      return res.status(400).json({ error: "Can only rate completed bookings" });
     }
     
     // Update booking with rating

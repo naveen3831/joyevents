@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Search, Loader2, Briefcase, ArrowLeft, Mail, Star, ShoppingBag } from "lucide-react";
+import { Search, Loader2, Briefcase, ArrowLeft, Mail, Star, ShoppingBag, Percent } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
-import { apiListServices, apiGetAllPromoCodes } from "@/lib/api";
+import { apiListServices, apiGetAllPromoCodes, apiValidatePromoCode } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import ContactMerchantModal from "@/components/ContactMerchantModal";
@@ -22,7 +22,7 @@ const SORT_OPTIONS = [
     { value: "name-desc", label: "Name: Z–A" },
 ];
 const CustomerBrowseServices = () => {
-    const { isLoggedIn } = useAuth();
+    const { isLoggedIn, token } = useAuth();
     const navigate = useNavigate();
     const { addToCart } = useCart();
     const [services, setServices] = useState([]);
@@ -34,6 +34,12 @@ const CustomerBrowseServices = () => {
     const [cartDate, setCartDate] = useState("");
     const [cartTime, setCartTime] = useState("");
     const [cartAddress, setCartAddress] = useState("");
+    const [cartGuestCount, setCartGuestCount] = useState(1);
+    const [cartAddOns, setCartAddOns] = useState({});
+    const [promoCode, setPromoCode] = useState("");
+    const [appliedPromo, setAppliedPromo] = useState(null);
+    const [promoError, setPromoError] = useState("");
+    const [validatePromoLoading, setValidatePromoLoading] = useState(false);
     // Filters
     const [showFilters, setShowFilters] = useState(false);
     const [searchParams] = useSearchParams();
@@ -130,6 +136,88 @@ const CustomerBrowseServices = () => {
         return list;
     }, [services, search, selectedCategory, sortBy, priceMin, priceMax]);
     const imgSrc = (image) => image?.startsWith("http") ? image : image ? `${API_URL}${image}` : "";
+    const getCartAddOnTotal = () => (selectedServiceForCart?.addOns || []).reduce((sum, addon) => {
+        const qty = Number(cartAddOns[addon.name] || 0);
+        return sum + (Number(addon.price) || 0) * qty;
+    }, 0);
+    const getCartServiceTotalRaw = () => (selectedServiceForCart?.price || 0) + getCartAddOnTotal();
+    const getCartServiceDiscount = () => {
+        if (!appliedPromo || !selectedServiceForCart)
+            return 0;
+        const base = getCartServiceTotalRaw();
+        let discount = 0;
+        if (appliedPromo.discountType === "percentage") {
+            discount = (base * appliedPromo.discountValue) / 100;
+            if (appliedPromo.maxDiscount)
+                discount = Math.min(discount, appliedPromo.maxDiscount);
+        }
+        else {
+            discount = appliedPromo.discountValue;
+        }
+        return Math.min(base, discount);
+    };
+    const getCartServiceTotal = () => {
+        const base = getCartServiceTotalRaw();
+        const discount = getCartServiceDiscount();
+        return Math.max(0, base - discount);
+    };
+    const resetServiceCartForm = () => {
+        setSelectedServiceForCart(null);
+        setCartDate("");
+        setCartTime("");
+        setCartAddress("");
+        setCartGuestCount(1);
+        setCartAddOns({});
+        setPromoCode("");
+        setAppliedPromo(null);
+        setPromoError("");
+    };
+    const updateCartAddOn = (addon, nextQty) => {
+        const maxQty = Number(addon.maxQuantity || 1);
+        const minQty = Number(addon.minQuantity || 1);
+        const qty = Math.max(0, Math.min(maxQty, Number(nextQty || 0)));
+        setCartAddOns((prev) => {
+            const next = { ...prev };
+            if (qty <= 0) {
+                delete next[addon.name];
+            }
+            else {
+                next[addon.name] = Math.max(minQty, qty);
+            }
+            return next;
+        });
+    };
+    const handleApplyPromo = async () => {
+        if (!promoCode.trim()) {
+            setPromoError("Please enter a promo code");
+            return;
+        }
+        setValidatePromoLoading(true);
+        setPromoError("");
+        try {
+            const basePrice = getCartServiceTotalRaw();
+            if (basePrice <= 0) {
+                setPromoError("Select add-ons/details first to validate code");
+                setValidatePromoLoading(false);
+                return;
+            }
+            const res = await apiValidatePromoCode(promoCode.toUpperCase(), basePrice, undefined, selectedServiceForCart._id, token || undefined);
+            setAppliedPromo(res.promo);
+            toast.success(`Promo code applied! You saved ${formatCurrency(res.discount)}`);
+        }
+        catch (err) {
+            setPromoError(err.message || "Invalid promo code");
+            setAppliedPromo(null);
+        }
+        finally {
+            setValidatePromoLoading(false);
+        }
+    };
+    const handleRemovePromo = () => {
+        setPromoCode("");
+        setAppliedPromo(null);
+        setPromoError("");
+    };
     const handleAddServiceToCartDirect = () => {
         if (!isLoggedIn) {
             const dashboardUrl = `/customer-dashboard/browse-services`;
@@ -148,28 +236,40 @@ const CustomerBrowseServices = () => {
             toast.error("Please enter a delivery address");
             return;
         }
+        if (selectedServiceForCart.allowGuests && (!cartGuestCount || cartGuestCount <= 0)) {
+            toast.error("Please enter guest count");
+            return;
+        }
+        const selectedAddOns = (selectedServiceForCart.addOns || [])
+            .filter((addon) => (cartAddOns[addon.name] || 0) > 0)
+            .map((addon) => ({
+            name: addon.name,
+            price: Number(addon.price) || 0,
+            quantity: Number(cartAddOns[addon.name]) || 1
+        }));
+        const basePrice = getCartServiceTotalRaw();
+        const discount = getCartServiceDiscount();
+        const finalPrice = Math.max(0, basePrice - discount);
         addToCart({
             type: "service",
             itemId: selectedServiceForCart._id,
             name: selectedServiceForCart.name,
-            price: selectedServiceForCart.price,
-            originalPrice: selectedServiceForCart.price,
-            discountAmount: 0,
+            price: finalPrice,
+            originalPrice: basePrice,
+            discountAmount: discount,
+            appliedPromo: appliedPromo || undefined,
             date: cartDate,
             time: cartTime,
             image: selectedServiceForCart.image,
             category: selectedServiceForCart.category,
             merchantId: selectedServiceForCart.createdBy?._id || selectedServiceForCart.createdBy,
             details: {
-                addOns: [],
+                addOns: selectedAddOns,
                 customerLocation: { address: cartAddress, latitude: 12.9716, longitude: 77.5946 },
-                guestCount: selectedServiceForCart.allowGuests ? Number(selectedServiceForCart.maxGuests) : undefined
+                guestCount: selectedServiceForCart.allowGuests ? Number(cartGuestCount) : undefined
             }
         });
-        setSelectedServiceForCart(null);
-        setCartDate("");
-        setCartTime("");
-        setCartAddress("");
+        resetServiceCartForm();
     };
     const goToDetail = (svc) => {
         const dashboardUrl = `/customer-dashboard/services/${svc._id}`;
@@ -354,8 +454,8 @@ const CustomerBrowseServices = () => {
       </section>
       {contactService && (<ContactMerchantModal itemTitle={contactService.name} serviceId={contactService._id} onClose={() => setContactService(null)}/>)}
       <Dialog open={!!selectedServiceForCart} onOpenChange={(open) => { if (!open)
-        setSelectedServiceForCart(null); }}>
-        <DialogContent className="max-w-md">
+        resetServiceCartForm(); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Configure Service Booking</DialogTitle>
           </DialogHeader>
@@ -363,6 +463,7 @@ const CustomerBrowseServices = () => {
               <div>
                 <h4 className="font-semibold text-sm mb-1">Service</h4>
                 <p className="text-sm text-muted-foreground">{selectedServiceForCart.name}</p>
+                <p className="text-xs text-muted-foreground mt-1">{selectedServiceForCart.category}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -378,8 +479,108 @@ const CustomerBrowseServices = () => {
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">Event Location / Delivery Address</label>
                 <Input type="text" value={cartAddress} onChange={e => setCartAddress(e.target.value)} placeholder="e.g. 123 Main St, Bengaluru"/>
               </div>
+              {selectedServiceForCart.allowGuests && (<div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Guest Count</label>
+                  <Input type="number" min="1" max={selectedServiceForCart.maxGuests || 100} value={cartGuestCount} onChange={e => setCartGuestCount(Math.max(1, Math.min(Number(selectedServiceForCart.maxGuests || 100), Number(e.target.value || 1))))}/>
+                  <p className="text-[10px] text-muted-foreground mt-1">Maximum {selectedServiceForCart.maxGuests || 100} guests</p>
+                </div>)}
+              {selectedServiceForCart.addOns?.length > 0 && (<div className="border-t border-border pt-4">
+                  <p className="text-sm font-semibold mb-3">Optional Add-ons</p>
+                  <div className="space-y-2">
+                    {selectedServiceForCart.addOns.map((addon) => {
+                const qty = cartAddOns[addon.name] || 0;
+                if (!addon.showGuestCount) {
+                    return (<div key={addon.name} onClick={() => updateCartAddOn(addon, qty > 0 ? 0 : 1)} className={`flex items-center justify-between gap-3 rounded-xl border-2 px-4 py-3 cursor-pointer transition-all ${qty > 0 ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-secondary"}`}>
+                            <div>
+                              <p className="text-sm font-medium">{addon.name}</p>
+                              <p className="text-xs text-muted-foreground">Tap to {qty > 0 ? "remove" : "add"}</p>
+                            </div>
+                            <span className="text-sm font-semibold text-primary">+{formatCurrency(addon.price)}</span>
+                          </div>);
+                }
+                return (<div key={addon.name} className={`rounded-xl border-2 px-4 py-3 transition-all ${qty > 0 ? "border-primary bg-primary/10" : "border-border bg-card"}`}>
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-medium">{addon.name}</p>
+                              <p className="text-xs text-primary font-semibold">{formatCurrency(addon.price)} per {addon.guestLabel || "guest"}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button type="button" size="icon" variant="outline" className="h-8 w-8 rounded-full" disabled={qty <= 0} onClick={() => updateCartAddOn(addon, qty - 1)}>
+                                -
+                              </Button>
+                              <span className="w-8 text-center text-sm font-bold">{qty}</span>
+                              <Button type="button" size="icon" variant="outline" className="h-8 w-8 rounded-full" disabled={qty >= (addon.maxQuantity || 1)} onClick={() => updateCartAddOn(addon, qty + 1)}>
+                                +
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-[10px] text-muted-foreground">Min {addon.minQuantity || 1}, max {addon.maxQuantity || 1} {addon.guestLabel || "guests"}</p>
+                        </div>);
+            })}
+                  </div>
+                </div>)}
+              {/* Promo Code Validation */}
+              <div className="border-t border-border pt-4 space-y-2">
+                <label className="text-xs font-semibold text-muted-foreground block">Promo Code</label>
+                {appliedPromo ? (
+                  <div className="flex items-center justify-between bg-green-500/10 border border-green-500/20 px-3 py-2 rounded-xl text-xs">
+                    <div className="flex items-center gap-2 text-green-600 font-medium">
+                      <Percent className="h-3.5 w-3.5" />
+                      <span>{appliedPromo.code} Applied ({appliedPromo.discountType === "percentage" ? `${appliedPromo.discountValue}%` : formatCurrency(appliedPromo.discountValue)} off)</span>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={handleRemovePromo} className="text-red-500 hover:text-red-600 h-7 px-2 text-xs">
+                      Remove
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      placeholder="ENTER PROMO CODE"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      className="h-9 rounded-xl text-xs uppercase"
+                    />
+                    <Button 
+                      type="button" 
+                      onClick={handleApplyPromo} 
+                      disabled={validatePromoLoading}
+                      className="bg-primary hover:bg-primary/95 text-primary-foreground h-9 px-3 rounded-xl shrink-0 text-xs"
+                    >
+                      {validatePromoLoading ? "Applying..." : "Apply"}
+                    </Button>
+                  </div>
+                )}
+                {promoError && <p className="text-[10px] text-red-500 font-semibold mt-1">{promoError}</p>}
+              </div>
+
+              <div className="rounded-xl border border-primary/20 bg-primary/10 p-4 space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Base price</span>
+                  <span className="font-medium">{formatCurrency(selectedServiceForCart.price)}</span>
+                </div>
+                {(selectedServiceForCart.addOns || []).filter((addon) => (cartAddOns[addon.name] || 0) > 0).map((addon) => (<div key={addon.name} className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">{addon.name} x {cartAddOns[addon.name]}</span>
+                    <span className="font-medium">+{formatCurrency((Number(addon.price) || 0) * (cartAddOns[addon.name] || 0))}</span>
+                  </div>))}
+                {getCartServiceDiscount() > 0 && (<>
+                    <div className="h-px bg-primary/20 my-1"/>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Subtotal</span>
+                      <span>{formatCurrency(getCartServiceTotalRaw())}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-green-600 font-medium">
+                      <span>Promo Discount</span>
+                      <span>-{formatCurrency(getCartServiceDiscount())}</span>
+                    </div>
+                  </>)}
+                <div className="border-t border-primary/20 pt-2 flex justify-between">
+                  <span className="font-semibold">Total</span>
+                  <span className="font-display text-xl font-bold text-gradient">{formatCurrency(getCartServiceTotal())}</span>
+                </div>
+              </div>
               <Button onClick={handleAddServiceToCartDirect} className="w-full bg-gradient-primary">
-                Add to Cart — {formatCurrency(selectedServiceForCart.price)}
+                Add to Cart - {formatCurrency(getCartServiceTotal())}
               </Button>
             </div>)}
         </DialogContent>
