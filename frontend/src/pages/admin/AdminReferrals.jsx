@@ -146,44 +146,44 @@ const AdminReferrals = () => {
                 <CardTitle>Referral Booking Activity</CardTitle>
               </CardHeader>
               <CardContent>
-                {!bookings.length ? (<div className="py-12 text-center text-muted-foreground">No referral activity yet.</div>) : (<div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                      <thead className="border-b border-border text-xs uppercase text-muted-foreground">
+                {!bookings.length ? (<div className="py-12 text-center text-muted-foreground">No referral activity yet.</div>) : (<div className="overflow-x-auto w-full">
+                    <table className="w-full text-left text-xs">
+                      <thead className="border-b border-border text-[10px] uppercase text-muted-foreground bg-secondary/50">
                         <tr>
-                          <th className="py-3 pr-4">Referrer</th>
-                          <th className="py-3 pr-4">Customer</th>
-                          <th className="py-3 pr-4">Event / Service</th>
-                          <th className="py-3 pr-4">Booking Status</th>
-                          <th className="py-3 pr-4">Payment</th>
-                          <th className="py-3 pr-4">Discount</th>
-                          <th className="py-3 pr-4">Bonus</th>
-                          <th className="py-3 pr-4">Bonus Status</th>
+                          <th className="px-2 py-2.5">Referrer</th>
+                          <th className="px-2 py-2.5">Customer</th>
+                          <th className="px-2 py-2.5">Event / Service</th>
+                          <th className="px-2 py-2.5">Booking Status</th>
+                          <th className="px-2 py-2.5">Payment</th>
+                          <th className="px-2 py-2.5">Discount</th>
+                          <th className="px-2 py-2.5">Bonus</th>
+                          <th className="px-2 py-2.5">Bonus Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
-                        {bookings.map((booking) => (<tr key={booking._id}>
-                            <td className="py-3 pr-4">
-                              <p className="font-medium">{booking.referral?.referrer?.name || "User"}</p>
-                              <p className="text-xs text-muted-foreground">{booking.referral?.code}</p>
+                        {bookings.map((booking) => (<tr key={booking._id} className="hover:bg-secondary/20 transition-colors">
+                            <td className="px-2 py-2.5">
+                              <p className="font-medium text-xs">{booking.referral?.referrer?.name || "User"}</p>
+                              <p className="text-[10px] text-muted-foreground">{booking.referral?.code}</p>
                             </td>
-                            <td className="py-3 pr-4">{booking.customer?.name || "Customer"}</td>
-                            <td className="py-3 pr-4">
-                              <p className="font-medium">{booking.serviceName || booking.eventName || "Booking"}</p>
-                              <p className="text-xs text-muted-foreground">{booking.serviceName ? "Service booking" : "Event booking"}</p>
+                            <td className="px-2 py-2.5 text-xs">{booking.customer?.name || "Customer"}</td>
+                            <td className="px-2 py-2.5">
+                              <p className="font-medium text-xs">{booking.serviceName || booking.eventName || "Booking"}</p>
+                              <p className="text-[10px] text-muted-foreground">{booking.serviceName ? "Service booking" : "Event booking"}</p>
                             </td>
-                            <td className="py-3 pr-4">
-                              <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${statusClass(booking.status)}`}>
+                            <td className="px-2 py-2.5">
+                              <span className={`inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold capitalize ${statusClass(booking.status)}`}>
                                 {booking.status || "pending"}
                               </span>
                             </td>
-                            <td className="py-3 pr-4">
-                              <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${statusClass(booking.paymentStatus)}`}>
+                            <td className="px-2 py-2.5">
+                              <span className={`inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold capitalize ${statusClass(booking.paymentStatus)}`}>
                                 {booking.paymentStatus || "pending"}
                               </span>
                             </td>
-                            <td className="py-3 pr-4">{formatCurrency(booking.referral?.discountAmount || 0)}</td>
-                            <td className="py-3 pr-4">{formatCurrency(booking.referral?.bonusAmount || 0)}</td>
-                            <td className="py-3 pr-4 capitalize">{booking.referral?.bonusCredited ? "credited to wallet" : "waiting for completion"}</td>
+                            <td className="px-2 py-2.5 text-xs">{formatCurrency(booking.referral?.discountAmount || 0)}</td>
+                            <td className="px-2 py-2.5 text-xs">{formatCurrency(booking.referral?.bonusAmount || 0)}</td>
+                            <td className="px-2 py-2.5 text-[10px] text-muted-foreground capitalize">{booking.referral?.bonusCredited ? "credited" : "waiting"}</td>
                           </tr>))}
                       </tbody>
                     </table>

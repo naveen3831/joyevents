@@ -269,68 +269,68 @@ const AdminCommissions = () => {
                 </div>) : bookings.length === 0 ? (<div className="py-16 text-center text-muted-foreground">
                   <Calculator className="h-12 w-12 mx-auto mb-4 opacity-30"/>
                   <p>No paid bookings to show commissions.</p>
-                </div>) : (<div className="overflow-x-auto">
-                  <Table>
+                </div>) : (<div className="overflow-x-auto w-full">
+                  <Table className="text-xs">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Booking ID</TableHead>
-                        <TableHead>Service / Event</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Merchant</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>Commission Rate</TableHead>
-                        <TableHead>Admin Earnings</TableHead>
-                        <TableHead>Merchant Payout</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead className="py-2.5 px-2">Booking ID</TableHead>
+                        <TableHead className="py-2.5 px-2">Service / Event</TableHead>
+                        <TableHead className="py-2.5 px-2">Customer</TableHead>
+                        <TableHead className="py-2.5 px-2">Merchant</TableHead>
+                        <TableHead className="py-2.5 px-2">Price</TableHead>
+                        <TableHead className="py-2.5 px-2">Commission Rate</TableHead>
+                        <TableHead className="py-2.5 px-2">Admin Earnings</TableHead>
+                        <TableHead className="py-2.5 px-2">Merchant Payout</TableHead>
+                        <TableHead className="py-2.5 px-2">Date</TableHead>
+                        <TableHead className="py-2.5 px-2">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {commissionRows.map(({ booking, adminEarning, payout, rateLabel, isSaved, isAdminBooking }) => {
-                return (<TableRow key={booking._id}>
-                            <TableCell className="font-mono text-xs">{booking._id.slice(-8)}</TableCell>
-                            <TableCell>
-                              <p className="font-medium">
-                                {booking.service?.name || booking.serviceName || booking.event?.title || "—"}
-                              </p>
-                            </TableCell>
-                            <TableCell>
-                              <p className="font-medium">{booking.customer?.name}</p>
-                              <p className="text-xs text-muted-foreground">{booking.customer?.email}</p>
-                            </TableCell>
-                            <TableCell>
-                              {booking.assignedTo ? (<>
-                                  <p className="font-medium">{booking.assignedTo.name}</p>
-                                  <p className="text-xs text-muted-foreground">{booking.assignedTo.email}</p>
-                                </>) : <span className="text-xs text-muted-foreground">Unassigned</span>}
-                            </TableCell>
-                            <TableCell className="font-semibold">{formatCurrency(booking.price)}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={isAdminBooking ? "bg-blue-500/15 text-blue-400" : isSaved ? "bg-green-500/15 text-green-400" : "bg-yellow-500/15 text-yellow-400"}>
-                                {rateLabel}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-green-500 font-semibold">
-                              {formatCurrency(adminEarning, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </TableCell>
-                            <TableCell className="text-purple-500 font-semibold">
-                              {formatCurrency(payout, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {new Date(booking.datetime).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={booking.status === "completed"
-                        ? "bg-green-500/15 text-green-400"
-                        : "bg-blue-500/15 text-blue-400"}>
-                                {booking.status}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>);
-            })}
-                    </TableBody>
-                  </Table>
-                </div>)}
+                  return (<TableRow key={booking._id}>
+                              <TableCell className="font-mono text-xs py-2.5 px-2">{booking._id.slice(-8)}</TableCell>
+                              <TableCell className="py-2.5 px-2">
+                                <p className="font-medium text-xs">
+                                  {booking.service?.name || booking.serviceName || booking.event?.title || "—"}
+                                </p>
+                              </TableCell>
+                              <TableCell className="py-2.5 px-2">
+                                <p className="font-medium text-xs">{booking.customer?.name}</p>
+                                <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{booking.customer?.email}</p>
+                              </TableCell>
+                              <TableCell className="py-2.5 px-2">
+                                {booking.assignedTo ? (<>
+                                    <p className="font-medium text-xs">{booking.assignedTo.name}</p>
+                                    <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{booking.assignedTo.email}</p>
+                                  </>) : <span className="text-[10px] text-muted-foreground">Unassigned</span>}
+                              </TableCell>
+                              <TableCell className="font-semibold text-xs py-2.5 px-2">{formatCurrency(booking.price)}</TableCell>
+                              <TableCell className="py-2.5 px-2">
+                                <Badge variant="outline" className={`px-1.5 py-0.5 text-[9px] ${isAdminBooking ? "bg-blue-500/15 text-blue-400 border border-blue-500/30" : isSaved ? "bg-green-500/15 text-green-400 border border-green-500/30" : "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30"}`}>
+                                  {rateLabel}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-green-500 font-semibold text-xs py-2.5 px-2">
+                                {formatCurrency(adminEarning)}
+                              </TableCell>
+                              <TableCell className="text-purple-500 font-semibold text-xs py-2.5 px-2">
+                                {formatCurrency(payout)}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground text-[10px] py-2.5 px-2">
+                                {new Date(booking.datetime).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell className="py-2.5 px-2">
+                                <Badge variant="outline" className={`px-1.5 py-0.5 text-[9px] ${booking.status === "completed"
+                          ? "bg-green-500/15 text-green-400 border border-green-500/30"
+                          : "bg-blue-500/15 text-blue-400 border border-blue-500/30"}`}>
+                                  {booking.status}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>);
+              })}
+                      </TableBody>
+                    </Table>
+                  </div>)}
             </CardContent>
           </Card>
         </motion.div>

@@ -853,7 +853,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
           </motion.div>
 
           {/* Stats */}
-          <div className="mt-4 sm:mt-8 grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-5">
+          <div className="mt-4 sm:mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
             <StatCard title={t("total_bookings")} value={loading ? "…" : bookings.length} icon={<Ticket className="h-5 w-5"/>} index={0}/>
             <StatCard title={t("upcoming")} value={loading ? "…" : upcomingBookings.length} icon={<Calendar className="h-5 w-5"/>} index={1}/>
             <StatCard title={t("completed")} value={loading ? "…" : completedBookings.length} icon={<CheckCircle2 className="h-5 w-5"/>} index={2}/>

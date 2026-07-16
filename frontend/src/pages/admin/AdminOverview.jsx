@@ -731,26 +731,34 @@ const AdminOverview = () => {
         </motion.div>
 
         {/* Quick summary cards */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-          <div className="rounded-xl border border-border bg-card p-3 sm:p-6">
-            <p className="text-sm text-muted-foreground">Registered Users</p>
-            <p className="font-display text-xs sm:text-3xl font-bold mt-1">{loading ? "…" : allUsers.filter(u => u.role === "user").length}</p>
-            <p className="text-xs text-muted-foreground mt-1">Customer accounts</p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 hover-lift flex flex-col justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Registered Users</p>
+              <p className="font-display text-base sm:text-2xl font-bold mt-1 truncate">{loading ? "…" : allUsers.filter(u => u.role === "user").length}</p>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">Customer accounts</p>
           </div>
-          <div className="rounded-xl border border-border bg-card p-3 sm:p-6">
-            <p className="text-sm text-muted-foreground">Active Merchants</p>
-            <p className="font-display text-xs sm:text-3xl font-bold mt-1">{loading ? "…" : totalMerchants}</p>
-            <p className="text-xs text-muted-foreground mt-1">Available for assignment</p>
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 hover-lift flex flex-col justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Active Merchants</p>
+              <p className="font-display text-base sm:text-2xl font-bold mt-1 truncate">{loading ? "…" : totalMerchants}</p>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">Available for assignment</p>
           </div>
-          <div className="rounded-xl border border-border bg-card p-3 sm:p-6">
-            <p className="text-sm text-muted-foreground">Events Listed</p>
-            <p className="font-display text-xs sm:text-3xl font-bold mt-1">{loading ? "…" : events.length}</p>
-            <p className="text-xs text-muted-foreground mt-1">Across all categories</p>
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 hover-lift flex flex-col justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Events Listed</p>
+              <p className="font-display text-base sm:text-2xl font-bold mt-1 truncate">{loading ? "…" : events.length}</p>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">Across all categories</p>
           </div>
-          <div className="rounded-xl border border-border bg-card p-3 sm:p-6">
-            <p className="text-sm text-muted-foreground">Total Revenue</p>
-            <p className="font-display text-xs sm:text-3xl font-bold mt-1">{loading ? "…" : `${formatCurrency(totalRevenue)}`}</p>
-            <p className="text-xs text-muted-foreground mt-1">From confirmed & completed bookings</p>
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 hover-lift flex flex-col justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Total Revenue</p>
+              <p className="font-display text-base sm:text-2xl font-bold mt-1 truncate text-primary" title={loading ? "…" : `${formatCurrency(totalRevenue)}`}>{loading ? "…" : `${formatCurrency(totalRevenue)}`}</p>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">From confirmed & completed bookings</p>
           </div>
         </motion.div>
 
@@ -835,7 +843,7 @@ const AdminOverview = () => {
               {/* Rating Statistics */}
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="rounded-xl border border-border bg-card p-3 sm:p-6">
                 <h3 className="font-display font-semibold mb-6">Platform Rating Summary</h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                   {(() => {
                 const ratings = allBookings.filter(b => b.rating?.score);
                 const avgRating = (ratings.reduce((sum, b) => sum + (b.rating?.score || 0), 0) / ratings.length).toFixed(1);
@@ -843,28 +851,26 @@ const AdminOverview = () => {
                 const fiveStarCount = ratings.filter(b => b.rating?.score === 5).length;
                 const fourStarCount = ratings.filter(b => b.rating?.score === 4).length;
                 const threeStarCount = ratings.filter(b => b.rating?.score === 3).length;
-                const twoStarCount = ratings.filter(b => b.rating?.score === 2).length;
-                const oneStarCount = ratings.filter(b => b.rating?.score === 1).length;
                 return (<>
                         <div className="text-center p-4 rounded-lg bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20">
-                          <p className="text-base sm:text-3xl font-bold text-yellow-500">{avgRating}</p>
-                          <p className="text-xs text-muted-foreground mt-2">Average Rating</p>
+                          <p className="text-base sm:text-2xl font-bold text-yellow-500 truncate">{avgRating}</p>
+                          <p className="text-[10px] text-muted-foreground mt-2 truncate">Avg Rating</p>
                         </div>
                         <div className="text-center p-4 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-                          <p className="text-base sm:text-3xl font-bold text-primary">{totalRatings}</p>
-                          <p className="text-xs text-muted-foreground mt-2">Total Reviews</p>
+                          <p className="text-base sm:text-2xl font-bold text-primary truncate">{totalRatings}</p>
+                          <p className="text-[10px] text-muted-foreground mt-2 truncate">Total Reviews</p>
                         </div>
                         <div className="text-center p-4 rounded-lg bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/20">
-                          <p className="text-base sm:text-3xl font-bold text-green-500">{fiveStarCount}</p>
-                          <p className="text-xs text-muted-foreground mt-2">5 Star</p>
+                          <p className="text-base sm:text-2xl font-bold text-green-500 truncate">{fiveStarCount}</p>
+                          <p className="text-[10px] text-muted-foreground mt-2 truncate">5 Star</p>
                         </div>
                         <div className="text-center p-4 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/20">
-                          <p className="text-base sm:text-3xl font-bold text-blue-500">{fourStarCount}</p>
-                          <p className="text-xs text-muted-foreground mt-2">4 Star</p>
+                          <p className="text-base sm:text-2xl font-bold text-blue-500 truncate">{fourStarCount}</p>
+                          <p className="text-[10px] text-muted-foreground mt-2 truncate">4 Star</p>
                         </div>
                         <div className="text-center p-4 rounded-lg bg-gradient-to-br from-orange-500/10 to-orange-600/10 border border-orange-500/20">
-                          <p className="text-base sm:text-3xl font-bold text-orange-500">{threeStarCount}</p>
-                          <p className="text-xs text-muted-foreground mt-2">3 Star</p>
+                          <p className="text-base sm:text-2xl font-bold text-orange-500 truncate">{threeStarCount}</p>
+                          <p className="text-[10px] text-muted-foreground mt-2 truncate">3 Star</p>
                         </div>
                       </>);
             })()}

@@ -361,41 +361,41 @@ const MyRequests = () => {
                 <AlertCircle className="mx-auto mb-4 h-12 w-12 opacity-40"/>
                 <p className="font-medium text-lg">No bookings yet</p>
                 <p className="text-sm mt-2">Your booking requests will appear here</p>
-              </div>) : (<div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
-                <table className="w-full text-sm min-w-[600px]">
+            </div>) : (<div className="rounded-xl border border-border bg-card overflow-x-auto w-full">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-border bg-secondary/50">
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Service/Event</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Price</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Date/Time</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Status</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Actions</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Service/Event</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Price</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Date/Time</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Status</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {items.map((b) => (<tr key={b._id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
-                        <td className="px-4 py-3 font-medium">
-                          {b.event?.title || b.serviceName}
-                          {b.event && (<span className="block text-xs text-primary mt-1">🎫 Event Booking</span>)}
+                        <td className="px-2 py-2.5 font-medium">
+                          <div className="text-xs font-semibold">{b.event?.title || b.serviceName}</div>
+                          {b.event && (<span className="block text-[10px] text-primary mt-0.5">🎫 Event</span>)}
                         </td>
-                        <td className="px-4 py-3">
-                          <div>{formatCurrency(b.price)}</div>
-                          {b.paymentType === "advance" && (<div className="mt-1 space-y-0.5">
-                              {b.isAdvancePaid ? (<div className="text-xs text-emerald-400">✓ Advance paid: {formatCurrency(b.advanceAmount)}</div>) : (<div className="text-xs text-orange-400">Advance due: {formatCurrency(b.advanceAmount)}</div>)}
-                              {b.isAdvancePaid && !b.isRemainingPaid && (<div className="text-xs text-pink-400">Remaining: {formatCurrency(b.remainingAmount)}</div>)}
-                              {b.isRemainingPaid && (<div className="text-xs text-emerald-400">✓ Fully paid</div>)}
+                        <td className="px-2 py-2.5">
+                          <div className="text-xs font-semibold">{formatCurrency(b.price)}</div>
+                          {b.paymentType === "advance" && (<div className="mt-0.5 space-y-0.5 text-[10px]">
+                              {b.isAdvancePaid ? (<div className="text-emerald-400">✓ Adv paid: {formatCurrency(b.advanceAmount)}</div>) : (<div className="text-orange-400">Adv due: {formatCurrency(b.advanceAmount)}</div>)}
+                              {b.isAdvancePaid && !b.isRemainingPaid && (<div className="text-pink-400">Rem: {formatCurrency(b.remainingAmount)}</div>)}
+                              {b.isRemainingPaid && (<div className="text-emerald-400">✓ Fully paid</div>)}
                             </div>)}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">
+                        <td className="px-2 py-2.5 text-muted-foreground text-[10px]">
                           <div>{new Date(b.datetime).toLocaleDateString()}</div>
-                          <div className="text-xs">{new Date(b.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                          <div>{new Date(b.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_BADGE[b.status] || "bg-secondary text-muted-foreground"}`}>
+                        <td className="px-2 py-2.5">
+                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold capitalize ${STATUS_BADGE[b.status] || "bg-secondary text-muted-foreground"}`}>
                             {b.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-2 py-2.5">
                           <div className="flex gap-1.5 flex-wrap items-center">
                             {/* 1. Invoice */}
                             {((b.event && (b.status === "confirmed" || b.status === "paid" || b.status === "completed")) ||

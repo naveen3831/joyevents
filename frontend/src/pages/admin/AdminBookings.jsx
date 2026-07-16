@@ -120,71 +120,70 @@ const AdminBookings = () => {
           {loading ? (<div className="py-20 text-center text-muted-foreground">Loading bookings...</div>) : filtered.length === 0 ? (<div className="py-20 text-center border border-border rounded-xl bg-card text-muted-foreground">
               <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-30"/>
               <p>No bookings found</p>
-            </div>) : (<div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[600px]">
+            </div>) : (<div className="rounded-xl border border-border bg-card overflow-x-auto w-full">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-border bg-secondary/50">
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">#</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Service / Event</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Merchant</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Price</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Payment</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">#</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Service / Event</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Customer</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Merchant</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Location</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Price</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Date</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Status</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Payment</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.map((b, idx) => (<tr key={b._id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
-                        <td className="px-4 py-3 text-muted-foreground text-xs">{idx + 1}</td>
-                        <td className="px-4 py-3 font-medium max-w-[180px]">
-                          <div className="truncate">{b.service?.name || b.event?.title || b.serviceName || "—"}</div>
+                        <td className="px-2 py-2.5 text-muted-foreground text-[10px]">{idx + 1}</td>
+                        <td className="px-2 py-2.5 font-medium max-w-[150px]">
+                          <div className="truncate text-xs">{b.service?.name || b.event?.title || b.serviceName || "—"}</div>
                           <div className="mt-0.5">
                             {b.service
-                    ? <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400">Service</span>
+                    ? <span className="text-[9px] font-semibold px-1 py-0.5 rounded-full bg-blue-500/15 text-blue-400">Service</span>
                     : b.event
-                        ? <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400">Event</span>
+                        ? <span className="text-[9px] font-semibold px-1 py-0.5 rounded-full bg-purple-500/15 text-purple-400">Event</span>
                         : null}
                           </div>
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="font-medium">{b.customer?.name || "—"}</div>
-                          <div className="text-xs text-muted-foreground">{b.customer?.email}</div>
+                        <td className="px-2 py-2.5">
+                          <div className="font-medium text-xs">{b.customer?.name || "—"}</div>
+                          <div className="text-[10px] text-muted-foreground truncate max-w-[120px]">{b.customer?.email}</div>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-2 py-2.5">
                           {b.assignedTo ? (<>
-                              <div className="font-medium">{b.assignedTo.name}</div>
-                              <div className="text-xs text-muted-foreground">{b.assignedTo.email}</div>
-                            </>) : (<span className="text-xs text-muted-foreground italic">Unassigned</span>)}
+                              <div className="font-medium text-xs">{b.assignedTo.name}</div>
+                              <div className="text-[10px] text-muted-foreground truncate max-w-[120px]">{b.assignedTo.email}</div>
+                            </>) : (<span className="text-[10px] text-muted-foreground italic">Unassigned</span>)}
                         </td>
-                        <td className="px-4 py-3 max-w-[160px]">
+                        <td className="px-2 py-2.5 max-w-[140px]">
                           {b.customerLocation?.address ? (<div className="flex items-start gap-1">
                               <MapPin className="h-3 w-3 text-primary mt-0.5 shrink-0"/>
                               <div>
-                                <p className="text-xs leading-snug line-clamp-2">{b.customerLocation.address}</p>
-                                {b.customerLocation.latitude && (<a href={`https://www.google.com/maps?q=${b.customerLocation.latitude},${b.customerLocation.longitude}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline inline-flex items-center gap-0.5 mt-0.5">
-                                    Maps <ExternalLink className="h-2.5 w-2.5"/>
+                                <p className="text-[10px] leading-snug line-clamp-2">{b.customerLocation.address}</p>
+                                {b.customerLocation.latitude && (<a href={`https://www.google.com/maps?q=${b.customerLocation.latitude},${b.customerLocation.longitude}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-primary hover:underline inline-flex items-center gap-0.5 mt-0.5">
+                                    Maps <ExternalLink className="h-2 w-2"/>
                                   </a>)}
                               </div>
                             </div>) : b.event?.location ? (<div className="flex items-start gap-1">
                               <MapPin className="h-3 w-3 text-primary mt-0.5 shrink-0"/>
-                              <p className="text-xs leading-snug line-clamp-2">{b.event.location}</p>
-                            </div>) : (<span className="text-xs text-muted-foreground">—</span>)}
+                              <p className="text-[10px] leading-snug line-clamp-2">{b.event.location}</p>
+                            </div>) : (<span className="text-[10px] text-muted-foreground">—</span>)}
                         </td>
-                        <td className="px-4 py-3 font-semibold text-primary">{formatCurrency(b.price)}</td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs">
+                        <td className="px-2 py-2.5 font-semibold text-primary text-xs">{formatCurrency(b.price)}</td>
+                        <td className="px-2 py-2.5 text-muted-foreground text-[10px]">
                           <div>{new Date(b.datetime).toLocaleDateString()}</div>
                           <div>{new Date(b.datetime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${STATUS_COLORS[b.status] || "bg-secondary text-muted-foreground"}`}>
+                        <td className="px-2 py-2.5">
+                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold capitalize ${STATUS_COLORS[b.status] || "bg-secondary text-muted-foreground"}`}>
                             {b.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${b.paymentStatus === "paid" ? "bg-green-500/15 text-green-400" :
+                        <td className="px-2 py-2.5">
+                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold capitalize ${b.paymentStatus === "paid" ? "bg-green-500/15 text-green-400" :
                     b.paymentStatus === "refunded" ? "bg-orange-500/15 text-orange-400" :
                         "bg-secondary text-muted-foreground"}`}>
                             {b.paymentStatus}
@@ -193,7 +192,6 @@ const AdminBookings = () => {
                       </tr>))}
                   </tbody>
                 </table>
-              </div>
             </div>)}
         </motion.div>
       </section>

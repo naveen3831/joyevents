@@ -226,83 +226,80 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
                 <AlertCircle className="mx-auto mb-4 h-12 w-12 opacity-40"/>
                 <p className="font-medium text-lg">No {tab} bookings</p>
                 <p className="text-sm mt-2">Your {tab} bookings will appear here</p>
-              </div>) : (<div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
-                <table className="w-full text-sm min-w-[600px]">
+              </div>) : (<div className="rounded-xl border border-border bg-card overflow-x-auto w-full">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-border bg-secondary/50">
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Service / Event</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date/Time</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Rating</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Action</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Service / Event</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Customer</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Location</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Date/Time</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Status</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Rating</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {displayItems.map((b) => (<tr key={b._id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
-                        <td className="px-4 py-3 font-medium">
+                        <td className="px-2 py-2.5 font-medium">
                           <div>
-                            <div>{b.service?.name || b.event?.title || b.serviceName}</div>
-                            <div className="mt-1">
-                              {b.service ? (<span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">Service Booking</span>) : b.event ? (<span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30">Event Booking</span>) : null}
+                            <div className="text-xs font-medium">{b.service?.name || b.event?.title || b.serviceName}</div>
+                            <div className="mt-0.5">
+                              {b.service ? (<span className="text-[9px] font-semibold px-1 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">Service</span>) : b.event ? (<span className="text-[9px] font-semibold px-1 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30">Event</span>) : null}
                             </div>
-                            {b.service?.category && (<div className="text-xs text-muted-foreground mt-0.5">{b.service.category}</div>)}
+                            {b.service?.category && (<div className="text-[10px] text-muted-foreground mt-0.5">{b.service.category}</div>)}
                           </div>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-2 py-2.5">
                           <div>
-                            <div className="font-medium">{b.customer?.name}</div>
-                            <div className="text-xs text-muted-foreground">{b.customer?.email}</div>
+                            <div className="font-medium text-xs">{b.customer?.name}</div>
+                            <div className="text-[10px] text-muted-foreground truncate max-w-[120px]">{b.customer?.email}</div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 max-w-[300px]">
-                          {b.customerLocation && b.customerLocation.address ? (<div className="space-y-2">
-                              <div className="flex items-start gap-2">
-                                <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0"/>
+                        <td className="px-2 py-2.5 max-w-[200px]">
+                          {b.customerLocation && b.customerLocation.address ? (<div className="space-y-1">
+                              <div className="flex items-start gap-1">
+                                <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0"/>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-medium leading-relaxed">{b.customerLocation.address}</p>
-                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <p className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
-                                      Lat: {b.customerLocation.latitude?.toFixed(4)}, Lng: {b.customerLocation.longitude?.toFixed(4)}
-                                    </p>
-                                    <a href={`https://www.google.com/maps?q=${b.customerLocation.latitude},${b.customerLocation.longitude}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline inline-flex items-center gap-1 whitespace-nowrap">
-                                      View on Maps <ExternalLink className="h-2.5 w-2.5"/>
+                                  <p className="text-[10px] font-medium leading-relaxed line-clamp-2">{b.customerLocation.address}</p>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <a href={`https://www.google.com/maps?q=${b.customerLocation.latitude},${b.customerLocation.longitude}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-primary hover:underline inline-flex items-center gap-0.5 whitespace-nowrap">
+                                      Maps <ExternalLink className="h-2 w-2"/>
                                     </a>
                                   </div>
                                 </div>
                               </div>
-                            </div>) : b.event?.location ? (<div className="flex items-start gap-2">
-                              <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0"/>
+                            </div>) : b.event?.location ? (<div className="flex items-start gap-1">
+                              <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0"/>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium leading-relaxed">{b.event.location}</p>
-                                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.event.location)}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline inline-flex items-center gap-1 whitespace-nowrap mt-1">
-                                  View on Maps <ExternalLink className="h-2.5 w-2.5"/>
+                                <p className="text-[10px] font-medium leading-relaxed line-clamp-2">{b.event.location}</p>
+                                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.event.location)}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-primary hover:underline inline-flex items-center gap-0.5 whitespace-nowrap mt-0.5">
+                                  Maps <ExternalLink className="h-2 w-2"/>
                                 </a>
                               </div>
-                            </div>) : (<span className="text-xs text-muted-foreground">No location provided</span>)}
+                            </div>) : (<span className="text-[10px] text-muted-foreground">No location</span>)}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">
+                        <td className="px-2 py-2.5 text-muted-foreground text-[10px]">
                           <div>{new Date(b.datetime).toLocaleDateString()}</div>
-                          <div className="text-xs">{new Date(b.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                          <div>{new Date(b.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_BADGE[b.status] || "bg-secondary text-muted-foreground"}`}>
+                        <td className="px-2 py-2.5">
+                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold capitalize ${STATUS_BADGE[b.status] || "bg-secondary text-muted-foreground"}`}>
                             {b.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
-                          {b.rating?.score ? (<div className="flex items-center gap-2">
+                        <td className="px-2 py-2.5">
+                          {b.rating?.score ? (<div className="flex items-center gap-1.5">
                               <div className="flex gap-0.5">
-                                {[1, 2, 3, 4, 5].map((star) => (<Star key={star} className={`h-4 w-4 ${star <= b.rating.score
+                                {[1, 2, 3, 4, 5].map((star) => (<Star key={star} className={`h-3 w-3 ${star <= b.rating.score
                             ? "fill-yellow-500 text-yellow-500"
                             : "text-muted-foreground/30 fill-none"}`}/>))}
                               </div>
-                              <span className="text-xs font-semibold">{b.rating.score}/5</span>
-                            </div>) : (<span className="text-xs text-muted-foreground">No rating</span>)}
-                          {b.rating?.comment && (<p className="text-xs text-muted-foreground mt-1 italic">"{b.rating.comment}"</p>)}
+                              <span className="text-[10px] font-semibold">{b.rating.score}/5</span>
+                            </div>) : (<span className="text-[10px] text-muted-foreground">No rating</span>)}
+                          {b.rating?.comment && (<p className="text-[9px] text-muted-foreground mt-0.5 italic line-clamp-1">"{b.rating.comment}"</p>)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-2 py-2.5">
                           {b.status === "cancellation_requested" ? (<div className="flex items-center gap-2">
                               <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700 h-8 px-3 text-xs font-semibold" onClick={() => {
                         setSelectedCancelBooking(b);

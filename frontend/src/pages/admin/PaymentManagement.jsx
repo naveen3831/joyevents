@@ -260,21 +260,33 @@ const PaymentManagement = () => {
             return false;
         return true;
     });
-    const StatCard = ({ title, value, icon: Icon, trend, color }) => (<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card p-3 sm:p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
-          {trend && (<div className="flex items-center gap-1 mt-2 text-xs">
-              <ArrowUpRight className="h-3 w-3 text-green-500"/>
-              <span className="text-green-500">{trend}</span>
-            </div>)}
-        </div>
-        <div className={`p-3 rounded-lg ${color.replace("text-", "bg-").replace("-600", "-100")}`}>
-          <Icon className="h-6 w-6"/>
-        </div>
-      </div>
-    </motion.div>);
+    const COLOR_MAP = {
+      "text-green-600": { bg: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" },
+      "text-red-600": { bg: "bg-red-500/10 text-red-400 border border-red-500/20" },
+      "text-blue-600": { bg: "bg-blue-500/10 text-blue-400 border border-blue-500/20" },
+      "text-orange-600": { bg: "bg-amber-500/10 text-amber-400 border border-amber-500/20" },
+      "text-purple-600": { bg: "bg-purple-500/10 text-purple-400 border border-purple-500/20" },
+    };
+    const StatCard = ({ title, value, icon: Icon, trend, color }) => {
+        const theme = COLOR_MAP[color] || { bg: "bg-secondary", text: "text-foreground border border-border" };
+        return (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card p-4 hover-lift">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground line-clamp-1">{title}</p>
+                  <p className={`text-base sm:text-2xl font-bold mt-1 font-display truncate ${theme.text.split(" ")[0]}`} title={value}>{value}</p>
+                  {trend && (<div className="flex items-center gap-1 mt-1 text-xs">
+                      <ArrowUpRight className="h-3 w-3 text-green-500"/>
+                      <span className="text-green-500 font-medium">{trend}</span>
+                    </div>)}
+                </div>
+                <div className={`p-2.5 rounded-lg ${theme.bg} shrink-0 flex items-center justify-center`}>
+                  <Icon className="h-5 w-5"/>
+                </div>
+              </div>
+            </motion.div>
+        );
+    };
     return (<AdminLayout>
       <section className="py-2 sm:py-8 lg:py-10">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -381,7 +393,7 @@ const PaymentManagement = () => {
         </motion.div>
 
         {/* Stats Grid */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
           <StatCard title="Total Revenue" value={`${formatCurrency(totalRevenue)}`} icon={TrendingUp} trend="+12.5%" color="text-green-600"/>
           <StatCard title="Admin Commission (5%)" value={`${formatCurrency(totalCommission)}`} icon={DollarSign} trend="+8.2%" color="text-blue-600"/>
           <StatCard title="Pending Payments" value={pendingPayments} icon={CreditCard} color="text-orange-600"/>

@@ -366,14 +366,14 @@ const AdminReports = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!Array.isArray(analyticsData.locationStats) || analyticsData.locationStats.length === 0 ? (<p className="text-muted-foreground text-sm">No location data yet</p>) : (<div className="overflow-x-auto">
-                  <table className="w-full text-sm min-w-[600px]">
+              {!Array.isArray(analyticsData.locationStats) || analyticsData.locationStats.length === 0 ? (<p className="text-muted-foreground text-sm">No location data yet</p>) : (<div className="overflow-x-auto w-full">
+                  <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
-                        <th className="text-center px-4 py-3 font-medium text-muted-foreground">Total Bookings</th>
-                        <th className="text-right px-4 py-3 font-medium text-muted-foreground">Revenue</th>
-                        <th className="text-right px-4 py-3 font-medium text-muted-foreground">Performance</th>
+                      <tr className="border-b border-border bg-secondary/50">
+                        <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Location</th>
+                        <th className="text-center px-2 py-2.5 font-medium text-muted-foreground">Total Bookings</th>
+                        <th className="text-right px-2 py-2.5 font-medium text-muted-foreground">Revenue</th>
+                        <th className="text-right px-2 py-2.5 font-medium text-muted-foreground">Performance</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -381,19 +381,19 @@ const AdminReports = () => {
                 const maxRevenue = analyticsData.locationStats[0]?.revenue || 1;
                 const percentage = Math.round((loc.revenue / maxRevenue) * 100);
                 return (<tr key={idx} className="border-b border-border last:border-0 hover:bg-secondary/20">
-                            <td className="px-4 py-3 font-medium">{loc.location}</td>
-                            <td className="text-center px-4 py-3">
-                              <Badge variant="outline">{loc.count}</Badge>
+                            <td className="px-2 py-2.5 font-medium text-xs">{loc.location}</td>
+                            <td className="text-center px-2 py-2.5">
+                              <Badge variant="outline" className="px-1 py-0 text-[10px]">{loc.count}</Badge>
                             </td>
-                            <td className="text-right px-4 py-3 font-semibold">
+                            <td className="text-right px-2 py-2.5 font-semibold text-xs">
                               {formatCurrency(loc.revenue)}
                             </td>
-                            <td className="text-right px-4 py-3">
+                            <td className="text-right px-2 py-2.5">
                               <div className="flex items-center justify-end gap-2">
-                                <div className="w-24 h-2 bg-secondary rounded-full overflow-hidden">
+                                <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
                                   <div className="h-full bg-gradient-primary rounded-full" style={{ width: `${percentage}%` }}/>
                                 </div>
-                                <span className="text-xs font-medium text-muted-foreground">{percentage}%</span>
+                                <span className="text-[10px] font-medium text-muted-foreground">{percentage}%</span>
                               </div>
                             </td>
                           </tr>);

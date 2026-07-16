@@ -400,72 +400,72 @@ const AdminPayouts = () => {
                 </div>) : withdrawalRequests.length === 0 ? (<div className="py-16 text-center text-muted-foreground">
                   <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-30"/>
                   <p>No pending withdrawal requests.</p>
-                </div>) : (<Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Merchant</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Bank Details</TableHead>
-                      <TableHead>Requested At</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {withdrawalRequests.map((withdrawal) => (<TableRow key={withdrawal._id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{withdrawal.merchant.name}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {withdrawal.merchant.email}
-                        </TableCell>
-                        <TableCell className="font-semibold text-purple-600">
-                          {formatCurrency(withdrawal.amount)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-xs space-y-1">
-                            {withdrawal.bankDetails?.accountHolder && (<p className="truncate max-w-[200px]">{withdrawal.bankDetails.accountHolder}</p>)}
-                            {withdrawal.bankDetails?.accountNumber && (<p className="text-muted-foreground">****{withdrawal.bankDetails.accountNumber.slice(-4)}</p>)}
-                            {withdrawal.bankDetails?.ifscCode && (<p className="text-muted-foreground">{withdrawal.bankDetails.ifscCode}</p>)}
-                            {withdrawal.bankDetails?.bankName && (<p className="text-muted-foreground">{withdrawal.bankDetails.bankName}</p>)}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {new Date(withdrawal.requestedAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={WITHDRAWAL_STATUS_BADGE[withdrawal.status] || "bg-secondary text-muted-foreground"}>
-                            {withdrawal.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button size="sm" onClick={() => handleApproveWithdrawal(withdrawal)} disabled={actionInProgress === withdrawal._id} className="bg-green-600 hover:bg-green-700 text-white">
-                              {actionInProgress === withdrawal._id ? (<>
-                                  <Loader2 className="mr-1 h-3 w-3 animate-spin"/>
-                                  Approving...
-                                </>) : (<>
-                                  <CheckCircle className="mr-1 h-3 w-3"/>
-                                  Approve
-                                </>)}
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => openRejectDialog(withdrawal)} disabled={actionInProgress === withdrawal._id} className="text-red-600 hover:text-red-700 hover:bg-red-50">
-                              {actionInProgress === withdrawal._id ? (<>
-                                  <Loader2 className="mr-1 h-3 w-3 animate-spin"/>
-                                  Rejecting...
-                                </>) : (<>
-                                  <XCircle className="mr-1 h-3 w-3"/>
-                                  Reject
-                                </>)}
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>))}
-                  </TableBody>
-                </Table>)}
+                </div>) : (<div className="overflow-x-auto w-full">
+                  <Table className="text-xs">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="py-2.5 px-2">Merchant</TableHead>
+                        <TableHead className="py-2.5 px-2">Email</TableHead>
+                        <TableHead className="py-2.5 px-2">Amount</TableHead>
+                        <TableHead className="py-2.5 px-2">Bank Details</TableHead>
+                        <TableHead className="py-2.5 px-2">Requested At</TableHead>
+                        <TableHead className="py-2.5 px-2">Status</TableHead>
+                        <TableHead className="py-2.5 px-2">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {withdrawalRequests.map((withdrawal) => (<TableRow key={withdrawal._id}>
+                          <TableCell className="py-2.5 px-2 font-medium text-xs">
+                            {withdrawal.merchant.name}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-[10px] py-2.5 px-2 truncate max-w-[120px]">
+                            {withdrawal.merchant.email}
+                          </TableCell>
+                          <TableCell className="font-semibold text-purple-600 text-xs py-2.5 px-2">
+                            {formatCurrency(withdrawal.amount)}
+                          </TableCell>
+                          <TableCell className="py-2.5 px-2">
+                            <div className="text-[10px] space-y-0.5">
+                              {withdrawal.bankDetails?.accountHolder && (<p className="truncate max-w-[150px]">{withdrawal.bankDetails.accountHolder}</p>)}
+                              {withdrawal.bankDetails?.accountNumber && (<p className="text-muted-foreground">****{withdrawal.bankDetails.accountNumber.slice(-4)}</p>)}
+                              {withdrawal.bankDetails?.ifscCode && (<p className="text-muted-foreground">{withdrawal.bankDetails.ifscCode}</p>)}
+                              {withdrawal.bankDetails?.bankName && (<p className="text-muted-foreground truncate max-w-[150px]">{withdrawal.bankDetails.bankName}</p>)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-[10px] py-2.5 px-2">
+                            {new Date(withdrawal.requestedAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="py-2.5 px-2">
+                            <Badge className={`px-1.5 py-0.5 text-[9px] ${WITHDRAWAL_STATUS_BADGE[withdrawal.status] || "bg-secondary text-muted-foreground"}`}>
+                              {withdrawal.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-2.5 px-2">
+                            <div className="flex gap-1.5 flex-nowrap whitespace-nowrap">
+                              <Button size="sm" onClick={() => handleApproveWithdrawal(withdrawal)} disabled={actionInProgress === withdrawal._id} className="bg-green-600 hover:bg-green-700 text-white text-[10px] h-7 px-2">
+                                {actionInProgress === withdrawal._id ? (<>
+                                    <Loader2 className="mr-1 h-3 w-3 animate-spin"/>
+                                    Approve
+                                  </>) : (<>
+                                    <CheckCircle className="mr-1 h-3 w-3"/>
+                                    Approve
+                                  </>)}
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => openRejectDialog(withdrawal)} disabled={actionInProgress === withdrawal._id} className="text-red-600 hover:text-red-700 hover:bg-red-50 text-[10px] h-7 px-2">
+                                {actionInProgress === withdrawal._id ? (<>
+                                    <Loader2 className="mr-1 h-3 w-3 animate-spin"/>
+                                    Reject
+                                  </>) : (<>
+                                    <XCircle className="mr-1 h-3 w-3"/>
+                                    Reject
+                                  </>)}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>))}
+                    </TableBody>
+                  </Table>
+                </div>)}
             </CardContent>
           </Card>
 
@@ -480,63 +480,63 @@ const AdminPayouts = () => {
                 </div>) : merchantPayouts.length === 0 ? (<div className="py-16 text-center text-muted-foreground">
                   <Wallet className="h-12 w-12 mx-auto mb-4 opacity-30"/>
                   <p>No merchant payouts to process.</p>
-                </div>) : (<Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Merchant</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Completed Bookings</TableHead>
-                      <TableHead>Gross Earnings</TableHead>
-                      <TableHead>Platform Commission (5%)</TableHead>
-                      <TableHead>Net Payout</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {merchantPayouts.map((payout) => (<TableRow key={payout.merchant._id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{payout.merchant.name}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {payout.merchant.email}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{payout.completedBookings}</Badge>
-                        </TableCell>
-                        <TableCell className="font-semibold">
-                          {formatCurrency(payout.totalEarnings)}
-                        </TableCell>
-                        <TableCell className="text-green-600 font-semibold">
-                          {formatCurrency(payout.commission)}
-                        </TableCell>
-                        <TableCell className="text-purple-600 font-bold">
-                          {formatCurrency(payout.netPayout)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={payout.pendingPayout ? "bg-yellow-500/15 text-yellow-400" : "bg-green-500/15 text-green-400"}>
-                            {payout.pendingPayout ? (<>
-                                <Clock className="h-3 w-3 mr-1"/>
-                                Pending
-                              </>) : (<>
-                                <CheckCircle className="h-3 w-3 mr-1"/>
-                                Paid
-                              </>)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {payout.pendingPayout ? (<Button size="sm" onClick={() => openPayoutDialog(payout.merchant)}>
-                              Process Payout
-                              <ArrowRight className="ml-2 h-4 w-4"/>
-                            </Button>) : (<span className="text-xs text-green-500 font-semibold flex items-center gap-1">
-                              <CheckCircle className="h-3.5 w-3.5"/> Payout Done
-                            </span>)}
-                        </TableCell>
-                      </TableRow>))}
-                  </TableBody>
-                </Table>)}
+                </div>) : (<div className="overflow-x-auto w-full">
+                  <Table className="text-xs">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="py-2.5 px-2">Merchant</TableHead>
+                        <TableHead className="py-2.5 px-2">Email</TableHead>
+                        <TableHead className="py-2.5 px-2">Completed Bookings</TableHead>
+                        <TableHead className="py-2.5 px-2">Gross Earnings</TableHead>
+                        <TableHead className="py-2.5 px-2">Platform Commission (5%)</TableHead>
+                        <TableHead className="py-2.5 px-2">Net Payout</TableHead>
+                        <TableHead className="py-2.5 px-2">Status</TableHead>
+                        <TableHead className="py-2.5 px-2">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {merchantPayouts.map((payout) => (<TableRow key={payout.merchant._id}>
+                          <TableCell className="py-2.5 px-2 font-medium text-xs">
+                            {payout.merchant.name}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-[10px] py-2.5 px-2 truncate max-w-[120px]">
+                            {payout.merchant.email}
+                          </TableCell>
+                          <TableCell className="py-2.5 px-2">
+                            <Badge variant="outline" className="px-1 py-0 text-[10px]">{payout.completedBookings}</Badge>
+                          </TableCell>
+                          <TableCell className="font-semibold text-xs py-2.5 px-2">
+                            {formatCurrency(payout.totalEarnings)}
+                          </TableCell>
+                          <TableCell className="text-green-600 font-semibold text-xs py-2.5 px-2">
+                            {formatCurrency(payout.commission)}
+                          </TableCell>
+                          <TableCell className="text-purple-600 font-bold text-xs py-2.5 px-2">
+                            {formatCurrency(payout.netPayout)}
+                          </TableCell>
+                          <TableCell className="py-2.5 px-2">
+                            <Badge className={`px-1.5 py-0.5 text-[9px] ${payout.pendingPayout ? "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30" : "bg-green-500/15 text-green-400 border border-green-500/30"}`}>
+                              {payout.pendingPayout ? (<>
+                                  <Clock className="h-3 w-3 mr-1"/>
+                                  Pending
+                                </>) : (<>
+                                  <CheckCircle className="h-3 w-3 mr-1"/>
+                                  Paid
+                                </>)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-2.5 px-2">
+                            {payout.pendingPayout ? (<Button size="sm" className="text-[10px] h-7 px-2" onClick={() => openPayoutDialog(payout.merchant)}>
+                                Process Payout
+                                <ArrowRight className="ml-1 h-3 w-3"/>
+                              </Button>) : (<span className="text-[10px] text-green-500 font-semibold flex items-center gap-0.5">
+                                <CheckCircle className="h-3.5 w-3.5"/> Payout Done
+                              </span>)}
+                          </TableCell>
+                        </TableRow>))}
+                    </TableBody>
+                  </Table>
+                </div>)}
             </CardContent>
           </Card>
         </motion.div>

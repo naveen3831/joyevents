@@ -176,12 +176,12 @@ const AdminPayments = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5 mb-8">
-            <SummaryCard title="Collected" value={formatCurrency(totalCollected)} icon={<DollarSign className="h-5 w-5 text-green-400"/>} tone="bg-green-500/15"/>
-            <SummaryCard title="Admin Earnings" value={formatCurrency(adminEarnings)} detail={`${(commissionRate * 100).toFixed(0)}% standard commission`} icon={<TrendingUp className="h-5 w-5 text-emerald-400"/>} tone="bg-emerald-500/15"/>
-            <SummaryCard title="Pending Collection" value={formatCurrency(pendingCollection)} icon={<Clock className="h-5 w-5 text-amber-400"/>} tone="bg-amber-500/15"/>
-            <SummaryCard title="Refunded" value={formatCurrency(totalRefunded)} icon={<RefreshCw className="h-5 w-5 text-gray-400"/>} tone="bg-gray-500/15"/>
-            <SummaryCard title="Payment Records" value={payableBookings.length} icon={<ReceiptText className="h-5 w-5 text-blue-400"/>} tone="bg-blue-500/15"/>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 mb-8">
+            <SummaryCard title="Collected" value={formatCurrency(totalCollected)} icon={<DollarSign className="h-5 w-5 text-green-400"/>} tone="bg-green-500/15 text-green-400"/>
+            <SummaryCard title="Admin Earnings" value={formatCurrency(adminEarnings)} detail={`${(commissionRate * 100).toFixed(0)}% standard commission`} icon={<TrendingUp className="h-5 w-5 text-emerald-400"/>} tone="bg-emerald-500/15 text-emerald-400"/>
+            <SummaryCard title="Pending Collection" value={formatCurrency(pendingCollection)} icon={<Clock className="h-5 w-5 text-amber-400"/>} tone="bg-amber-500/15 text-amber-400"/>
+            <SummaryCard title="Refunded" value={formatCurrency(totalRefunded)} icon={<RefreshCw className="h-5 w-5 text-gray-400"/>} tone="bg-gray-500/15 text-gray-400"/>
+            <SummaryCard title="Payment Records" value={payableBookings.length} icon={<ReceiptText className="h-5 w-5 text-blue-400"/>} tone="bg-blue-500/15 text-blue-400"/>
           </div>
 
           <div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
@@ -195,18 +195,18 @@ const AdminPayments = () => {
               </div>) : payableBookings.length === 0 ? (<div className="p-10 text-center text-muted-foreground">
                 <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-40"/>
                 <p>No payment transactions found.</p>
-              </div>) : (<div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[1100px]">
+            </div>) : (<div className="rounded-xl border border-border bg-card overflow-x-auto w-full">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-border bg-secondary/50">
-                      <th className="text-left px-5 py-4 font-medium text-muted-foreground">Booking</th>
-                      <th className="text-left px-5 py-4 font-medium text-muted-foreground">Customer / Merchant</th>
-                      <th className="text-left px-5 py-4 font-medium text-muted-foreground">Payment</th>
-                      <th className="text-left px-5 py-4 font-medium text-muted-foreground">Amounts</th>
-                      <th className="text-left px-5 py-4 font-medium text-muted-foreground">Split</th>
-                      <th className="text-left px-5 py-4 font-medium text-muted-foreground">Reference</th>
-                      <th className="text-left px-5 py-4 font-medium text-muted-foreground">Dates</th>
-                      <th className="text-left px-5 py-4 font-medium text-muted-foreground">Action</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Booking</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Customer / Merchant</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Payment</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Amounts</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Split</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Reference</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Dates</th>
+                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -217,81 +217,80 @@ const AdminPayments = () => {
                 const merchantAmount = getMerchantPayout(booking);
                 const bookingName = booking.serviceName || booking.eventName || booking.event?.title || booking.service?.name || "Booking";
                 const commissionLabel = booking.commissionSummary?.adminDirect
-                    ? "Admin-owned booking"
+                    ? "Admin-owned"
                     : `Commission ${Number(booking.commissionSummary?.commissionRate ?? commissionRate * 100).toFixed(0)}%`;
 
                 return (<tr key={booking._id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors align-top">
-                        <td className="px-5 py-4">
-                          <div className="space-y-2">
+                        <td className="px-2 py-2.5">
+                          <div className="space-y-1">
                             <div>
-                              <p className="font-semibold">{bookingName}</p>
-                              <p className="text-xs text-muted-foreground">Booking ID: {booking._id.slice(-8)}</p>
+                              <p className="font-semibold text-xs">{bookingName}</p>
+                              <p className="text-[10px] text-muted-foreground">ID: {booking._id.slice(-8)}</p>
                             </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              <span className="rounded-full bg-secondary px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">{booking.event ? "Event" : "Service"}</span>
-                              <span className={`rounded-full px-2 py-1 text-[10px] font-semibold capitalize ${BOOKING_STATUS_BADGE[booking.status] || "bg-secondary text-muted-foreground"}`}>{formatStatus(booking.status)}</span>
+                            <div className="flex flex-wrap gap-1">
+                              <span className="rounded-full bg-secondary px-1 py-0.5 text-[9px] font-semibold uppercase text-muted-foreground">{booking.event ? "Event" : "Service"}</span>
+                              <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold capitalize ${BOOKING_STATUS_BADGE[booking.status] || "bg-secondary text-muted-foreground"}`}>{formatStatus(booking.status)}</span>
                             </div>
                           </div>
                         </td>
-                        <td className="px-5 py-4">
-                          <div className="space-y-3">
+                        <td className="px-2 py-2.5">
+                          <div className="space-y-2">
                             <div>
-                              <p className="font-medium">{booking.customer?.name || "Unknown customer"}</p>
-                              <p className="text-xs text-muted-foreground">{booking.customer?.email || "No email"}</p>
+                              <p className="font-medium text-xs">{booking.customer?.name || "Unknown customer"}</p>
+                              <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{booking.customer?.email || "No email"}</p>
                             </div>
                             <div>
-                              <p className="text-xs font-semibold text-muted-foreground">Merchant</p>
-                              <p className="text-sm">{booking.assignedTo?.name || "Unassigned"}</p>
-                              <p className="text-xs text-muted-foreground">{booking.assignedTo?.email || ""}</p>
+                              <p className="text-[9px] font-semibold text-muted-foreground uppercase">Merchant</p>
+                              <p className="text-xs font-medium">{booking.assignedTo?.name || "Unassigned"}</p>
+                              <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{booking.assignedTo?.email || ""}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-5 py-4">
-                          <div className="space-y-2">
-                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${PAYMENT_STATUS_BADGE[booking.paymentStatus] || "bg-secondary text-muted-foreground"}`}>
+                        <td className="px-2 py-2.5">
+                          <div className="space-y-1">
+                            <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold capitalize ${PAYMENT_STATUS_BADGE[booking.paymentStatus] || "bg-secondary text-muted-foreground"}`}>
                               {formatStatus(booking.paymentStatus)}
                             </span>
-                            <div className="flex items-center gap-2 text-muted-foreground">
+                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                               {getPaymentMethodIcon(booking.paymentMethod)}
                               <span className="capitalize">{booking.paymentMethod || "not selected"}</span>
                             </div>
-                            {booking.cardLast4 && (<p className="text-xs text-muted-foreground">Card ending {booking.cardLast4}</p>)}
-                            {booking.upiId && (<p className="text-xs text-muted-foreground">{booking.upiId}</p>)}
-                            {booking.walletAmountPaid > 0 && (<p className="text-xs text-muted-foreground">Wallet: {formatCurrency(booking.walletAmountPaid)}</p>)}
+                            {booking.cardLast4 && (<p className="text-[10px] text-muted-foreground">Card *{booking.cardLast4}</p>)}
+                            {booking.upiId && (<p className="text-[10px] text-muted-foreground truncate max-w-[110px]">{booking.upiId}</p>)}
+                            {booking.walletAmountPaid > 0 && (<p className="text-[10px] text-muted-foreground">Wallet: {formatCurrency(booking.walletAmountPaid)}</p>)}
                           </div>
                         </td>
-                        <td className="px-5 py-4">
-                          <div className="space-y-1.5">
+                        <td className="px-2 py-2.5">
+                          <div className="space-y-1 text-xs">
                             <AmountLine label="Booking" value={formatCurrency(booking.price || 0)}/>
                             <AmountLine label="Paid" value={formatCurrency(paidAmount)} valueClass="text-green-500"/>
                             <AmountLine label="Due" value={formatCurrency(dueAmount)} valueClass={dueAmount > 0 ? "text-amber-500" : ""}/>
-                            {booking.paymentType === "advance" && (<p className="text-xs text-muted-foreground">Advance {formatCurrency(booking.advanceAmount || 0)} / Remaining {formatCurrency(booking.remainingAmount || 0)}</p>)}
                           </div>
                         </td>
-                        <td className="px-5 py-4">
-                          <div className="space-y-1.5">
+                        <td className="px-2 py-2.5">
+                          <div className="space-y-1 text-xs">
                             <AmountLine label="Admin" value={formatCurrency(adminAmount)}/>
                             <AmountLine label="Merchant" value={formatCurrency(merchantAmount)}/>
-                            <p className="text-xs text-muted-foreground">{commissionLabel}</p>
+                            <p className="text-[10px] text-muted-foreground">{commissionLabel}</p>
                           </div>
                         </td>
-                        <td className="px-5 py-4">
-                          <div className="space-y-1">
-                            <p className="font-mono text-xs break-all">{getPaymentReference(booking)}</p>
-                            <p className="text-xs text-muted-foreground">Ticket: {booking.ticketId || "Not issued"}</p>
-                            <p className="text-xs text-muted-foreground">DB transactions: {booking.transactionRecords?.length || 0}</p>
+                        <td className="px-2 py-2.5">
+                          <div className="space-y-0.5 text-[10px]">
+                            <p className="font-mono break-all max-w-[110px]">{getPaymentReference(booking)}</p>
+                            <p className="text-muted-foreground">Ticket: {booking.ticketId || "Not issued"}</p>
+                            <p className="text-muted-foreground">DB txs: {booking.transactionRecords?.length || 0}</p>
                           </div>
                         </td>
-                        <td className="px-5 py-4 text-muted-foreground">
-                          <div className="space-y-1">
+                        <td className="px-2 py-2.5 text-muted-foreground text-[10px]">
+                          <div className="space-y-0.5">
                             <p>Created: {new Date(booking.createdAt).toLocaleDateString()}</p>
-                            {booking.advancePaidAt && (<p>Advance: {new Date(booking.advancePaidAt).toLocaleDateString()}</p>)}
-                            {booking.remainingPaidAt && (<p>Remaining: {new Date(booking.remainingPaidAt).toLocaleDateString()}</p>)}
-                            {booking.refundedAt && (<p>Refunded: {new Date(booking.refundedAt).toLocaleDateString()}</p>)}
+                            {booking.advancePaidAt && (<p>Adv: {new Date(booking.advancePaidAt).toLocaleDateString()}</p>)}
+                            {booking.remainingPaidAt && (<p>Rem: {new Date(booking.remainingPaidAt).toLocaleDateString()}</p>)}
+                            {booking.refundedAt && (<p>Ref: {new Date(booking.refundedAt).toLocaleDateString()}</p>)}
                           </div>
                         </td>
-                        <td className="px-5 py-4">
-                          {booking.paymentStatus === "paid" && (<Button size="sm" variant="outline" onClick={() => handleRefund(booking)} disabled={refunding === booking._id} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                        <td className="px-2 py-2.5">
+                          {booking.paymentStatus === "paid" && (<Button size="sm" variant="outline" onClick={() => handleRefund(booking)} disabled={refunding === booking._id} className="text-red-600 hover:text-red-700 hover:bg-red-50 text-[10px] h-7 px-2">
                               {refunding === booking._id ? (<>
                                   <Loader2 className="mr-1 h-3 w-3 animate-spin"/>
                                   Refunding
@@ -305,21 +304,21 @@ const AdminPayments = () => {
             })}
                   </tbody>
                 </table>
-              </div>)}
+            </div>)}
           </div>
         </motion.div>
       </section>
     </AdminLayout>);
 };
 
-const SummaryCard = ({ title, value, detail, icon, tone }) => (<div className="rounded-xl border border-border bg-card p-3 sm:p-6">
-  <div className="flex items-center gap-3">
-    <div className={`rounded-full p-3 ${tone}`}>{icon}</div>
-    <div className="min-w-0">
-      <p className="text-sm text-muted-foreground">{title}</p>
-      <p className="font-display text-xs sm:text-2xl font-bold truncate">{value}</p>
-      {detail && (<p className="text-[10px] text-muted-foreground">{detail}</p>)}
+const SummaryCard = ({ title, value, detail, icon, tone }) => (<div className="rounded-xl border border-border bg-card p-4 hover-lift">
+  <div className="flex items-center justify-between gap-3">
+    <div className="flex-1 min-w-0">
+      <p className="text-xs text-muted-foreground line-clamp-1">{title}</p>
+      <p className="font-display text-base sm:text-2xl font-bold truncate mt-1 text-foreground" title={value}>{value}</p>
+      {detail && (<p className="text-[10px] text-muted-foreground mt-0.5 truncate">{detail}</p>)}
     </div>
+    <div className={`rounded-lg p-2.5 ${tone.split(" ")[0]} shrink-0 flex items-center justify-center`}>{icon}</div>
   </div>
 </div>);
 

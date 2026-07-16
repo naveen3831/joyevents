@@ -506,34 +506,34 @@ const AdminUsers = () => {
             </motion.div>
 
             {/* Users Table */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-6 rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
-              <table className="w-full text-sm min-w-[700px]">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-6 rounded-xl border border-border bg-card overflow-x-auto w-full">
+              <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border bg-secondary/50">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Name</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Email</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Mobile</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Role</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Joined</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Status</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Onboarding status</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Actions</th>
+                    <th className="text-left px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Name</th>
+                    <th className="text-left px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Email</th>
+                    <th className="text-left px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Mobile</th>
+                    <th className="text-left px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Role</th>
+                    <th className="text-left px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Joined</th>
+                    <th className="text-left px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Status</th>
+                    <th className="text-left px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Onboarding status</th>
+                    <th className="text-right px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredUsers.map((u) => (<tr key={u._id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                      <td className="px-4 py-3 align-middle font-medium">{u.name}</td>
-                      <td className="px-4 py-3 align-middle text-muted-foreground">{u.email}</td>
-                      <td className="px-4 py-3 align-middle text-muted-foreground">{u.mobile || "—"}</td>
-                      <td className="px-4 py-3 align-middle">
+                      <td className="px-2 py-2.5 align-middle font-medium text-xs">{u.name}</td>
+                      <td className="px-2 py-2.5 align-middle text-muted-foreground text-xs">{u.email}</td>
+                      <td className="px-2 py-2.5 align-middle text-muted-foreground text-xs">{u.mobile || "—"}</td>
+                      <td className="px-2 py-2.5 align-middle">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${u.role === 'admin' ? 'bg-primary/20 text-primary' :
                     u.role === 'merchant' ? 'bg-blue-500/20 text-blue-500' :
                         'bg-secondary text-foreground'}`}>
                           {u.role}
                         </span>
                       </td>
-                      <td className="px-4 py-3 align-middle text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</td>
-                      <td className="px-4 py-3 align-middle hidden md:table-cell">
+                      <td className="px-2 py-2.5 align-middle text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</td>
+                      <td className="px-2 py-2.5 align-middle hidden md:table-cell">
                         <span className={`flex items-center gap-1.5 text-xs font-medium ${u.status === "deactivated" ? "text-orange-500" : "text-green-500"}`}>
                           {u.status === "deactivated" ? (<>
                               <AlertTriangle className="h-3.5 w-3.5"/> Deactivated
@@ -543,7 +543,7 @@ const AdminUsers = () => {
                         </span>
                       </td>
                       {/* Onboarding status Column */}
-                      <td className="px-4 py-3 align-middle">
+                      <td className="px-2 py-2.5 align-middle">
                         {u.role === "merchant" ? (<div className="flex flex-col gap-1">
                             <span className={`inline-flex items-center w-fit rounded-full px-2 py-0.5 text-[10px] font-bold border ${u.merchantStatus === "active" ? "bg-green-500/10 text-green-500 border-green-500/20"
                         : u.merchantStatus === "paid" ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
@@ -560,8 +560,8 @@ const AdminUsers = () => {
                             {u.merchantStatus === "active" && (<span className="text-[10px] text-muted-foreground">Limits: {u.maxEvents || 5}E / {u.maxServices || 5}S</span>)}
                           </div>) : (<span className="text-muted-foreground text-xs">—</span>)}
                       </td>
-                      <td className="px-4 py-3 align-middle text-right">
-                        <div className="flex items-center justify-end gap-2 flex-wrap max-w-sm ml-auto">
+                      <td className="px-2 py-2.5 align-middle text-right">
+                        <div className="flex items-center justify-end gap-1.5 flex-nowrap whitespace-nowrap">
                           {/* Onboarding actions */}
                           {u.role === "merchant" && (<>
                               {u.merchantDetails?.businessName && (<Button variant="outline" size="sm" className="text-orange-600 border-orange-500/30 hover:bg-orange-500/10" onClick={() => {
