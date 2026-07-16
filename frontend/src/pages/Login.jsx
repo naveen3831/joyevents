@@ -97,10 +97,10 @@ const Login = () => {
         <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-primary/20 blur-[100px] pointer-events-none animate-pulse duration-&lsqb;6000ms&rsqb;"/>
         <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[300px] h-[300px] rounded-full bg-amber-500/10 blur-[90px] pointer-events-none"/>
 
-        <div className="relative w-full max-w-5xl flex flex-col md:flex-row rounded-3xl shadow-2xl overflow-hidden glass">
+        <div className="relative w-full max-w-3xl flex flex-col md:flex-row rounded-3xl shadow-2xl overflow-hidden glass">
           
           {/* LEFT SIDE: Visual Showcase (Hidden on mobile) */}
-          <div className="hidden md:flex md:w-1/2 flex-col justify-between p-12 bg-gradient-to-br from-primary/10 via-secondary/30 to-amber-500/5 relative overflow-hidden border-r border-border/50">
+          <div className="hidden md:flex md:w-1/2 flex-col justify-between p-6 lg:p-8 bg-gradient-to-br from-primary/10 via-secondary/30 to-amber-500/5 relative overflow-hidden border-r border-border/50">
             {/* Decorative background grid pattern */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"/>
             
@@ -108,7 +108,7 @@ const Login = () => {
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 border border-primary/30 px-3 py-1 text-xs font-semibold text-primary">
                 ✨ The Premier Event Platform
               </span>
-              <h2 className="font-display text-4xl font-black mt-6 tracking-tight leading-tight">
+              <h2 className="font-display text-3xl font-black mt-6 tracking-tight leading-tight">
                 Unlock Joy in <br />
                 <span className="text-gradient">Every Celebration</span>
               </h2>
@@ -118,7 +118,7 @@ const Login = () => {
             </div>
 
             {/* Feature lists */}
-            <div className="space-y-5 my-8 relative z-10">
+            <div className="space-y-4 my-6 relative z-10">
               {[
             { icon: "🎟️", title: "Ticketed & Public Events", desc: "Easily book sessions, choose ticket tiers, and secure seats." },
             { icon: "🤝", title: "Professional Merchants", desc: "Collaborate directly with top event coordinators and service providers." },
@@ -144,14 +144,14 @@ const Login = () => {
           </div>
 
           {/* RIGHT SIDE: Login Form */}
-          <div className="w-full md:w-1/2 p-8 sm:p-12 flex flex-col justify-center bg-transparent">
+          <div className="w-full md:w-1/2 p-6 lg:p-8 flex flex-col justify-center bg-transparent">
             <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-              <div className="mb-8">
-                <h1 className="font-display text-3xl font-black tracking-tight">Welcome Back</h1>
-                <p className="mt-2 text-sm text-muted-foreground">Enter your credentials to access your account</p>
+              <div className="mb-6">
+                <h1 className="font-display text-2xl font-black tracking-tight">Welcome Back</h1>
+                <p className="mt-1 text-sm text-muted-foreground">Enter your credentials to access your account</p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email Address</Label>
                   <div className="relative">

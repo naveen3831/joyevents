@@ -46,9 +46,9 @@ const Register = () => {
         <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-primary/10 blur-[100px] pointer-events-none animate-pulse duration-[6000ms]"/>
         <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[300px] h-[300px] rounded-full bg-amber-500/5 blur-[90px] pointer-events-none"/>
 
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative w-full max-w-2xl rounded-2xl shadow-2xl p-8 glass overflow-hidden">
-          <div className="mb-8 text-center">
-            <h1 className="font-display text-3xl font-bold">Create Your Account</h1>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative w-full max-w-md rounded-2xl shadow-2xl p-6 glass overflow-hidden">
+          <div className="mb-6 text-center">
+            <h1 className="font-display text-2xl font-bold">Create Your Account</h1>
             <p className="mt-2 text-sm text-muted-foreground">Sign up to get started with JoyEvents</p>
           </div>
 

@@ -9,7 +9,7 @@ import { getReferralSettings } from "../utils/referrals.js";
 
 const router = Router();
 
-function buildReferralReuseQuery({ customer, referralCode, eventId, serviceId }) {
+function buildReferralReuseQuery({ customer, eventId, serviceId }) {
   const itemFilters = [];
   if (eventId) itemFilters.push({ event: eventId });
   if (serviceId) itemFilters.push({ service: serviceId });
@@ -17,8 +17,7 @@ function buildReferralReuseQuery({ customer, referralCode, eventId, serviceId })
 
   return {
     customer,
-    "referral.code": referralCode,
-    "referral.referrer": { $ne: null },
+    "referral.referrer": { $exists: true, $ne: null },
     $or: itemFilters
   };
 }
@@ -157,7 +156,7 @@ router.post("/validate-promo", async (req, res) => {
         const previouslyUsedReferral = await Booking.findOne(reuseQuery).select("_id");
         if (previouslyUsedReferral) {
           return res.status(400).json({
-            error: "You have already used this referral code for this event or service"
+            error: "You have already used a referral code for this event or service"
           });
         }
       }

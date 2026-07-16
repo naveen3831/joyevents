@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { Suspense, lazy } from "react";
 import { Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PublicRoute from "@/components/PublicRoute";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -105,9 +106,48 @@ const AdminReferrals = lazy(() => import("./pages/admin/AdminReferrals"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const queryClient = new QueryClient();
 // Loading component
-const PageLoader = () => (<div className="flex items-center justify-center min-h-screen">
-    <Loader2 className="h-8 w-8 animate-spin text-primary"/>
-  </div>);
+const PageLoader = () => {
+  return (<div className="flex flex-col items-center justify-center min-h-screen bg-gradient-dark relative overflow-hidden">
+      {/* Background Glowing Ambient Orbs */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-primary/10 blur-[100px] pointer-events-none animate-pulse duration-[4000ms]"/>
+      
+      {/* Top Loading Progress Line */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-secondary overflow-hidden">
+        <motion.div className="h-full bg-gradient-primary" initial={{ width: "0%", left: "0%" }} animate={{ 
+            width: ["25%", "50%", "25%"],
+            left: ["0%", "50%", "100%"]
+        }} transition={{ 
+            duration: 2, 
+            repeat: Infinity, 
+            ease: "easeInOut" 
+        }} style={{ position: 'absolute' }}/>
+      </div>
+
+      <div className="flex flex-col items-center gap-6 relative z-10">
+        {/* Pulsing logo icon */}
+        <motion.div animate={{
+            scale: [1, 1.08, 1],
+            rotate: [0, 5, -5, 0]
+        }} transition={{
+            duration: 2.5,
+            repeat: Infinity,
+            ease: "easeInOut"
+        }} className="h-16 w-16 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow text-white text-3xl font-bold">
+          📅
+        </motion.div>
+        
+        {/* Animated Text */}
+        <div className="text-center">
+          <h2 className="font-display text-xl font-bold text-gradient tracking-wide animate-pulse">
+            Loading JoyEvents
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1.5 font-medium tracking-widest uppercase opacity-75">
+            Preparing your experience
+          </p>
+        </div>
+      </div>
+    </div>);
+};
 const AppRoutes = () => {
     return (<Suspense fallback={<PageLoader />}>
       <Routes>

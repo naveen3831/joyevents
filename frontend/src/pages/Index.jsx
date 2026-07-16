@@ -174,10 +174,10 @@ const Index = () => {
     return (<Layout>
       {/* Hero — same proportions as Portfolio page (75vh, content overlaid) */}
       <section className="relative isolate overflow-hidden">
-        <img src={settings.heroImage || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1600&q=80"} alt="Event celebration" className="h-[55vh] min-h-[320px] w-full object-cover sm:h-[60vh] md:h-[65vh] lg:h-[75vh]" loading="eager"/>
+        <img src={settings.heroImage || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1600&q=80"} alt="Event celebration" className="h-[50vh] min-h-[320px] w-full object-cover sm:h-[55vh] md:h-[60vh] lg:h-[65vh]" loading="eager"/>
         <div className="absolute inset-0 bg-black/55"/>
         <div className="absolute inset-0" style={{ background: "var(--gradient-glow)" }}/>
-        <div className="absolute inset-0 flex items-center">
+        <div className="absolute inset-0 flex items-center pt-20">
           <div className="container mx-auto px-4 sm:px-6">
             <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="max-w-3xl">
               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="mb-3 sm:mb-4 inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs sm:text-sm text-primary">
@@ -222,15 +222,15 @@ const Index = () => {
       </section>
 
       {/* Stats — separate bar below hero (Portfolio-style), always fully visible */}
-      <section className="border-y border-border bg-secondary/30 py-6 sm:py-8">
+      <section className="border-y border-border bg-secondary/30 py-8 sm:py-10">
         <div className="container mx-auto px-4 sm:px-6">
-          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="grid grid-cols-3 gap-4 text-center sm:gap-8">
+          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="grid grid-cols-1 gap-6 text-center sm:grid-cols-3 sm:gap-8">
             {[
             { label: "Events", value: settings.eventsCount },
             { label: "Attendees", value: settings.attendeesCount },
             { label: "Merchants", value: settings.merchantsCount },
         ].map((stat, i) => (<motion.div key={stat.label} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
-                <div className="font-display text-xl font-bold text-primary sm:text-3xl md:text-4xl">{stat.value}</div>
+                <div className="font-display text-2xl font-bold text-primary sm:text-3xl md:text-4xl">{stat.value}</div>
                 <div className="mt-1 text-xs text-muted-foreground sm:text-sm">{stat.label}</div>
               </motion.div>))}
           </motion.div>

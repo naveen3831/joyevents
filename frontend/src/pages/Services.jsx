@@ -289,13 +289,13 @@ const Services = () => {
     return (<Layout>
       {/* ── Hero ─────────────────────────────────────── */}
       <section className="relative isolate overflow-hidden">
-        <img src={settings.servicesImage || STATIC_IMAGES.servicesHero} alt="Our Services" className="h-[75vh] w-full object-cover" loading="eager"/>
+        <img src={settings.servicesImage || STATIC_IMAGES.servicesHero} alt="Our Services" className="h-[50vh] min-h-[320px] w-full object-cover sm:h-[55vh] md:h-[60vh] lg:h-[65vh]" loading="eager"/>
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent"/>
-        <div className="absolute inset-0 flex items-center">
-          <div className="container mx-auto">
-            <motion.div initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }} className="max-w-xl">
+        <div className="absolute inset-0 flex items-center pt-20">
+          <div className="container mx-auto px-4 sm:px-6">
+            <motion.div initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }} className="max-w-3xl">
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Our Services</p>
-              <h1 className="mt-4 font-display text-lg sm:text-2xl font-bold leading-tight text-white sm:text-5xl md:text-6xl">
+              <h1 className="mt-4 font-display text-2xl font-bold leading-tight text-white sm:text-4xl md:text-5xl lg:text-6xl">
                 Full-service planning for <span className="text-primary">every</span> kind of event
               </h1>
               <p className="mt-5 text-lg text-white/75">

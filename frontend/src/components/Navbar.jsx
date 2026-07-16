@@ -14,7 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { apiListCategories, apiListServices, apiListEvents } from "@/lib/api";
 import { clearSession } from "@/lib/session";
 import { useCart } from "@/contexts/CartContext";
-const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }) => {
+const Navbar = ({ hideDashboardLinks = false, onSidebarToggle, sidebarOpen }) => {
     const { role, isLoggedIn, setIsLoggedIn, setToken, setUser } = useAuth();
     const { theme, setTheme } = useTheme();
     const { t } = useTranslation();
@@ -25,6 +25,8 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }) => {
     const dashboardPath = dashboardPaths[role];
     const platformName = usePlatformName();
     const { cartCount } = useCart();
+    const iconBtnClass = "w-10 h-10 flex items-center justify-center rounded-xl bg-secondary/50 border border-border/40 hover:bg-secondary hover:border-border/80 text-foreground/80 hover:text-foreground transition-all relative shrink-0 shadow-sm";
+    const activeIconBtnClass = "w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground border-transparent transition-all relative shrink-0 shadow-glow";
     useEffect(() => {
         document.title = platformName;
     }, [platformName]);
@@ -119,26 +121,28 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }) => {
     const RoleIcon = roleIcons[role] || User;
     return (<>
       <motion.nav initial={{ y: -100 }} animate={{ y: 0 }} className="fixed left-0 right-0 top-0 z-50 w-full glass">
-        <div className="flex items-center justify-between px-3 sm:px-6 lg:px-10 xl:px-16 py-5 w-full overflow-hidden">
-          {/* Hamburger — LEFT on mobile/tablet only */}
-          <button className={`flex items-center justify-center w-9 h-9 rounded-lg text-foreground hover:bg-secondary transition-colors lg:hidden mr-2 shrink-0 ${hideDashboardLinks && !onSidebarToggle ? "hidden" : ""}`} onClick={() => {
-            if (onSidebarToggle) {
-                onSidebarToggle();
-            }
-            else {
-                setMobileOpen(!mobileOpen);
-                if (mobileOpen)
-                    setExpandedMobileMenu(null);
-            }
-        }} aria-label="Toggle menu">
-            <motion.div animate={mobileOpen ? "open" : "closed"} className="flex flex-col gap-1.5 w-5">
-              <motion.span variants={{ open: { rotate: 45, y: 8 }, closed: { rotate: 0, y: 0 } }} className="block h-0.5 w-5 bg-foreground rounded-full origin-center transition-all"/>
-              <motion.span variants={{ open: { opacity: 0, x: -8 }, closed: { opacity: 1, x: 0 } }} className="block h-0.5 w-5 bg-foreground rounded-full transition-all"/>
-              <motion.span variants={{ open: { rotate: -45, y: -8 }, closed: { rotate: 0, y: 0 } }} className="block h-0.5 w-5 bg-foreground rounded-full origin-center transition-all"/>
-            </motion.div>
-          </button>
+        <div className="flex items-center justify-between px-3 sm:px-6 lg:px-10 xl:px-16 py-5 w-full">
+          <div className="flex items-center gap-3">
+            {/* Hamburger */}
+            <button className={`flex items-center justify-center w-9 h-9 rounded-lg text-foreground hover:bg-secondary transition-colors shrink-0 ${onSidebarToggle ? "flex" : "lg:hidden"} ${hideDashboardLinks && !onSidebarToggle ? "hidden" : ""}`} onClick={() => {
+              if (onSidebarToggle) {
+                  onSidebarToggle();
+              }
+              else {
+                  setMobileOpen(!mobileOpen);
+                  if (mobileOpen)
+                      setExpandedMobileMenu(null);
+              }
+            }} aria-label="Toggle menu">
+              <motion.div animate={(onSidebarToggle ? sidebarOpen : mobileOpen) ? "open" : "closed"} className="flex flex-col gap-1.5 w-5">
+                <motion.span variants={{ open: { rotate: 45, y: 8 }, closed: { rotate: 0, y: 0 } }} className="block h-0.5 w-5 bg-foreground rounded-full origin-center transition-all"/>
+                <motion.span variants={{ open: { opacity: 0, x: -8 }, closed: { opacity: 1, x: 0 } }} className="block h-0.5 w-5 bg-foreground rounded-full transition-all"/>
+                <motion.span variants={{ open: { rotate: -45, y: -8 }, closed: { rotate: 0, y: 0 } }} className="block h-0.5 w-5 bg-foreground rounded-full origin-center transition-all"/>
+              </motion.div>
+            </button>
 
-          {logoElement}
+            {logoElement}
+          </div>
 
           <div className="hidden items-center gap-4 lg:flex flex-nowrap">
             {navLinks.map((link) => {
@@ -184,38 +188,41 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle }) => {
         })}
           </div>
 
-          <div className="hidden items-center gap-2 lg:flex flex-nowrap shrink-0">
-            {isLoggedIn && role === "customer" && (<>
-                <Link to="/customer-dashboard/favorites" className="relative text-foreground/75 hover:text-primary transition-colors shrink-0" title="Favorites">
-                  <Heart className="h-5 w-5"/>
+          <div className="hidden items-center gap-3 lg:flex flex-nowrap shrink-0">
+            {isLoggedIn && role === "customer" && (() => {
+              const isFavoritesActive = location.pathname === "/customer-dashboard/favorites";
+              const isCartActive = location.pathname === "/customer-dashboard/cart";
+              return (<>
+                <Link to="/customer-dashboard/favorites" className={isFavoritesActive ? activeIconBtnClass : iconBtnClass} title="Favorites">
+                  <Heart className={`h-5 w-5 ${isFavoritesActive ? "fill-current" : ""}`}/>
                 </Link>
-                <Link to="/customer-dashboard/cart" className="relative text-foreground/75 hover:text-primary transition-colors shrink-0" title="Cart">
-                  <ShoppingBag className="h-5 w-5"/>
-                  {cartCount > 0 && (<span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground shadow-sm">
+                <Link to="/customer-dashboard/cart" className={isCartActive ? activeIconBtnClass : iconBtnClass} title="Cart">
+                  <ShoppingBag className={`h-5 w-5 ${isCartActive ? "fill-current" : ""}`}/>
+                  {cartCount > 0 && (<span className={`absolute -top-1 -right-1 flex h-4.5 min-w-[1.125rem] px-1 items-center justify-center rounded-full text-[8px] font-bold shadow-glow border border-background ${isCartActive ? "bg-background text-primary" : "bg-primary text-primary-foreground"}`}>
                       {cartCount}
                     </span>)}
                 </Link>
-              </>)}
+              </>);
+            })()}
             {isLoggedIn && (<NotificationBell />)}
 
             <Button
               variant="ghost"
-              size="icon"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="w-9 h-9 text-muted-foreground hover:text-foreground shrink-0 rounded-lg relative flex items-center justify-center"
+              className={iconBtnClass}
               title="Toggle theme"
             >
-              <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-foreground" />
-              <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-foreground" />
+              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-foreground" />
+              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-foreground" />
               <span className="sr-only">Toggle theme</span>
             </Button>
 
 
-            {isLoggedIn && (<div className="flex items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-medium text-foreground whitespace-nowrap shrink-0">
+            {isLoggedIn && (<div className="flex items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3 h-10 text-xs font-semibold text-foreground whitespace-nowrap shrink-0 shadow-sm">
                 <RoleIcon className="h-3.5 w-3.5 text-primary"/>
                 {roleLabels[role]}
               </div>)}
-            {!isAuthPage && (isLoggedIn ? (<Button variant="outline" size="sm" onClick={handleLogout} className="shrink-0 whitespace-nowrap">
+            {!isAuthPage && (isLoggedIn ? (<Button variant="outline" onClick={handleLogout} className="h-10 rounded-xl px-4 shrink-0 whitespace-nowrap text-xs font-semibold border-border/80 hover:bg-secondary">
                   {t("logout")}
                 </Button>) : (<>
                   <Link to="/login" className="shrink-0">

@@ -61,11 +61,6 @@ const MerchantSidebar = ({ open, onClose, onToggle }) => {
         navigate("/login", { replace: true });
     };
     return (<>
-    {/* Hamburger toggle — hidden on mobile (Navbar handles it), visible on sm+ */}
-    <button onClick={onToggle} className="hidden sm:flex fixed top-[5.25rem] left-3 z-50 items-center justify-center w-9 h-9 rounded-lg bg-secondary border border-border hover:bg-secondary/80 transition-colors shadow-sm" aria-label="Toggle menu">
-      {open ? <X className="h-4 w-4"/> : <Menu className="h-4 w-4"/>}
-    </button>
-
     {/* Backdrop */}
     <AnimatePresence>
       {open && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={onClose}/>)}
@@ -74,11 +69,8 @@ const MerchantSidebar = ({ open, onClose, onToggle }) => {
     {/* Drawer */}
     <AnimatePresence>
       {open && (<motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 28, stiffness: 220 }} className="fixed top-20 left-0 bottom-0 w-64 bg-card border-r border-border z-50 flex flex-col shadow-2xl">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <div className="flex items-center justify-between px-4 py-4 border-b border-border">
             <span className="font-display text-sm font-bold text-gradient">Merchant Menu</span>
-            <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-secondary transition-colors">
-              <X className="h-4 w-4"/>
-            </button>
           </div>
           <div className="flex-1 overflow-y-auto">
             <NavLinks onClose={onClose}/>

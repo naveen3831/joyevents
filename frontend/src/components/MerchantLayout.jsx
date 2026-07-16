@@ -17,7 +17,7 @@ const MerchantLayout = ({ children }) => {
         return <Navigate to="/merchant-dashboard" replace/>;
     }
     return (<div className="min-h-screen w-full flex flex-col">
-      <Navbar hideDashboardLinks={true} onSidebarToggle={() => setSidebarOpen(o => !o)}/>
+      <Navbar hideDashboardLinks={true} onSidebarToggle={() => setSidebarOpen(o => !o)} sidebarOpen={sidebarOpen}/>
       <div className="flex flex-1 w-full pt-20">
         <MerchantSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onToggle={() => setSidebarOpen(o => !o)}/>
         <main className="flex-1 w-full overflow-auto min-w-0 px-2 sm:px-8 lg:px-14 xl:px-20">{children}</main>

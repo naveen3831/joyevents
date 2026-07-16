@@ -70,10 +70,10 @@ const Contact = () => {
     return (<Layout>
       {/* ── Hero ─────────────────────────────────────── */}
       <section className="relative isolate overflow-hidden">
-        <img src={STATIC_IMAGES.contactHero} alt="Event planning consultation" className="h-[75vh] w-full object-cover" loading="eager"/>
+        <img src={STATIC_IMAGES.contactHero} alt="Event planning consultation" className="h-[50vh] min-h-[320px] w-full object-cover sm:h-[55vh] md:h-[60vh] lg:h-[65vh]" loading="eager"/>
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent"/>
-        <div className="absolute inset-0 flex items-center">
-          <div className="container mx-auto">
+        <div className="absolute inset-0 flex items-center pt-20">
+          <div className="container mx-auto px-4 sm:px-6">
             <motion.div initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }} className="max-w-xl">
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Contact Us</p>
               <h1 className="mt-4 font-display text-lg sm:text-2xl font-bold leading-tight text-white sm:text-5xl md:text-6xl">
@@ -98,16 +98,16 @@ const Contact = () => {
       </section>
 
       {/* ── Stats ───────────────────────────────────── */}
-      <section className="border-y border-border bg-secondary/30 py-10">
-        <div className="container mx-auto">
-          <div className="grid grid-cols-2 gap-8 text-center md:grid-cols-4">
+      <section className="border-y border-border bg-secondary/30 py-8 sm:py-12">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 gap-6 text-center sm:grid-cols-2 lg:grid-cols-4 sm:gap-8">
             {[
             { value: "< 2 hrs", label: "Avg. Response Time" },
             { value: "1,800+", label: "Events Supported" },
             { value: "98%", label: "Client Satisfaction" },
             { value: "24/7", label: "On-Event Support" },
         ].map((s, i) => (<motion.div key={s.label} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
-                <div className="font-display text-xl sm:text-4xl font-bold text-primary">{s.value}</div>
+                <div className="font-display text-2xl sm:text-4xl font-bold text-primary">{s.value}</div>
                 <div className="mt-1 text-sm text-muted-foreground">{s.label}</div>
               </motion.div>))}
           </div>

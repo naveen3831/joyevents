@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Display:ital,wdth,wght@0,62.5..100,100..900;1,62.5..100,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -24,7 +24,7 @@
     --secondary-foreground: 222 47% 6%;
 
     --muted: 222 30% 90%;
-    --muted-foreground: 215 20% 40%;
+    --muted-foreground: 215 16% 22%;
 
     --accent: 35 92% 55%;
     --accent-foreground: 0 0% 100%;
@@ -53,8 +53,8 @@
     --shadow-card: 0 4px 24px hsl(222 47% 6% / 0.1);
     --shadow-elevated: 0 8px 40px hsl(222 47% 6% / 0.15);
 
-    --font-display: 'Noto Sans Display', sans-serif;
-    --font-body: 'Noto Sans Display', sans-serif;
+    --font-display: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Plus Jakarta Sans', sans-serif;
 
     --sidebar-background: 210 40% 98%;
     --sidebar-foreground: 222 47% 6%;
@@ -84,7 +84,7 @@
     --secondary-foreground: 210 40% 96%;
 
     --muted: 222 30% 16%;
-    --muted-foreground: 215 20% 55%;
+    --muted-foreground: 210 40% 90%;
 
     --accent: 35 92% 55%;
     --accent-foreground: 0 0% 100%;
@@ -128,22 +128,22 @@
   }
 
   html {
-    /* Safe fallback scaling for Firefox, Safari, and mobile viewports to prevent scaling bugs */
-    font-size: 80%;
+    /* Safe fallback scaling for Firefox, Safari, and mobile viewports */
+    font-size: 90%;
   }
 
-  /* Apply CSS zoom ONLY on Chrome, Edge, and other Chromium-based browsers */
+  /* Standard scaling on Chrome, Edge, and other Chromium-based browsers */
   @supports (-webkit-app-region: inherit) {
     html {
-      zoom: 0.8;
-      font-size: 100%;
+      zoom: 1.0;
+      font-size: 90%;
     }
   }
 
-  /* Firefox and Safari fallback styling alignment */
+  /* Firefox and Safari styling alignment */
   @supports not (-webkit-app-region: inherit) {
     html {
-      font-size: 80%;
+      font-size: 90%;
     }
   }
 
