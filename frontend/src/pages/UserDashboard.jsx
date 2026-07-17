@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
-import { Calendar, DollarSign, Ticket, Clock, CheckCircle2, AlertCircle, Loader2, BarChart3, Video, Search, MapPin, CalendarDays, Briefcase, ArrowRight, Star, FileText, CreditCard } from "lucide-react";
+import { Calendar, DollarSign, Ticket, Clock, CheckCircle2, AlertCircle, Loader2, BarChart3, Video, Search, MapPin, CalendarDays, Briefcase, ArrowRight, Star, FileText, CreditCard, Mail } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
 import StatCard from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import SimplePayment from "@/components/SimplePayment";
+import ContactMerchantModal from "@/components/ContactMerchantModal";
 const STATUS_BADGE = {
     pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
     assigned: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
@@ -47,6 +48,9 @@ const UserDashboard = () => {
     // Category state
     const [eventCategories, setEventCategories] = useState([]);
     const [serviceCategories, setServiceCategories] = useState([]);
+    const [selectedEventCategory, setSelectedEventCategory] = useState(null);
+    const [selectedServiceCategory, setSelectedServiceCategory] = useState(null);
+    const [contactService, setContactService] = useState(null);
     // Payment modal state
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentBooking, setPaymentBooking] = useState(null);
@@ -322,7 +326,9 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
             .then((res) => {
             const allEvents = res.events || [];
             const live = allEvents.filter((e) => e.live === true);
-            setLiveEvents(live);
+            const nonLive = allEvents.filter((e) => e.live !== true);
+            const combined = [...live, ...nonLive];
+            setLiveEvents(combined);
         })
             .catch(() => { })
             .finally(() => setLiveLoading(false));
@@ -330,7 +336,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
     // Load real services
     useEffect(() => {
         apiListServices()
-            .then((res) => setServices((res.services || []).slice(0, 6)))
+            .then((res) => setServices(res.services || []))
             .catch(() => { })
             .finally(() => setServicesLoading(false));
     }, []);
@@ -374,6 +380,13 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
     const upcomingBookings = sortLatestBookingsFirst(bookings.filter((b) => !["completed", "cancelled", "rejected"].includes(b.status)));
     const totalSpent = completedBookings.reduce((s, b) => s + (b.price || 0), 0);
     const displayBookings = sortLatestBookingsFirst(tab === "all" ? bookings : tab === "upcoming" ? upcomingBookings : completedBookings);
+    const displayedEvents = selectedEventCategory
+        ? liveEvents.filter(e => e.category?.toLowerCase() === selectedEventCategory.toLowerCase())
+        : liveEvents;
+    const displayedServices = selectedServiceCategory
+        ? services.filter(s => s.category?.toLowerCase() === selectedServiceCategory.toLowerCase())
+        : services;
+    const onlyLiveEvents = liveEvents.filter(e => e.live === true);
     return (<CustomerLayout>
       <section className="py-2 sm:py-8 lg:py-10">
         <div className="w-full">
@@ -503,7 +516,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
             </motion.div>)}
 
           {/* Category Sections */}
-          <div className="mt-4 sm:mt-6 space-y-3 sm:space-y-5">
+          <div className="mt-4 sm:mt-6 space-y-6 sm:space-y-10">
             {/* Event Categories */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
               <div className="flex items-center justify-between mb-3">
@@ -517,11 +530,72 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
                 </Link>
               </div>
               <div className="flex flex-wrap gap-2.5">
-                {eventCategories.length === 0 ? (<p className="text-sm text-muted-foreground">No event categories yet.</p>) : (eventCategories.map(cat => (<Link key={cat} to={`/customer-dashboard/browse-events?category=${encodeURIComponent(cat)}`}>
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 transition-colors cursor-pointer">
-                        🎫 {cat}
-                      </span>
-                    </Link>)))}
+                {eventCategories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No event categories yet.</p>
+                ) : (
+                  <>
+                    {eventCategories.slice(0, 4).map(cat => {
+                      const isSelected = selectedEventCategory?.toLowerCase() === cat.toLowerCase();
+                      return (
+                        <button
+                          key={cat}
+                          onClick={() => setSelectedEventCategory(isSelected ? null : cat)}
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-primary border-primary text-primary-foreground font-semibold shadow-md scale-105"
+                              : "border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"
+                          }`}
+                        >
+                          🎫 {cat}
+                        </button>
+                      );
+                    })}
+                    {eventCategories.length > 4 && (
+                      <Link to="/customer-dashboard/browse-events">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-primary/30 bg-primary/5 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 transition-colors cursor-pointer">
+                          View All ({eventCategories.length})
+                        </span>
+                      </Link>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* 4 Events Grid */}
+              <div className="mt-6">
+                {liveLoading ? (
+                  <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin"/> Loading events...
+                  </div>
+                ) : displayedEvents.length === 0 ? (
+                  <div className="rounded-xl border border-border bg-card p-6 text-center text-muted-foreground">
+                    <p>No events available {selectedEventCategory ? `in "${selectedEventCategory}" category` : ""}.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-3 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {displayedEvents.slice(0, 4).map((event, idx) => (
+                        <motion.div key={event._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
+                          <EventCard 
+                            event={event} 
+                            index={idx}
+                            onViewDetails={(e) => navigate(`/customer-dashboard/events/${e._id}`)}
+                            onBookNow={(e) => navigate(`/customer-dashboard/events/${e._id}`)}
+                          />
+                        </motion.div>
+                      ))}
+                    </div>
+                    {displayedEvents.length > 4 && (
+                      <div className="mt-4 text-center">
+                        <Link to="/customer-dashboard/browse-events">
+                          <Button variant="outline" size="sm" className="gap-2">
+                            View All Events <ArrowRight className="h-3.5 w-3.5"/>
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </motion.div>
 
@@ -538,12 +612,163 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
                 </Link>
               </div>
               <div className="flex flex-wrap gap-2.5">
-                {serviceCategories.length === 0 ? (<p className="text-sm text-muted-foreground">No service categories yet.</p>) : (serviceCategories.map(cat => (<Link key={cat} to={`/customer-dashboard/browse-services?category=${encodeURIComponent(cat)}`}>
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-2 text-sm font-medium text-orange-500 hover:bg-orange-500/20 transition-colors cursor-pointer">
-                        🛠️ {cat}
-                      </span>
-                    </Link>)))}
+                {serviceCategories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No service categories yet.</p>
+                ) : (
+                  <>
+                    {serviceCategories.slice(0, 4).map(cat => {
+                      const isSelected = selectedServiceCategory?.toLowerCase() === cat.toLowerCase();
+                      return (
+                        <button
+                          key={cat}
+                          onClick={() => setSelectedServiceCategory(isSelected ? null : cat)}
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-orange-500 border-orange-500 text-white font-semibold shadow-md scale-105"
+                              : "border-orange-500/30 bg-orange-500/10 text-orange-500 hover:bg-orange-500/20"
+                          }`}
+                        >
+                          🛠️ {cat}
+                        </button>
+                      );
+                    })}
+                    {serviceCategories.length > 4 && (
+                      <Link to="/customer-dashboard/browse-services">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-orange-500/30 bg-orange-500/5 px-4 py-2 text-sm font-medium text-orange-500 hover:bg-orange-500/20 transition-colors cursor-pointer">
+                          View All ({serviceCategories.length})
+                        </span>
+                      </Link>
+                    )}
+                  </>
+                )}
               </div>
+
+              {/* 4 Services Grid */}
+              <div className="mt-6">
+                {servicesLoading ? (
+                  <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin"/> Loading services...
+                  </div>
+                ) : displayedServices.length === 0 ? (
+                  <div className="rounded-xl border border-border bg-card p-6 text-center text-muted-foreground">
+                    <p>No services available {selectedServiceCategory ? `in "${selectedServiceCategory}" category` : ""}.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-3 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {displayedServices.slice(0, 4).map((svc, idx) => (
+                        <motion.div key={svc._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
+                          <div className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-52">
+                            {svc.image ? (
+                              <img src={svc.image.startsWith("http") ? svc.image : `${API_URL}${svc.image}`} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-muted-foreground">
+                                <Clock className="h-12 w-12 opacity-20"/>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/>
+                            <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                              From {formatCurrency(svc.price)}
+                            </span>
+                          </div>
+                          <div className="p-2 sm:p-5 flex flex-col flex-1">
+                            <h3 className="font-semibold text-xs sm:text-lg line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                              {svc.name}
+                            </h3>
+                            {svc.averageRating && svc.averageRating > 0 ? (
+                              <div className="flex items-center gap-1 mt-1">
+                                <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0"/>
+                                <span className="text-xs font-semibold">{svc.averageRating.toFixed(1)}</span>
+                                <span className="text-[10px] text-muted-foreground">({svc.ratingCount || 0})</span>
+                              </div>
+                            ) : null}
+                            {svc.highlights?.length > 0 && (
+                              <ul className="mt-3 space-y-1">
+                                {svc.highlights.slice(0, 2).map((h, hi) => (
+                                  <li key={hi} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0"/>
+                                    {h}
+                                  </li>
+                                ))}
+                                {svc.highlights.length > 2 && (
+                                  <li className="text-xs text-primary font-medium pl-3">+{svc.highlights.length - 2} more</li>
+                                )}
+                              </ul>
+                            )}
+                            <div className="flex-1"/>
+                            <div className="mt-2 sm:mt-5 flex flex-col gap-1.5 sm:gap-2">
+                              <Link to={`/customer-dashboard/services/${svc._id}`}>
+                                <button className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold border border-primary text-primary hover:bg-primary/10 transition-all">
+                                  View Details
+                                </button>
+                              </Link>
+                              <Link to={`/customer-dashboard/services/${svc._id}`}>
+                                <button className="w-full rounded-lg py-2 text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 transition-all">
+                                  Book Now
+                                </button>
+                              </Link>
+                              {svc.createdBy && (
+                                <button
+                                  onClick={() => setContactService(svc)}
+                                  className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold border border-border hover:bg-secondary transition-all text-muted-foreground flex items-center justify-center gap-1"
+                                >
+                                  <Mail className="h-3.5 w-3.5"/> Contact Organiser
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                    {displayedServices.length > 4 && (
+                      <div className="mt-4 text-center">
+                        <Link to="/customer-dashboard/browse-services">
+                          <Button variant="outline" size="sm" className="gap-2">
+                            View All Services <ArrowRight className="h-3.5 w-3.5"/>
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Live Events Section */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-display text-base sm:text-xl font-bold flex items-center gap-2">
+                  <Video className="h-5 w-5 text-red-500"/>
+                  🔴 {t("live_events")}
+                </h2>
+                <Link to="/customer-dashboard/browse-events">
+                  <Button size="sm" variant="outline">{t("view_all_events")}</Button>
+                </Link>
+              </div>
+
+              {liveLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin"/> {t("searching")}
+                </div>
+              ) : onlyLiveEvents.length === 0 ? (
+                <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
+                  <Video className="h-12 w-12 mx-auto mb-4 opacity-30"/>
+                  <p>{t("no_results")}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {onlyLiveEvents.map((event, idx) => (
+                    <motion.div key={event._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.07 }}>
+                      <EventCard 
+                        event={event} 
+                        index={idx}
+                        onViewDetails={(e) => navigate(`/customer-dashboard/events/${e._id}`)}
+                        onBookNow={(e) => navigate(`/customer-dashboard/events/${e._id}`)}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           </div>
 
@@ -878,29 +1103,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
             </motion.div>
           </div>
 
-          {/* Live Events Section */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-2xl font-bold flex items-center gap-2">
-                <Video className="h-5 w-5 text-red-500"/>
-                🔴 {t("live_events")}
-              </h2>
-              <Link to="/customer-dashboard/browse-events">
-                <Button size="sm" variant="outline">{t("view_all_events")}</Button>
-              </Link>
-            </div>
 
-            {liveLoading ? (<div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
-                <Loader2 className="h-5 w-5 animate-spin"/> {t("searching")}
-              </div>) : liveEvents.length === 0 ? (<div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
-                <Video className="h-12 w-12 mx-auto mb-4 opacity-30"/>
-                <p>{t("no_results")}</p>
-              </div>) : (<div className="grid grid-cols-2 gap-3 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {liveEvents.map((event, idx) => (<motion.div key={event._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.07 }}>
-                    <EventCard event={event} index={idx}/>
-                  </motion.div>))}
-              </div>)}
-          </motion.div>
 
           {/* Booking History with tabs */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-8 sm:mt-12">
@@ -1175,73 +1378,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
               </div>)}
           </motion.div>
 
-          {/* Book a Service */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-8 sm:mt-12">
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="font-display flex items-center gap-2 text-2xl font-bold">
-                <Clock className="h-5 w-5 text-primary"/> Book a Service
-              </h2>
-              <Link to="/customer-dashboard/browse-services">
-                <Button size="sm" variant="outline">View All Services</Button>
-              </Link>
-            </div>
-            {servicesLoading ? (<div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
-                <Loader2 className="h-5 w-5 animate-spin"/> Loading services...
-              </div>) : services.length === 0 ? (<div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
-                <Clock className="h-12 w-12 mx-auto mb-4 opacity-30"/>
-                <p>No services available at the moment.</p>
-                <Link to="/customer-dashboard/browse-services" className="mt-3 inline-block">
-                  <Button size="sm" variant="outline">Browse Services</Button>
-                </Link>
-              </div>) : (<div className="grid grid-cols-2 gap-3 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {services.map((svc, idx) => (<motion.div key={svc._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
-                    <div className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-52">
-                      {svc.image ? (<img src={svc.image.startsWith("http") ? svc.image : `${API_URL}${svc.image}`} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center text-muted-foreground">
-                          <Clock className="h-12 w-12 opacity-20"/>
-                        </div>)}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/>
-                      <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                        From {formatCurrency(svc.price)}
-                      </span>
-                    </div>
-                    <div className="p-2 sm:p-5 flex flex-col flex-1">
-                      <h3 className="font-semibold text-xs sm:text-lg line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                        {svc.name}
-                      </h3>
-                       {/* Rating display */}
-                       {svc.averageRating && svc.averageRating > 0 ? (<div className="flex items-center gap-1 mt-1">
-                           <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0"/>
-                           <span className="text-xs font-semibold">
-                             {svc.averageRating.toFixed(1)}
-                           </span>
-                           <span className="text-[10px] text-muted-foreground">
-                             ({svc.ratingCount || 0})
-                           </span>
-                         </div>) : null}
-                      {svc.highlights?.length > 0 && (<ul className="mt-3 space-y-1">
-                          {svc.highlights.slice(0, 2).map((h, hi) => (<li key={hi} className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0"/>
-                              {h}
-                            </li>))}
-                          {svc.highlights.length > 2 && (<li className="text-xs text-primary font-medium pl-3">+{svc.highlights.length - 2} more</li>)}
-                        </ul>)}
-                      <div className="flex-1"/>
-                      <div className="mt-2 sm:mt-5 flex flex-col gap-1.5 sm:gap-2">
-                        <Link to={`/customer-dashboard/services/${svc._id}`}>
-                          <button className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold border border-primary text-primary hover:bg-primary/10 transition-all">
-                            View Details
-                          </button>
-                        </Link>
-                        <Link to={`/customer-dashboard/services/${svc._id}`}>
-                          <button className="w-full rounded-lg py-2 text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 transition-all">
-                            Book Now
-                          </button>
-                        </Link>
-                      </div>
-                    </div>
-                  </motion.div>))}
-              </div>)}
-          </motion.div>
+
 
         </div>
       </section>
@@ -1366,6 +1503,14 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
         </DialogContent>
       </Dialog>
 
+      {contactService && (
+        <ContactMerchantModal 
+          itemTitle={contactService.name} 
+          serviceId={contactService._id} 
+          merchantId={typeof contactService.createdBy === 'object' ? contactService.createdBy._id : contactService.createdBy} 
+          onClose={() => setContactService(null)}
+        />
+      )}
     </CustomerLayout>);
 };
 export default UserDashboard;
