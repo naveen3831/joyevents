@@ -392,9 +392,11 @@ const Index = () => {
 
                     {/* Content */}
                     <div className="p-3 sm:p-5 flex flex-col flex-1">
-                      <h3 className="font-semibold text-sm sm:text-base line-clamp-2 leading-tight group-hover:text-primary transition-colors mb-1.5 sm:mb-2 min-h-[2.5rem]">
-                        {svc.name}
-                      </h3>
+                      <Link to={`/services/${svc._id}`}>
+                        <h3 className="font-semibold text-sm sm:text-base line-clamp-2 leading-tight group-hover:text-primary transition-colors cursor-pointer mb-1.5 sm:mb-2 min-h-[2.5rem]">
+                          {svc.name}
+                        </h3>
+                      </Link>
 
                       {svc.createdBy && (<p className="text-[10px] sm:text-xs text-muted-foreground mb-3 flex-shrink-0">
                           Provider: <span className="text-primary font-medium">{svc.createdBy.name}</span>

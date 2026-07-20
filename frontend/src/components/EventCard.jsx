@@ -24,6 +24,22 @@ const EventCard = ({ event, index = 0, onBookNow, onViewDetails, onImageClick, i
         }
         catch { }
     }, [isLoggedIn, event._id]);
+    const handleTitleClick = () => {
+        if (onViewDetails) {
+            onViewDetails(event);
+        } else if (onBookNow) {
+            onBookNow(event);
+        } else {
+            const path = window.location.pathname;
+            if (path.includes("customer-dashboard")) {
+                navigate(`/customer-dashboard/events/${event._id}`);
+            } else if (path.includes("admin-dashboard")) {
+                navigate(`/admin-dashboard/events/${event._id}`);
+            } else {
+                navigate(`/events/${event._id}`);
+            }
+        }
+    };
     const handleContactClick = () => {
         if (!isLoggedIn) {
             localStorage.setItem(PENDING_CONTACT_KEY, event._id);
@@ -72,7 +88,7 @@ const EventCard = ({ event, index = 0, onBookNow, onViewDetails, onImageClick, i
 
         {/* Content — compact on mobile */}
         <div className="p-2 sm:p-5 flex flex-col flex-1">
-          <h3 className="font-semibold text-xs sm:text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">
+          <h3 onClick={handleTitleClick} className="font-semibold text-xs sm:text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight cursor-pointer">
             {event.title}
           </h3>
 

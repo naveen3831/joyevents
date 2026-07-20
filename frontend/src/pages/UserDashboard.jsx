@@ -475,9 +475,11 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
                               </span>
                             </div>
                             <div className="p-2 sm:p-5 flex flex-col flex-1">
-                              <h3 className="font-semibold text-xs sm:text-lg line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                                {service.name}
-                              </h3>
+                              <Link to={`/customer-dashboard/services/${service._id}`}>
+                                <h3 className="font-semibold text-xs sm:text-lg line-clamp-2 leading-tight group-hover:text-primary transition-colors cursor-pointer">
+                                  {service.name}
+                                </h3>
+                              </Link>
                               {/* Rating display */}
                               {service.averageRating && service.averageRating > 0 ? (<div className="flex items-center gap-1 mt-1">
                                   <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0"/>
@@ -672,9 +674,11 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
                             </span>
                           </div>
                           <div className="p-2 sm:p-5 flex flex-col flex-1">
-                            <h3 className="font-semibold text-xs sm:text-lg line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                              {svc.name}
-                            </h3>
+                            <Link to={`/customer-dashboard/services/${svc._id}`}>
+                              <h3 className="font-semibold text-xs sm:text-lg line-clamp-2 leading-tight group-hover:text-primary transition-colors cursor-pointer">
+                                {svc.name}
+                              </h3>
+                            </Link>
                             {svc.averageRating && svc.averageRating > 0 ? (
                               <div className="flex items-center gap-1 mt-1">
                                 <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0"/>

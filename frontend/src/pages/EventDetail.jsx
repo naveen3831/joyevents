@@ -659,9 +659,11 @@ const EventDetail = () => {
                     </span>
                   </div>
                   <div className="p-3 sm:p-5 flex flex-col flex-1">
-                    <h3 className="font-semibold text-sm sm:text-base line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                      {r.title}
-                    </h3>
+                    <Link to={`/events/${r._id}`}>
+                      <h3 className="font-semibold text-sm sm:text-base line-clamp-2 leading-tight group-hover:text-primary transition-colors cursor-pointer">
+                        {r.title}
+                      </h3>
+                    </Link>
                     {r.averageRating && r.averageRating > 0 ? (<div className="flex items-center gap-1 mt-1.5">
                         <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0"/>
                         <span className="text-xs font-semibold">
