@@ -194,11 +194,11 @@ const EarningsDashboard = () => {
         }
     };
     const COLOR_MAP = {
-      "text-green-600": { bg: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" },
-      "text-red-600": { bg: "bg-red-500/10 text-red-400 border border-red-500/20" },
-      "text-blue-600": { bg: "bg-blue-500/10 text-blue-400 border border-blue-500/20" },
-      "text-orange-600": { bg: "bg-amber-500/10 text-amber-400 border border-amber-500/20" },
-      "text-purple-600": { bg: "bg-purple-500/10 text-purple-400 border border-purple-500/20" },
+      "text-green-600": { bg: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", text: "text-emerald-400" },
+      "text-red-600": { bg: "bg-red-500/10 text-red-400 border border-red-500/20", text: "text-red-400" },
+      "text-blue-600": { bg: "bg-blue-500/10 text-blue-400 border border-blue-500/20", text: "text-blue-400" },
+      "text-orange-600": { bg: "bg-amber-500/10 text-amber-400 border border-amber-500/20", text: "text-amber-400" },
+      "text-purple-600": { bg: "bg-purple-500/10 text-purple-400 border border-purple-500/20", text: "text-purple-400" },
     };
     const StatCard = ({ title, value, icon: Icon, color, trend }) => {
         const theme = COLOR_MAP[color] || { bg: "bg-secondary", text: "text-foreground border border-border" };
@@ -207,7 +207,7 @@ const EarningsDashboard = () => {
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-muted-foreground line-clamp-1">{title}</p>
-                  <p className={`text-base sm:text-2xl font-bold mt-1 font-display truncate ${theme.text.split(" ")[0]}`} title={value}>{value}</p>
+                  <p className={`text-base sm:text-2xl font-bold mt-1 font-display truncate ${theme.text?.split(" ")[0] || "text-foreground"}`} title={value}>{value}</p>
                   {trend && <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1 font-medium">↑ {trend}</p>}
                 </div>
                 <div className={`p-2.5 rounded-lg ${theme.bg} shrink-0 flex items-center justify-center`}>
