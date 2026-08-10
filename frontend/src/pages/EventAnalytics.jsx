@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { apiGetEventAnalytics } from "@/lib/api";
+import StatCard from "@/components/StatCard";
+import { useGsapStagger } from "@/lib/gsapAnimations";
 const EventAnalytics = () => {
     const { token } = useAuth();
     const [loading, setLoading] = useState(true);
@@ -51,33 +53,7 @@ const EventAnalytics = () => {
         }, 5000);
         return () => clearInterval(pollInterval);
     }, [token]);
-    const COLOR_MAP = {
-      "text-green-600": { bg: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", text: "text-emerald-400" },
-      "text-red-600": { bg: "bg-red-500/10 text-red-400 border border-red-500/20", text: "text-red-400" },
-      "text-blue-600": { bg: "bg-blue-500/10 text-blue-400 border border-blue-500/20", text: "text-blue-400" },
-      "text-orange-600": { bg: "bg-amber-500/10 text-amber-400 border border-amber-500/20", text: "text-amber-400" },
-      "text-purple-600": { bg: "bg-purple-500/10 text-purple-400 border border-purple-500/20", text: "text-purple-400" },
-    };
-    const StatCard = ({ title, value, icon: Icon, trend, color }) => {
-        const theme = COLOR_MAP[color] || { bg: "bg-secondary", text: "text-foreground border border-border" };
-        return (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card p-4 hover-lift">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-muted-foreground line-clamp-1">{title}</p>
-                  <p className={`text-base sm:text-2xl font-bold mt-1 font-display truncate ${theme.text?.split(" ")[0] || "text-foreground"}`} title={value}>{value}</p>
-                  {trend && (<div className="flex items-center gap-1 mt-1 text-xs">
-                      <TrendingUp className="h-3 w-3 text-green-500"/>
-                      <span className="text-green-500 font-medium">{trend}</span>
-                    </div>)}
-                </div>
-                <div className={`p-2.5 rounded-lg ${theme.bg} shrink-0 flex items-center justify-center`}>
-                  <Icon className="h-5 w-5"/>
-                </div>
-              </div>
-            </motion.div>
-        );
-    };
+    const statsGridRef = useGsapStagger([analytics]);
     if (loading) {
         return (<MerchantLayout>
         <section className="py-2 sm:py-8 lg:py-10">
@@ -89,16 +65,16 @@ const EventAnalytics = () => {
     }
     return (<MerchantLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center justify-between mb-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
             <div>
-              <h1 className="font-display text-3xl font-bold flex items-center gap-2">
-                <BarChart3 className="h-7 w-7 text-primary"/>
+              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+                <BarChart3 className="h-6 w-6 sm:h-7 sm:w-7 text-primary"/>
                 Event <span className="text-gradient">Analytics</span>
               </h1>
-              <p className="text-muted-foreground text-sm mt-1">Track ticket sales, revenue, and attendee statistics</p>
+              <p className="text-sm text-muted-foreground mt-1">Track ticket sales, revenue, and attendee statistics</p>
             </div>
-            <Button onClick={loadAnalytics} variant="outline" size="sm">
+            <Button onClick={loadAnalytics} variant="outline" size="sm" className="w-full sm:w-auto">
               <RefreshCcw className="h-4 w-4 mr-2"/>
               Refresh
             </Button>
@@ -106,15 +82,15 @@ const EventAnalytics = () => {
         </motion.div>
 
         {/* Stats Grid */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-          <StatCard title="Total Events" value={analytics?.totalEvents || 0} icon={Calendar} color="text-blue-600"/>
-          <StatCard title="Total Tickets Sold" value={analytics?.totalTicketsSold || 0} icon={Ticket} color="text-purple-600" trend="+12.5%"/>
-          <StatCard title="Total Event Revenue" value={`${formatCurrency((analytics?.totalEventRevenue || 0))}`} icon={DollarSign} color="text-green-600" trend="+8.2%"/>
-          <StatCard title="Total Attendees" value={analytics?.totalAttendees || 0} icon={Users} color="text-orange-600"/>
-        </motion.div>
+        <div ref={statsGridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+          <StatCard title="Total Events" value={analytics?.totalEvents || 0} icon={<Calendar className="h-5 w-5"/>} index={0}/>
+          <StatCard title="Total Tickets Sold" value={analytics?.totalTicketsSold || 0} icon={<Ticket className="h-5 w-5"/>} index={1} trend="+12.5%"/>
+          <StatCard title="Total Event Revenue" value={`${formatCurrency((analytics?.totalEventRevenue || 0))}`} icon={<DollarSign className="h-5 w-5"/>} index={2} trend="+8.2%"/>
+          <StatCard title="Total Attendees" value={analytics?.totalAttendees || 0} icon={<Users className="h-5 w-5"/>} index={3}/>
+        </div>
 
         {/* Events Analytics Table */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -123,9 +99,9 @@ const EventAnalytics = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!analytics?.events || analytics.events.length === 0 ? (<div className="text-center py-8 text-muted-foreground">
-                  <AlertCircle className="h-8 w-8 mx-auto mb-3 opacity-40"/>
-                  <p>No events with analytics data yet</p>
+              {!analytics?.events || analytics.events.length === 0 ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
+                  <AlertCircle className="h-8 w-8 mx-auto mb-3 opacity-30"/>
+                  <p className="text-muted-foreground">No events with analytics data yet</p>
                 </div>) : (<div className="overflow-x-auto">
                   <table className="w-full min-w-[500px]">
                     <thead>

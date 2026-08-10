@@ -100,15 +100,15 @@ const AdminRefunds = () => {
     const filteredBookings = bookings.filter((booking) => filterStatus === "all" || getRefundStatus(booking) === filterStatus);
     return (<AdminLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-4">
               <RefreshCcw className="h-8 w-8 text-primary"/>
               <div>
-                <h1 className="font-display text-xs sm:text-3xl font-bold truncate">
+                <h1 className="font-display text-xl sm:text-3xl font-bold truncate">
                   Refund <span className="text-gradient">Management</span>
                 </h1>
-                <p className="text-muted-foreground text-sm mt-1">
+                <p className="text-muted-foreground text-xs sm:text-sm mt-1">
                   Process and track customer refund requests
                 </p>
               </div>
@@ -181,10 +181,10 @@ const AdminRefunds = () => {
           {/* Refund Requests Table */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex items-center justify-between flex-wrap gap-2">
                 <span>Refund Requests & History</span>
-                <div className="flex gap-2">
-                  <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-md border border-border bg-card px-3 py-1 text-sm">
+                <div className="flex gap-2 flex-wrap">
+                  <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm min-h-[36px]">
                     <option value="all">All Status</option>
                     <option value="refunded">Refunded</option>
                     <option value="cancelled">Cancelled</option>
@@ -199,7 +199,7 @@ const AdminRefunds = () => {
                   <RefreshCcw className="h-12 w-12 mx-auto mb-4 opacity-30"/>
                   <p>No refund requests or refunded bookings.</p>
                 </div>) : (<div className="overflow-x-auto w-full">
-                  <Table className="text-xs">
+                  <Table className="text-xs min-w-[800px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="py-2.5 px-2">Booking ID</TableHead>

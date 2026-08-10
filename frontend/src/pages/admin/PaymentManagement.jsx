@@ -270,7 +270,7 @@ const PaymentManagement = () => {
     const StatCard = ({ title, value, icon: Icon, trend, color }) => {
         const theme = COLOR_MAP[color] || { bg: "bg-secondary", text: "text-foreground border border-border" };
         return (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card p-4 hover-lift">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="rounded-xl border border-border bg-card p-4 hover-lift">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-muted-foreground line-clamp-1">{title}</p>
@@ -289,18 +289,18 @@ const PaymentManagement = () => {
     };
     return (<AdminLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="font-display text-xs sm:text-3xl font-bold flex items-center gap-2">
-                <DollarSign className="h-7 w-7 text-primary"/>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+            <div className="min-w-0">
+              <h1 className="font-display text-xl sm:text-3xl font-bold flex items-center gap-2">
+                <DollarSign className="h-6 w-6 sm:h-7 sm:w-7 text-primary shrink-0"/>
                 Payment <span className="text-gradient">Management</span>
               </h1>
-              <p className="text-muted-foreground text-sm mt-1">
+              <p className="text-muted-foreground text-xs sm:text-sm mt-1">
                 Manage transactions, commissions, refunds, and merchant payouts
               </p>
             </div>
-            <Button onClick={loadTransactions} variant="outline" size="sm">
+            <Button onClick={loadTransactions} variant="outline" size="sm" className="min-h-[40px]">
               <RefreshCcw className="h-4 w-4 mr-2"/>
               Refresh
             </Button>
@@ -308,9 +308,9 @@ const PaymentManagement = () => {
         </motion.div>
 
         {/* Admin Manages Section */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8 p-6 rounded-xl border border-border bg-card">
-          <h3 className="font-display font-semibold text-lg mb-6">🛠️ Admin Manages</h3>
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.1 }} className="mb-8 p-4 sm:p-6 rounded-xl border border-border bg-card">
+          <h3 className="font-display font-semibold text-base sm:text-lg mb-4 sm:mb-6">🛠️ Admin Manages</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Payment Transactions */}
             <div className="p-4 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/20 hover:border-blue-500/40 transition-all cursor-pointer" onClick={() => setActiveTab("transactions")}>
               <div className="flex items-start justify-between mb-3">
@@ -374,9 +374,9 @@ const PaymentManagement = () => {
         </motion.div>
 
         {/* Commission Structure Info */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8 p-6 rounded-xl border border-border bg-card">
-          <h3 className="font-display font-semibold text-lg mb-4">💰 Commission Structure Example</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }} className="mb-8 p-4 sm:p-6 rounded-xl border border-border bg-card">
+          <h3 className="font-display font-semibold text-base sm:text-lg mb-4">💰 Commission Structure Example</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
             <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
               <p className="text-sm text-muted-foreground mb-2">User Ticket Price</p>
               <p className="text-sm sm:text-2xl font-bold text-blue-600">{formatCurrency(1000)}</p>
@@ -393,7 +393,7 @@ const PaymentManagement = () => {
         </motion.div>
 
         {/* Stats Grid */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.3 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
           <StatCard title="Total Revenue" value={`${formatCurrency(totalRevenue)}`} icon={TrendingUp} trend="+12.5%" color="text-green-600"/>
           <StatCard title="Admin Commission (5%)" value={`${formatCurrency(totalCommission)}`} icon={DollarSign} trend="+8.2%" color="text-blue-600"/>
           <StatCard title="Pending Payments" value={pendingPayments} icon={CreditCard} color="text-orange-600"/>
@@ -402,14 +402,16 @@ const PaymentManagement = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-6 w-full max-w-4xl">
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="commissions">Commissions</TabsTrigger>
-            <TabsTrigger value="refunds">Refunds</TabsTrigger>
-            <TabsTrigger value="payouts">Merchant Payouts</TabsTrigger>
-            <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
-            <TabsTrigger value="ratings">Customer Ratings</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList className="flex sm:grid sm:grid-cols-6 w-max sm:w-full sm:max-w-4xl min-w-full sm:min-w-0">
+              <TabsTrigger value="transactions" className="whitespace-nowrap">Transactions</TabsTrigger>
+              <TabsTrigger value="commissions" className="whitespace-nowrap">Commissions</TabsTrigger>
+              <TabsTrigger value="refunds" className="whitespace-nowrap">Refunds</TabsTrigger>
+              <TabsTrigger value="payouts" className="whitespace-nowrap">Merchant Payouts</TabsTrigger>
+              <TabsTrigger value="withdrawals" className="whitespace-nowrap">Withdrawals</TabsTrigger>
+              <TabsTrigger value="ratings" className="whitespace-nowrap">Customer Ratings</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Transactions Tab */}
           <TabsContent value="transactions" className="space-y-4">
@@ -444,7 +446,8 @@ const PaymentManagement = () => {
                   </Select>
                 </div>
 
-                {loading ? (<div className="text-center py-8 text-muted-foreground">Loading transactions...</div>) : filteredBookings.length === 0 ? (<div className="text-center py-8 text-muted-foreground">No transactions found</div>) : (<Table>
+                {loading ? (<div className="text-center py-8 text-muted-foreground">Loading transactions...</div>) : filteredBookings.length === 0 ? (<div className="text-center py-8 text-muted-foreground">No transactions found</div>) : (<div className="overflow-x-auto">
+                  <Table className="min-w-[800px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Transaction ID</TableHead>
@@ -506,7 +509,8 @@ const PaymentManagement = () => {
                           </TableCell>
                         </TableRow>))}
                     </TableBody>
-                  </Table>)}
+                  </Table>
+                  </div>)}
               </CardContent>
             </Card>
           </TabsContent>
@@ -518,7 +522,8 @@ const PaymentManagement = () => {
                 <CardTitle>Commission Breakdown (5% per transaction)</CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
+                <div className="overflow-x-auto">
+                <Table className="min-w-[700px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Transaction ID</TableHead>
@@ -556,6 +561,7 @@ const PaymentManagement = () => {
                         </TableRow>))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -569,7 +575,8 @@ const PaymentManagement = () => {
               <CardContent>
                 {refundedTransactions === 0 ? (<div className="text-center py-8 text-muted-foreground">
                     No refunds processed yet
-                  </div>) : (<Table>
+                  </div>) : (<div className="overflow-x-auto">
+                  <Table className="min-w-[700px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Transaction ID</TableHead>
@@ -615,7 +622,8 @@ const PaymentManagement = () => {
                             </TableCell>
                           </TableRow>))}
                     </TableBody>
-                  </Table>)}
+                  </Table>
+                  </div>)}
               </CardContent>
             </Card>
           </TabsContent>
@@ -632,7 +640,8 @@ const PaymentManagement = () => {
               <CardContent>
                 {merchantPayouts.length === 0 ? (<div className="text-center py-8 text-muted-foreground">
                     No merchant payouts available
-                  </div>) : (<Table>
+                  </div>) : (<div className="overflow-x-auto">
+                  <Table className="min-w-[700px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Merchant</TableHead>
@@ -673,7 +682,8 @@ const PaymentManagement = () => {
                           </TableCell>
                         </TableRow>))}
                     </TableBody>
-                  </Table>)}
+                  </Table>
+                  </div>)}
               </CardContent>
             </Card>
 
@@ -739,15 +749,15 @@ const PaymentManagement = () => {
                         </div>
                       </div>
 
-                      <div className="flex gap-2 justify-end">
-                        <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700" onClick={() => {
+                      <div className="flex gap-2 justify-end flex-wrap">
+                        <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 min-h-[40px]" onClick={() => {
                 setSelectedWithdrawal(withdrawal);
                 setRejectDialogOpen(true);
             }} disabled={processingWithdrawal === withdrawal._id}>
                           <X className="h-4 w-4 mr-1"/>
                           Reject
                         </Button>
-                        <Button size="sm" className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white" onClick={() => {
+                        <Button size="sm" className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white min-h-[40px]" onClick={() => {
                 setSelectedWithdrawal(withdrawal);
                 setApproveDialogOpen(true);
             }} disabled={processingWithdrawal === withdrawal._id}>
@@ -800,7 +810,7 @@ const PaymentManagement = () => {
                   <CardContent>
                     <div className="space-y-4">
                       <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-start justify-between flex-wrap gap-3">
                           <div>
                             <p className="font-semibold text-orange-600">Pending Payouts</p>
                             <p className="text-sm text-muted-foreground mt-1">
@@ -812,7 +822,7 @@ const PaymentManagement = () => {
                 .reduce((sum, p) => sum + p.netPayout, 0))}
                             </p>
                           </div>
-                          <Button onClick={() => setApproveAllDialogOpen(true)} disabled={merchantPayouts.filter(p => !processedPayouts.has(p.merchant._id)).length === 0} className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white" size="lg">
+                          <Button onClick={() => setApproveAllDialogOpen(true)} disabled={merchantPayouts.filter(p => !processedPayouts.has(p.merchant._id)).length === 0} className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white w-full sm:w-auto min-h-[44px]" size="lg">
                             <CheckCircle2 className="h-5 w-5 mr-2"/>
                             Approve All Payouts
                           </Button>

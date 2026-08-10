@@ -164,16 +164,16 @@ const AdminReports = () => {
     }
     return (<AdminLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="font-display text-xs sm:text-3xl font-bold flex items-center gap-3">
-            <BarChart3 className="h-8 w-8 text-primary"/>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mb-8">
+          <h1 className="font-display text-xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+            <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0"/>
             Reports <span className="text-gradient">&</span> Analytics
           </h1>
-          <p className="text-muted-foreground mt-2">Real-time platform performance and insights</p>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-2">Real-time platform performance and insights</p>
         </motion.div>
 
         {/* Platform Metrics */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.05 }} className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
@@ -220,7 +220,7 @@ const AdminReports = () => {
         </motion.div>
 
         {/* Revenue Stats */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.1 }} className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Daily Revenue</CardTitle>
@@ -256,7 +256,7 @@ const AdminReports = () => {
         </motion.div>
 
         {/* Booking Stats */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }} className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Daily Bookings</CardTitle>
@@ -292,9 +292,9 @@ const AdminReports = () => {
         </motion.div>
 
         {/* Top Performers Grid */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-2 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 mb-8">
           {/* Top Merchants */}
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+          <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.3 }}>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -328,7 +328,7 @@ const AdminReports = () => {
           </motion.div>
 
           {/* Popular Events */}
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+          <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.3 }}>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -357,7 +357,7 @@ const AdminReports = () => {
         </div>
 
         {/* Location Analytics */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.4 }}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -367,7 +367,7 @@ const AdminReports = () => {
             </CardHeader>
             <CardContent>
               {!Array.isArray(analyticsData.locationStats) || analyticsData.locationStats.length === 0 ? (<p className="text-muted-foreground text-sm">No location data yet</p>) : (<div className="overflow-x-auto w-full">
-                  <table className="w-full text-xs">
+                  <table className="w-full text-xs min-w-[500px]">
                     <thead>
                       <tr className="border-b border-border bg-secondary/50">
                         <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Location</th>

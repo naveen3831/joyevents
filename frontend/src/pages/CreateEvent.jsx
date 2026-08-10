@@ -262,14 +262,14 @@ const CreateEvent = () => {
             <ArrowLeft className="h-4 w-4"/> Back to Events
           </Link>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="font-display text-3xl font-bold">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mb-6 sm:mb-8">
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
               Create <span className="text-gradient">New Event</span>
             </h1>
-            <p className="mt-1 text-muted-foreground">Fill in the details to publish your event</p>
+            <p className="mt-1 text-sm text-muted-foreground">Fill in the details to publish your event</p>
           </motion.div>
 
-          <motion.form initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} onSubmit={handleSubmit} className="mt-8 space-y-6">
+          <motion.form initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }} onSubmit={handleSubmit} className="mt-8 space-y-6">
             {/* Image Upload */}
             <div className="space-y-2">
               <Label className="text-sm text-muted-foreground">Event Cover Image</Label>
@@ -334,7 +334,7 @@ const CreateEvent = () => {
             </div>
 
             {/* Ticket Types Section - Show for ticketed events - APPEARS ABOVE LOCATION */}
-            {eventType === "ticketed" && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+            {eventType === "ticketed" && (<motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
                 <Label className="text-sm text-muted-foreground font-semibold mb-3 block">Session Type</Label>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <button type="button" onClick={() => setHasMultipleSessions(false)} className={`p-3 rounded-lg border-2 transition-all font-medium text-sm ${!hasMultipleSessions
@@ -665,11 +665,11 @@ const CreateEvent = () => {
                   <p className="text-xs text-muted-foreground mt-2">Customers will pay this fixed price to book your event</p>
                 </div>)}
 
-            <div className="flex gap-3">
-              <Button type="submit" className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow" size="lg" disabled={loading}>
+            <div className="sticky bottom-0 -mx-4 sm:mx-0 bg-background/95 backdrop-blur border-t border-border sm:border-0 sm:bg-transparent p-4 sm:p-0 flex flex-col sm:flex-row gap-3">
+              <Button type="submit" className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow min-h-[44px]" size="lg" disabled={loading}>
                 {loading ? "Creating Event..." : "Publish Event"}
               </Button>
-              <Button type="button" variant="outline" size="lg" onClick={() => navigate("/merchant-dashboard/events")} disabled={loading}>
+              <Button type="button" variant="outline" size="lg" className="min-h-[44px]" onClick={() => navigate("/merchant-dashboard/events")} disabled={loading}>
                 Cancel
               </Button>
             </div>

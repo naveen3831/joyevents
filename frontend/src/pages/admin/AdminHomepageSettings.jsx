@@ -100,7 +100,7 @@ const AdminHomepageSettings = () => {
         if (contactEmail.trim()) {
             const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
             if (!emailRegex.test(contactEmail.trim())) {
-                toast.error("Invalid Support Email. Please enter a valid email address (e.g. info@joyevents.com).");
+                toast.error("Invalid Support Email. Please enter a valid email address (e.g. info@eventoza.com).");
                 return;
             }
         }
@@ -139,16 +139,16 @@ const AdminHomepageSettings = () => {
         }
     };
     return (<AdminLayout>
-      <section className="py-8 max-w-4xl mx-auto px-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-          <div className="flex items-center justify-between">
+      <section className="py-2 sm:py-8 max-w-4xl mx-auto px-3 sm:px-4">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="space-y-8">
+          <div className="flex items-center justify-between mb-6 sm:mb-8 flex-wrap gap-3">
             <div>
-              <h1 className="font-display text-3xl font-bold flex items-center gap-2">
-                <Home className="h-8 w-8 text-primary"/> Homepage <span className="text-gradient">CMS Editor</span>
+              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+                <Home className="h-6 w-6 text-primary"/> Homepage <span className="text-gradient">CMS Editor</span>
               </h1>
-              <p className="text-muted-foreground mt-1">Manage the hero content, metrics statistics, and contact info displayed on the public landing page.</p>
+              <p className="text-sm text-muted-foreground mt-1">Manage the hero content, metrics statistics, and contact info displayed on the public landing page.</p>
             </div>
-            <Button variant="outline" size="sm" onClick={loadSettings} disabled={loading} className="border-border hover:bg-secondary">
+            <Button variant="outline" size="sm" onClick={loadSettings} disabled={loading} className="border-border hover:bg-secondary min-h-[44px]">
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}/> Reload
             </Button>
           </div>
@@ -157,7 +157,7 @@ const AdminHomepageSettings = () => {
               <RefreshCw className="h-6 w-6 animate-spin text-primary mr-2"/> Loading homepage settings...
             </div>) : (<form onSubmit={handleSave} className="space-y-6">
               {/* Hero Section */}
-              <div className="rounded-2xl border border-border bg-card/50 backdrop-blur p-6 sm:p-8 space-y-4 shadow-lg">
+              <div className="rounded-2xl border border-border bg-card/50 backdrop-blur p-4 sm:p-8 space-y-4 shadow-lg">
                 <h2 className="font-display text-lg font-bold flex items-center gap-2 border-b border-border pb-3">
                   <Sparkles className="h-5 w-5 text-yellow-500"/> Hero & Header Content
                 </h2>
@@ -179,7 +179,7 @@ const AdminHomepageSettings = () => {
               </div>
 
               {/* About Us Page Content */}
-              <div className="rounded-2xl border border-border bg-card/50 backdrop-blur p-6 sm:p-8 space-y-4 shadow-lg">
+              <div className="rounded-2xl border border-border bg-card/50 backdrop-blur p-4 sm:p-8 space-y-4 shadow-lg">
                 <h2 className="font-display text-lg font-bold flex items-center gap-2 border-b border-border pb-3">
                   <Users className="h-5 w-5 text-teal-500"/> About Us Page Content
                 </h2>
@@ -210,7 +210,7 @@ const AdminHomepageSettings = () => {
               </div>
 
               {/* Our Portfolio Page Content */}
-              <div className="rounded-2xl border border-border bg-card/50 backdrop-blur p-6 sm:p-8 space-y-4 shadow-lg">
+              <div className="rounded-2xl border border-border bg-card/50 backdrop-blur p-4 sm:p-8 space-y-4 shadow-lg">
                 <h2 className="font-display text-lg font-bold flex items-center gap-2 border-b border-border pb-3">
                   <Briefcase className="h-5 w-5 text-orange-500"/> Our Portfolio Page Content
                 </h2>
@@ -238,7 +238,7 @@ const AdminHomepageSettings = () => {
               </div>
 
               {/* Statistics Row */}
-              <div className="rounded-2xl border border-border bg-card/50 backdrop-blur p-6 sm:p-8 space-y-4 shadow-lg">
+              <div className="rounded-2xl border border-border bg-card/50 backdrop-blur p-4 sm:p-8 space-y-4 shadow-lg">
                 <h2 className="font-display text-lg font-bold flex items-center gap-2 border-b border-border pb-3">
                   <Activity className="h-5 w-5 text-indigo-500"/> Home Stats & Metrics Banner
                 </h2>
@@ -259,7 +259,7 @@ const AdminHomepageSettings = () => {
               </div>
 
               {/* Contact Details */}
-              <div className="rounded-2xl border border-border bg-card/50 backdrop-blur p-6 sm:p-8 space-y-4 shadow-lg">
+              <div className="rounded-2xl border border-border bg-card/50 backdrop-blur p-4 sm:p-8 space-y-4 shadow-lg">
                 <h2 className="font-display text-lg font-bold flex items-center gap-2 border-b border-border pb-3">
                   <Phone className="h-5 w-5 text-green-500"/> Contact Info & Footer Details
                 </h2>
@@ -273,7 +273,7 @@ const AdminHomepageSettings = () => {
                       <Label htmlFor="contactEmail" className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5"/> Support Email</Label>
                       <span className="text-[10px] text-muted-foreground font-mono">{contactEmail.length}/50</span>
                     </div>
-                    <Input id="contactEmail" type="email" maxLength={50} value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="e.g. info@joyevents.com" className="bg-secondary"/>
+                    <Input id="contactEmail" type="email" maxLength={50} value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="e.g. info@eventoza.com" className="bg-secondary"/>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -295,7 +295,7 @@ const AdminHomepageSettings = () => {
               </div>
 
               {/* Page Images */}
-              <div className="rounded-2xl border border-border bg-card/50 backdrop-blur p-6 sm:p-8 space-y-4 shadow-lg">
+              <div className="rounded-2xl border border-border bg-card/50 backdrop-blur p-4 sm:p-8 space-y-4 shadow-lg">
                 <h2 className="font-display text-lg font-bold flex items-center gap-2 border-b border-border pb-3">
                   <Activity className="h-5 w-5 text-purple-500"/> Page Banner & Illustration Images
                 </h2>
@@ -350,7 +350,7 @@ const AdminHomepageSettings = () => {
               </div>
 
               <div className="flex justify-end gap-3">
-                <Button type="submit" disabled={saving} className="bg-gradient-primary text-white px-8">
+                <Button type="submit" disabled={saving} className="bg-gradient-primary text-primary-foreground px-8 min-h-[44px] w-full sm:w-auto">
                   <Save className="h-4 w-4 mr-2"/> {saving ? "Saving Changes..." : "Save Configuration"}
                 </Button>
               </div>

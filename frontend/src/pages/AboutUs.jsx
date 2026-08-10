@@ -27,28 +27,7 @@ const values = [
         description: "Drawing from international trends and local culture, we craft events that feel both globally sophisticated and personally meaningful to every client.",
     },
 ];
-const team = [
-    {
-        name: "Sophia Mitchell",
-        role: "Co-Founder & Creative Director",
-        image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80",
-    },
-    {
-        name: "James Harrington",
-        role: "Head of Event Operations",
-        image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
-    },
-    {
-        name: "Priya Nair",
-        role: "Lead Decor & Design Specialist",
-        image: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&q=80",
-    },
-    {
-        name: "Marcus Webb",
-        role: "Corporate & Brand Activations Lead",
-        image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&q=80",
-    },
-];
+
 const AboutUs = () => {
     const settings = useHomepageSettings();
     const stats = [
@@ -127,7 +106,7 @@ const AboutUs = () => {
             We are a modern event management team focused on premium weddings, business events, private celebrations, and branded experiences. Our workflow combines creative concepts with reliable on-ground execution so clients get both beauty and structure.
           </p>
           <p className="mt-4 text-muted-foreground leading-relaxed">
-            Founded in 2014, JoyEvents has grown from a boutique planning studio into a full-service digital platform connecting clients with the best event professionals in the industry. Every feature we build, every merchant we onboard, and every event we host is driven by one goal: making your occasion truly unforgettable.
+            Founded in 2014, Eventoza has grown from a boutique planning studio into a full-service digital platform connecting clients with the best event professionals in the industry. Every feature we build, every merchant we onboard, and every event we host is driven by one goal: making your occasion truly unforgettable.
           </p>
           <div className="mt-8 grid grid-cols-2 gap-4">
             {[
@@ -199,27 +178,7 @@ const AboutUs = () => {
       </div>
     </section>
 
-    {/* ── Meet the Team ─────────────────────────────── */}
-    <section className="bg-secondary/20 py-20">
-      <div className="container mx-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-12 text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-primary">The People</p>
-          <h2 className="font-display mt-3 text-4xl font-bold">Meet our team</h2>
-        </motion.div>
-        <div className="grid grid-cols-2 gap-3 sm:gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {team.map((member, i) => (<motion.div key={member.name} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="group overflow-hidden rounded-2xl border border-border bg-card">
-              <div className="relative h-56 overflow-hidden">
-                <img src={member.image} alt={member.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"/>
-              </div>
-              <div className="p-5">
-                <div className="font-display font-bold text-foreground">{member.name}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{member.role}</div>
-              </div>
-            </motion.div>))}
-        </div>
-      </div>
-    </section>
+
 
     {/* ── CTA ───────────────────────────────────────── */}
     <section className="container mx-auto py-20">

@@ -9,7 +9,7 @@ import "./lib/i18n"; // initialize English labels
 // Must run before React renders — clears inherited sessionStorage on fresh tab loads
 initSession();
 // Set document.title synchronously from localStorage before first render
-document.title = localStorage.getItem("platformName") || "JoyEvents";
+document.title = localStorage.getItem("platformName") || "Eventoza";
 // Initialize performance optimizations
 measurePerformance();
 optimizeImages();
@@ -41,5 +41,5 @@ createRoot(rootElement).render(<ErrorBoundary>
 
 // Sync latest platform name after React mounts so API/proxy issues cannot blank the page.
 syncPlatformSettings().finally(() => {
-    document.title = localStorage.getItem("platformName") || "JoyEvents";
+    document.title = localStorage.getItem("platformName") || "Eventoza";
 });

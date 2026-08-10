@@ -8,10 +8,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { apiListMyEvents, apiUpdateEventWithImage } from "@/lib/api";
 import { API_URL } from "@/lib/config";
+import { useGsapStagger } from "@/lib/gsapAnimations";
+import StatCard from "@/components/StatCard";
 const MerchantLiveEvents = () => {
     const { token, user } = useAuth();
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
+    const gridRef = useGsapStagger([events], { y: 20, stagger: 0.06 });
     useEffect(() => {
         loadEvents();
     }, []);
@@ -45,14 +48,14 @@ const MerchantLiveEvents = () => {
     };
     return (<MerchantLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center justify-between mb-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
             <div>
-              <h1 className="font-display text-3xl font-bold flex items-center gap-2">
-                <Video className="h-7 w-7 text-primary"/>
+              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+                <Video className="h-6 w-6 text-primary"/>
                 Live <span className="text-gradient">Events</span>
               </h1>
-              <p className="text-muted-foreground text-sm mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Manage your live streaming events - toggle live status for your own events
               </p>
             </div>
@@ -60,7 +63,7 @@ const MerchantLiveEvents = () => {
         </motion.div>
 
         {/* Info Card */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.1 }} className="mb-6">
           <Card className="border-blue-500/30 bg-blue-500/5">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
@@ -89,12 +92,12 @@ const MerchantLiveEvents = () => {
               <Video className="h-12 w-12 mx-auto mb-4 opacity-30"/>
               <p>No events found. Create your first event to get started! Only your events are shown here.</p>
             </CardContent>
-          </Card>) : (<div className="grid grid-cols-2 gap-3 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {events.map((event, index) => (<motion.div key={event._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
+          </Card>) : (<div ref={gridRef} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {events.map((event) => (<div key={event._id}>
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow">
                   {/* Event Image */}
                   <div className="relative h-48 bg-secondary">
-                    {event.image ? (<img src={event.image.startsWith("http") ? event.image : `${API_URL}${event.image}`} alt={event.title} className="h-full w-full object-cover"/>) : (<div className="flex h-full items-center justify-center text-muted-foreground">
+                    {event.image ? (<img src={event.image.startsWith("http") ? event.image : `${API_URL}${event.image}`} alt={event.title} className="h-full w-full object-cover"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
                         <Calendar className="h-12 w-12 opacity-30"/>
                       </div>)}
                     
@@ -137,11 +140,11 @@ const MerchantLiveEvents = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>))}
+              </div>))}
           </div>)}
 
         {/* Stats Summary */}
-        {!loading && events.length > 0 && (<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-8 grid gap-4 sm:grid-cols-3">
+        {!loading && events.length > 0 && (<motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.3 }} className="mt-8 grid gap-4 sm:grid-cols-3">
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center">

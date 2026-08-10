@@ -170,7 +170,7 @@ const ServiceDetail = () => {
             <div className="flex flex-col">
               {/* Hero image */}
               <div className="relative min-h-72 lg:h-[55vh] overflow-hidden bg-secondary">
-                {imgSrc(service.image) ? (<img src={imgSrc(service.image)} alt={service.name} className="h-full w-full object-cover"/>) : (<div className="flex h-full items-center justify-center"><Briefcase className="h-24 w-24 opacity-10"/></div>)}
+                {imgSrc(service.image) ? (<img src={imgSrc(service.image)} alt={service.name} className="h-full w-full object-cover"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh"><Briefcase className="h-24 w-24 opacity-10"/></div>)}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"/>
                 <div className="absolute bottom-0 left-0 right-0 p-8">
                   {service.category && (<span className="inline-block rounded-full bg-primary/20 border border-primary/40 px-3 py-1 text-xs font-semibold text-primary mb-3">
@@ -382,7 +382,7 @@ const ServiceDetail = () => {
             <div className="grid grid-cols-2 gap-4 sm:gap-8 lg:grid-cols-4">
               {relatedServices.map((r) => (<div key={r._id} onClick={() => navigate(`/services/${r._id}`)} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 pointer-events-auto cursor-pointer">
                   <div className="relative aspect-[4/3] bg-secondary overflow-hidden flex-shrink-0">
-                    {r.image ? (<img src={imgSrc(r.image)} alt={r.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center">
+                    {r.image ? (<img src={imgSrc(r.image)} alt={r.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh">
                         <Briefcase className="h-8 w-8 opacity-20"/>
                       </div>)}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/>

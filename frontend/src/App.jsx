@@ -34,17 +34,20 @@ window.fetch = async (...args) => {
     }
     return res;
 };
-// Lazy load all page components for better performance
-const Index = lazy(() => import("./pages/Index"));
-const Events = lazy(() => import("./pages/Events"));
-const EventDetail = lazy(() => import("./pages/EventDetail"));
-const ServiceDetail = lazy(() => import("./pages/ServiceDetail"));
+// Eagerly import primary public pages for instant navbar navigation
+import Index from "./pages/Index";
+import Events from "./pages/Events";
+import EventDetail from "./pages/EventDetail";
+import ServiceDetail from "./pages/ServiceDetail";
+import AboutUs from "./pages/AboutUs";
+import Services from "./pages/Services";
+import Portfolio from "./pages/Portfolio";
+import Contact from "./pages/Contact";
+import Reviews from "./pages/Reviews";
+import Blog from "./pages/Blog";
+
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
-const AboutUs = lazy(() => import("./pages/AboutUs"));
-const Services = lazy(() => import("./pages/Services"));
-const Portfolio = lazy(() => import("./pages/Portfolio"));
-const Contact = lazy(() => import("./pages/Contact"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
 const MerchantDashboard = lazy(() => import("./pages/MerchantDashboard"));
 const MerchantEvents = lazy(() => import("./pages/MerchantEvents"));
@@ -55,11 +58,15 @@ const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
 const AdminEarnings = lazy(() => import("./pages/admin/AdminEarnings"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminEvents = lazy(() => import("./pages/admin/AdminEvents"));
+const AdminEventDetail = lazy(() => import("./pages/admin/AdminEventDetail"));
 const AdminMyEvents = lazy(() => import("./pages/admin/AdminMyEvents"));
+const AdminEventForm = lazy(() => import("./pages/admin/AdminEventForm"));
 const AdminMetrics = lazy(() => import("./pages/admin/AdminMetrics"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminServices = lazy(() => import("./pages/admin/AdminServices"));
+const AdminServiceDetail = lazy(() => import("./pages/admin/AdminServiceDetail"));
 const AdminMyServices = lazy(() => import("./pages/admin/AdminMyServices"));
+const AdminServiceForm = lazy(() => import("./pages/admin/AdminServiceForm"));
 const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
 const AdminEventMonitoring = lazy(() => import("./pages/admin/AdminEventMonitoring"));
 const CreateEvent = lazy(() => import("./pages/CreateEvent"));
@@ -86,9 +93,7 @@ const MerchantInbox = lazy(() => import("./pages/MerchantInbox"));
 const EarningsDashboard = lazy(() => import("./pages/EarningsDashboard"));
 const MarketingTools = lazy(() => import("./pages/MarketingTools"));
 const EventAnalytics = lazy(() => import("./pages/EventAnalytics"));
-const Blog = lazy(() => import("./pages/Blog"));
 const BlogDetail = lazy(() => import("./pages/BlogDetail"));
-const Reviews = lazy(() => import("./pages/Reviews"));
 const BookingHistory = lazy(() => import("./pages/BookingHistory"));
 const UpcomingBookings = lazy(() => import("./pages/UpcomingBookings"));
 const Favorites = lazy(() => import("./pages/Favorites"));
@@ -103,6 +108,8 @@ const CustomerWallet = lazy(() => import("./pages/CustomerWallet"));
 const CustomerReferral = lazy(() => import("./pages/CustomerReferral"));
 const MerchantReferrals = lazy(() => import("./pages/MerchantReferrals"));
 const AdminReferrals = lazy(() => import("./pages/admin/AdminReferrals"));
+const AdminRatings = lazy(() => import("./pages/admin/AdminRatings"));
+const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const queryClient = new QueryClient();
 // Loading component
@@ -139,7 +146,7 @@ const PageLoader = () => {
         {/* Animated Text */}
         <div className="text-center">
           <h2 className="font-display text-xl font-bold text-gradient tracking-wide animate-pulse">
-            Loading JoyEvents
+            Loading Eventoza
           </h2>
           <p className="text-xs text-muted-foreground mt-1.5 font-medium tracking-widest uppercase opacity-75">
             Preparing your experience
@@ -220,7 +227,10 @@ const AppRoutes = () => {
         {/* Admin Routes */}
         <Route path="/admin-dashboard/users" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUsers /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/events" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEvents /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/events/:id" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEventDetail /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/my-events" element={<ProtectedRoute allowedRoles={["admin"]}><AdminMyEvents /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/my-events/new" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEventForm /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/my-events/:id/edit" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEventForm /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/utilities" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUtilities /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/profile" element={<ProtectedRoute allowedRoles={["admin"]}><AdminProfile /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/event-monitoring" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEventMonitoring /></ProtectedRoute>}/>
@@ -228,7 +238,10 @@ const AppRoutes = () => {
         <Route path="/admin-dashboard/settings" element={<ProtectedRoute allowedRoles={["admin"]}><AdminSettings /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/homepage" element={<ProtectedRoute allowedRoles={["admin"]}><AdminHomepageSettings /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/services" element={<ProtectedRoute allowedRoles={["admin"]}><AdminServices /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/services/:id" element={<ProtectedRoute allowedRoles={["admin"]}><AdminServiceDetail /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/my-services" element={<ProtectedRoute allowedRoles={["admin"]}><AdminMyServices /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/my-services/new" element={<ProtectedRoute allowedRoles={["admin"]}><AdminServiceForm /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/my-services/:id/edit" element={<ProtectedRoute allowedRoles={["admin"]}><AdminServiceForm /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/payments" element={<ProtectedRoute allowedRoles={["admin"]}><AdminPayments /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/commissions" element={<ProtectedRoute allowedRoles={["admin"]}><AdminCommissions /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/refunds" element={<ProtectedRoute allowedRoles={["admin"]}><AdminRefunds /></ProtectedRoute>}/>
@@ -239,12 +252,14 @@ const AppRoutes = () => {
         <Route path="/admin-dashboard/reports" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReports /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/ai-recommendations" element={<ProtectedRoute allowedRoles={["admin"]}><AdminRecommendations /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/referrals" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReferrals /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/ratings" element={<ProtectedRoute allowedRoles={["admin"]}><AdminRatings /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/coupons" element={<ProtectedRoute allowedRoles={["admin"]}><AdminCoupons /></ProtectedRoute>}/>
         <Route path="/create-event" element={<ProtectedRoute allowedRoles={["merchant"]}><CreateEvent /></ProtectedRoute>}/>
         <Route path="*" element={<NotFound />}/>
       </Routes>
     </Suspense>);
 };
-const App = () => (<ThemeProvider attribute="class" defaultTheme="dark">
+const App = () => (<ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

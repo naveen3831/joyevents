@@ -49,7 +49,7 @@ const Register = () => {
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative w-full max-w-md rounded-2xl shadow-2xl p-6 glass overflow-hidden">
           <div className="mb-6 text-center">
             <h1 className="font-display text-2xl font-bold">Create Your Account</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Sign up to get started with JoyEvents</p>
+            <p className="mt-2 text-sm text-muted-foreground">Sign up to get started with Eventoza</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

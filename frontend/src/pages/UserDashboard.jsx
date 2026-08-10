@@ -181,7 +181,7 @@ const UserDashboard = () => {
         const isEvent = !!b.event;
         const customerName = user?.name || "Customer";
         const customerEmail = user?.email || "";
-        const merchantName = b.assignedTo?.name || "JoyEvents Team";
+        const merchantName = b.assignedTo?.name || "Eventoza Team";
         const merchantEmail = b.assignedTo?.email || "";
         const bookingDate = new Date(b.datetime).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
         const bookingTime = new Date(b.datetime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
@@ -212,12 +212,12 @@ const UserDashboard = () => {
 .rating-box{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin-top:16px;font-size:13px;color:#92400e;}
 .footer{background:#f9fafb;border-top:1px solid #f0f0f0;padding:20px 40px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.9;}
 </style></head><body><div class="page">
-<div class="header"><div class="brand">🎉 JoyEvents<span>Premium Event Services Platform</span></div>
+<div class="header"><div class="brand">🎉 Eventoza<span>Premium Event Services Platform</span></div>
 <div class="inv-meta"><h2>INVOICE</h2><p>${invoiceNo}</p><p>Issued: ${issuedDate}</p></div></div>
 <div class="body">
 <div class="parties">
   <div class="party"><h4>Billed To</h4><div class="name">${customerName}</div>${customerEmail ? `<p>${customerEmail}</p>` : ""}</div>
-  <div class="party"><h4>Service Provider</h4><div class="name">${merchantName}</div>${merchantEmail ? `<p>${merchantEmail}</p>` : ""}<p>JoyEvents Platform</p></div>
+  <div class="party"><h4>Service Provider</h4><div class="name">${merchantName}</div>${merchantEmail ? `<p>${merchantEmail}</p>` : ""}<p>Eventoza Platform</p></div>
 </div>
 <div class="info-grid">
   <div class="info-item"><label>Date</label><span>${bookingDate}</span></div>
@@ -239,7 +239,7 @@ const UserDashboard = () => {
 </div>
 ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
 </div>
-<div class="footer">Thank you for choosing JoyEvents! · This is a computer-generated invoice.<br>support@joyevents.com · www.joyevents.com</div>
+<div class="footer">Thank you for choosing Eventoza! · This is a computer-generated invoice.<br>support@eventoza.com · www.eventoza.com</div>
 </div></body></html>`;
         const blob = new Blob([html], { type: "text/html" });
         const url = URL.createObjectURL(blob);
@@ -390,11 +390,11 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
     return (<CustomerLayout>
       <section className="py-2 sm:py-8 lg:py-10">
         <div className="w-full">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
             <div>
               <div className="mb-1 flex items-center gap-2">
                 <span className="text-muted-foreground text-lg sm:text-xl">{t("welcome_back")},</span>
-                <span className="font-display text-xl sm:text-3xl font-bold text-gradient">
+                <span className="font-display text-xl sm:text-2xl font-bold text-gradient">
                   {user?.name || 'Customer'}
                 </span>
               </div>
@@ -402,7 +402,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
             </div>
             
             {/* Search Section */}
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-1.5 sm:gap-2 md:flex-shrink-0">
+            <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.15 }} className="flex items-center gap-1.5 sm:gap-2 md:flex-shrink-0">
               {/* Location Search */}
               <div className="relative hidden sm:block sm:w-[160px]">
                 <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
@@ -424,7 +424,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
           </motion.div>
 
           {/* Search Results Section */}
-          {showSearchResults && (<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-8">
+          {showSearchResults && (<motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-display text-2xl font-bold flex items-center gap-2">
                   <Search className="h-5 w-5 text-primary"/> 
@@ -452,7 +452,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
                         <Ticket className="h-5 w-5 text-primary"/> {t("events_count")} ({filteredEvents.length})
                       </h3>
                       <div className="grid grid-cols-2 gap-3 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {filteredEvents.map((event, idx) => (<motion.div key={event._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
+                        {filteredEvents.map((event, idx) => (<motion.div key={event._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: idx * 0.05 }}>
                             <EventCard event={event} index={idx}/>
                           </motion.div>))}
                       </div>
@@ -464,9 +464,9 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
                         <Clock className="h-5 w-5 text-primary"/> {t("services_count")} ({filteredServices.length})
                       </h3>
                       <div className="grid grid-cols-2 gap-3 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {filteredServices.map((service, idx) => (<motion.div key={service._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
+                        {filteredServices.map((service, idx) => (<motion.div key={service._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: idx * 0.05 }} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
                             <div className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-52">
-                              {service.image ? (<img src={service.image.startsWith("http") ? service.image : `${API_URL}${service.image}`} alt={service.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center text-muted-foreground">
+                              {service.image ? (<img src={service.image.startsWith("http") ? service.image : `${API_URL}${service.image}`} alt={service.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
                                   <Clock className="h-12 w-12 opacity-20"/>
                                 </div>)}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/>
@@ -520,7 +520,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
           {/* Category Sections */}
           <div className="mt-4 sm:mt-6 space-y-6 sm:space-y-10">
             {/* Event Categories */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.1 }}>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-display text-base sm:text-lg font-bold flex items-center gap-2">
                   <CalendarDays className="h-5 w-5 text-primary"/> Event Categories
@@ -577,7 +577,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
                   <>
                     <div className="grid grid-cols-2 gap-3 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {displayedEvents.slice(0, 4).map((event, idx) => (
-                        <motion.div key={event._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
+                        <motion.div key={event._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: idx * 0.05 }}>
                           <EventCard 
                             event={event} 
                             index={idx}
@@ -602,7 +602,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
             </motion.div>
 
             {/* Service Categories */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.15 }}>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-display text-base sm:text-lg font-bold flex items-center gap-2">
                   <Briefcase className="h-5 w-5 text-orange-500"/> Service Categories
@@ -659,12 +659,12 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
                   <>
                     <div className="grid grid-cols-2 gap-3 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {displayedServices.slice(0, 4).map((svc, idx) => (
-                        <motion.div key={svc._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
+                        <motion.div key={svc._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: idx * 0.05 }} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
                           <div className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-52">
                             {svc.image ? (
                               <img src={svc.image.startsWith("http") ? svc.image : `${API_URL}${svc.image}`} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>
                             ) : (
-                              <div className="flex h-full items-center justify-center text-muted-foreground">
+                              <div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
                                 <Clock className="h-12 w-12 opacity-20"/>
                               </div>
                             )}
@@ -739,7 +739,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
             </motion.div>
 
             {/* Live Events Section */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-8">
+            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }} className="mt-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-display text-base sm:text-xl font-bold flex items-center gap-2">
                   <Video className="h-5 w-5 text-red-500"/>
@@ -762,7 +762,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
               ) : (
                 <div className="grid grid-cols-2 gap-3 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {onlyLiveEvents.map((event, idx) => (
-                    <motion.div key={event._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.07 }}>
+                    <motion.div key={event._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: idx * 0.07 }}>
                       <EventCard 
                         event={event} 
                         index={idx}
@@ -777,7 +777,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
           </div>
 
           {/* Recent Bookings Section */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-4 sm:mt-8">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.1 }} className="mt-4 sm:mt-8">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display text-sm sm:text-xl font-bold flex items-center gap-1.5">
                 <Ticket className="h-4 w-4 text-primary"/> {t("recent_bookings")}
@@ -958,7 +958,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
   <div class="ticket">
     <div class="ticket-header">
       <h1>🎫 EVENT TICKET</h1>
-      <p>JoyEvents</p>
+      <p>Eventoza</p>
     </div>
     ${eventImage ? `<img src="${eventImage}" alt="Event" class="event-image" onerror="this.style.display='none'">` : ''}
     <div class="ticket-body">
@@ -1083,13 +1083,13 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
 
           {/* Stats */}
           <div className="mt-4 sm:mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
-            <StatCard title={t("total_bookings")} value={loading ? "…" : bookings.length} icon={<Ticket className="h-5 w-5"/>} index={0}/>
-            <StatCard title={t("upcoming")} value={loading ? "…" : upcomingBookings.length} icon={<Calendar className="h-5 w-5"/>} index={1}/>
-            <StatCard title={t("completed")} value={loading ? "…" : completedBookings.length} icon={<CheckCircle2 className="h-5 w-5"/>} index={2}/>
-            <StatCard title={t("total_spent")} value={loading ? "…" : `${formatCurrency(totalSpent)}`} icon={<DollarSign className="h-5 w-5"/>} index={3}/>
+            <StatCard title={t("total_bookings")} value={loading ? "…" : bookings.length} icon={<Ticket className="h-5 w-5"/>} index={0} to="/customer-dashboard/bookings"/>
+            <StatCard title={t("upcoming")} value={loading ? "…" : upcomingBookings.length} icon={<Calendar className="h-5 w-5"/>} index={1} to="/customer-dashboard/upcoming"/>
+            <StatCard title={t("completed")} value={loading ? "…" : completedBookings.length} icon={<CheckCircle2 className="h-5 w-5"/>} index={2} to="/customer-dashboard/history"/>
+            <StatCard title={t("total_spent")} value={loading ? "…" : `${formatCurrency(totalSpent)}`} icon={<DollarSign className="h-5 w-5"/>} index={3} to="/customer-dashboard/wallet"/>
             
             {/* Wallet Balance Card */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="relative overflow-hidden rounded-2xl border border-primary/20 bg-card p-4 flex flex-col justify-between hover:shadow-lg transition-shadow">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }} className="relative overflow-hidden rounded-2xl border border-primary/20 bg-card p-4 flex flex-col justify-between hover:shadow-lg transition-shadow">
               <div>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span className="text-xs font-semibold uppercase tracking-wider text-[10px] sm:text-xs">Wallet Balance</span>
@@ -1110,7 +1110,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
 
 
           {/* Booking History with tabs */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-8 sm:mt-12">
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.3 }} className="mt-8 sm:mt-12">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
               <h2 className="font-display text-xl sm:text-2xl font-bold flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-primary"/> My Bookings
@@ -1287,7 +1287,7 @@ ${rating ? `<div class="rating-box">⭐ Your Rating: ${rating}</div>` : ""}
   <div class="ticket">
     <div class="ticket-header">
       <h1>🎫 EVENT TICKET</h1>
-      <p>JoyEvents</p>
+      <p>Eventoza</p>
     </div>
     ${eventImage ? `<img src="${eventImage}" alt="Event" class="event-image" onerror="this.style.display='none'">` : ''}
     <div class="ticket-body">

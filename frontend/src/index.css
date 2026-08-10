@@ -6,64 +6,81 @@
 
 @layer base {
 
-  /* Light theme is the default (next-themes adds no class for light) */
+  /* Light theme is the default (next-themes adds no class for light) — navy / purple / pink / gold, Eventoza brand */
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 6%;
+    --background: 220 45% 98%;
+    --foreground: 211 53% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 6%;
+    --card-foreground: 211 53% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 6%;
+    --popover-foreground: 211 53% 11%;
 
-    --primary: 24 95% 53%;
+    --primary: 263 69% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 222 30% 90%;
-    --secondary-foreground: 222 47% 6%;
+    --secondary: 220 35% 94%;
+    --secondary-foreground: 211 53% 11%;
 
-    --muted: 222 30% 90%;
-    --muted-foreground: 215 16% 22%;
+    --muted: 220 30% 94%;
+    --muted-foreground: 220 15% 40%;
 
-    --accent: 35 92% 55%;
+    --accent: 347 100% 71%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 222 30% 85%;
-    --input: 222 30% 85%;
-    --ring: 24 95% 53%;
+    --border: 220 25% 88%;
+    --input: 220 25% 88%;
+    --ring: 263 69% 42%;
 
     --radius: 0.875rem;
 
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 37 87% 69%;
     --warning-foreground: 0 0% 100%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(24 95% 53%), hsl(35 92% 55%));
-    --gradient-dark: linear-gradient(180deg, hsl(210 40% 98%), hsl(210 40% 96%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 40% 98%));
-    --gradient-glow: radial-gradient(ellipse at center, hsl(24 95% 53% / 0.1), transparent 70%);
+    /* Navy — headings, dark surfaces, footer/CTA banners */
+    --navy: 211 53% 11%;
+    --navy-foreground: 0 0% 100%;
 
-    --shadow-glow: 0 0 40px hsl(24 95% 53% / 0.15);
+    --gradient-primary: linear-gradient(135deg, #5B21B6 0%, #FF6B8B 100%);
+    --gradient-dark: linear-gradient(180deg, hsl(220 45% 98%), hsl(220 40% 95%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(220 45% 98%));
+    --gradient-glow: radial-gradient(ellipse at center, hsl(263 69% 42% / 0.12), transparent 70%);
+    --gradient-navy: linear-gradient(135deg, hsl(211 53% 11%), hsl(211 48% 18%));
+
+    --shadow-glow: 0 0 40px hsl(263 69% 42% / 0.15);
     --shadow-card: 0 4px 24px hsl(222 47% 6% / 0.1);
     --shadow-elevated: 0 8px 40px hsl(222 47% 6% / 0.15);
 
     --font-display: 'Poppins', sans-serif;
     --font-body: 'Poppins', sans-serif;
 
-    --sidebar-background: 210 40% 98%;
-    --sidebar-foreground: 222 47% 6%;
-    --sidebar-primary: 24 95% 53%;
+    --sidebar-background: 211 53% 11%;
+    --sidebar-foreground: 220 35% 92%;
+    --sidebar-primary: 263 69% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 30% 90%;
-    --sidebar-accent-foreground: 222 47% 6%;
-    --sidebar-border: 222 30% 85%;
-    --sidebar-ring: 24 95% 53%;
+    --sidebar-accent: 211 48% 17%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 211 42% 18%;
+    --sidebar-ring: 263 69% 42%;
+
+    /* Pastel accent tints for icon chips / category tags, matching reference cards */
+    --tint-orange: 24 95% 94%;
+    --tint-orange-fg: 24 90% 45%;
+    --tint-pink: 330 85% 95%;
+    --tint-pink-fg: 330 75% 50%;
+    --tint-violet: 262 70% 95%;
+    --tint-violet-fg: 262 60% 55%;
+    --tint-blue: 210 90% 95%;
+    --tint-blue-fg: 210 80% 50%;
+    --tint-mint: 160 60% 93%;
+    --tint-mint-fg: 160 60% 35%;
   }
 
   /* Dark theme — next-themes adds class="dark" to <html> */
@@ -77,7 +94,7 @@
     --popover: 222 47% 9%;
     --popover-foreground: 210 40% 96%;
 
-    --primary: 24 95% 53%;
+    --primary: 263 69% 42%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 222 47% 14%;
@@ -86,7 +103,7 @@
     --muted: 222 30% 16%;
     --muted-foreground: 210 40% 90%;
 
-    --accent: 35 92% 55%;
+    --accent: 347 100% 71%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -94,31 +111,35 @@
 
     --border: 222 30% 18%;
     --input: 222 30% 18%;
-    --ring: 24 95% 53%;
+    --ring: 263 69% 42%;
 
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 37 87% 69%;
     --warning-foreground: 0 0% 100%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(24 95% 53%), hsl(35 92% 55%));
+    --navy: 222 47% 4%;
+    --navy-foreground: 0 0% 100%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(263 69% 42%), hsl(347 100% 71%));
     --gradient-dark: linear-gradient(180deg, hsl(222 47% 6%), hsl(222 47% 10%));
     --gradient-card: linear-gradient(145deg, hsl(222 47% 10%), hsl(222 47% 7%));
-    --gradient-glow: radial-gradient(ellipse at center, hsl(24 95% 53% / 0.15), transparent 70%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(263 69% 42% / 0.15), transparent 70%);
+    --gradient-navy: linear-gradient(135deg, hsl(222 47% 4%), hsl(222 47% 10%));
 
-    --shadow-glow: 0 0 40px hsl(24 95% 53% / 0.2);
+    --shadow-glow: 0 0 40px hsl(263 69% 42% / 0.2);
     --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.3);
     --shadow-elevated: 0 8px 40px hsl(0 0% 0% / 0.4);
 
     --sidebar-background: 222 47% 8%;
     --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 24 95% 53%;
+    --sidebar-primary: 263 69% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 222 47% 14%;
     --sidebar-accent-foreground: 210 40% 96%;
     --sidebar-border: 222 30% 18%;
-    --sidebar-ring: 24 95% 53%;
+    --sidebar-ring: 263 69% 42%;
   }
 }
 
@@ -199,6 +220,14 @@
 
   .bg-gradient-card {
     background-image: var(--gradient-card);
+  }
+
+  .bg-gradient-navy {
+    background-image: var(--gradient-navy);
+  }
+
+  .tint-chip {
+    @apply flex h-10 w-10 items-center justify-center rounded-xl shrink-0;
   }
 
   .shadow-glow {

@@ -5,6 +5,8 @@ import { apiListEvents, apiSuspendEvent, apiCancelEvent, apiFeatureEvent } from 
 import { toast } from "sonner";
 import { Loader2, AlertCircle, Calendar, PowerOff, Ban, Star, PlayCircle, CheckCircle, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import StatCard from "@/components/StatCard";
+import { useGsapReveal } from "@/lib/gsapAnimations";
 const AdminEventMonitoring = () => {
     const { token } = useAuth();
     const [events, setEvents] = useState([]);
@@ -67,50 +69,27 @@ const AdminEventMonitoring = () => {
         completed: events.filter(e => e.status === "completed").length,
         cancelled: events.filter(e => e.status === "cancelled").length,
     };
+    const tableRef = useGsapReveal();
     return (<AdminLayout>
             <section className="py-2 sm:py-8 lg:py-10">
-                <div className="mb-8">
-                    <h1 className="font-display text-xs sm:text-3xl font-bold truncate">
+                <div className="mb-6 sm:mb-8">
+                    <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground truncate">
                         Events
                     </h1>
                     <p className="text-muted-foreground text-sm mt-1">Real-time overview and management of all platform events</p>
                 </div>
 
                 {/* Stats Row */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <div className="rounded-xl border border-border bg-card p-4">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500"><Calendar className="h-5 w-5"/></div>
-                            <h3 className="text-sm font-medium text-muted-foreground">Total Events</h3>
-                        </div>
-                        <p className="text-sm sm:text-2xl font-bold">{stats.total}</p>
-                    </div>
-                    <div className="rounded-xl border border-border bg-card p-4">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 rounded-lg bg-green-500/10 text-green-500"><PlayCircle className="h-5 w-5"/></div>
-                            <h3 className="text-sm font-medium text-muted-foreground">Active Events</h3>
-                        </div>
-                        <p className="text-sm sm:text-2xl font-bold">{stats.active}</p>
-                    </div>
-                    <div className="rounded-xl border border-border bg-card p-4">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500"><CheckCircle className="h-5 w-5"/></div>
-                            <h3 className="text-sm font-medium text-muted-foreground">Completed</h3>
-                        </div>
-                        <p className="text-sm sm:text-2xl font-bold">{stats.completed}</p>
-                    </div>
-                    <div className="rounded-xl border border-border bg-card p-4">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 rounded-lg bg-red-500/10 text-red-500"><XCircle className="h-5 w-5"/></div>
-                            <h3 className="text-sm font-medium text-muted-foreground">Cancelled</h3>
-                        </div>
-                        <p className="text-sm sm:text-2xl font-bold">{stats.cancelled}</p>
-                    </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+                    <StatCard index={0} title="Total Events" value={stats.total} icon={<Calendar />} />
+                    <StatCard index={1} title="Active Events" value={stats.active} icon={<PlayCircle />} />
+                    <StatCard index={2} title="Completed" value={stats.completed} icon={<CheckCircle />} />
+                    <StatCard index={3} title="Cancelled" value={stats.cancelled} icon={<XCircle />} />
                 </div>
 
                 {/* Filters */}
-                <div className="flex gap-2 mb-6 p-1 bg-secondary rounded-lg w-max">
-                    {["all", "active", "completed", "cancelled"].map(f => (<button key={f} onClick={() => setFilter(f)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filter === f ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                <div className="flex flex-wrap gap-2 mb-6 p-1 bg-secondary rounded-lg w-max">
+                    {["all", "active", "completed", "cancelled"].map(f => (<button key={f} onClick={() => setFilter(f)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors min-h-[40px] ${filter === f ? "bg-gradient-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                             <span className="capitalize">{f}</span>
                         </button>))}
                 </div>
@@ -121,50 +100,50 @@ const AdminEventMonitoring = () => {
                     </div>) : filteredEvents.length === 0 ? (<div className="rounded-xl border border-border bg-card p-10 text-center text-muted-foreground">
                         <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-40"/>
                         No events found for this filter.
-                    </div>) : (<div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
+                    </div>) : (<div ref={tableRef} className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="text-xs text-muted-foreground uppercase bg-secondary/50 border-b border-border">
+                            <table className="w-full text-sm text-left min-w-[720px]">
+                                <thead className="bg-secondary text-muted-foreground text-xs uppercase tracking-wide">
                                     <tr>
-                                        <th className="px-6 py-4 font-medium">Event</th>
-                                        <th className="px-6 py-4 font-medium">Date & Time</th>
-                                        <th className="px-6 py-4 font-medium">Status</th>
-                                        <th className="px-6 py-4 font-medium">Flags</th>
-                                        <th className="px-6 py-4 font-medium text-right">Actions</th>
+                                        <th className="px-4 py-3 font-medium">Event</th>
+                                        <th className="px-4 py-3 font-medium">Date & Time</th>
+                                        <th className="px-4 py-3 font-medium">Status</th>
+                                        <th className="px-4 py-3 font-medium">Flags</th>
+                                        <th className="px-4 py-3 font-medium text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
                                     {filteredEvents.map(ev => {
                 const isProcessing = processingId === ev._id;
-                return (<motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }} key={ev._id} className="hover:bg-secondary/30 transition-colors">
-                                                <td className="px-6 py-4">
+                return (<motion.tr initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} key={ev._id} className="hover:bg-secondary/50 transition-colors">
+                                                <td className="px-4 py-3">
                                                     <div className="font-semibold text-foreground">{ev.title}</div>
                                                     <div className="text-xs text-muted-foreground mt-0.5">{ev.category}</div>
                                                 </td>
-                                                <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
+                                                <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                                                     {new Date(ev.datetime).toLocaleDateString()} at {new Date(ev.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${ev.status === "upcoming" ? "bg-blue-500/10 text-blue-500" :
-                        ev.status === "ongoing" ? "bg-green-500/10 text-green-500" :
-                            ev.status === "cancelled" ? "bg-red-500/10 text-red-500" :
-                                "bg-gray-500/10 text-gray-400"}`}>
+                                                <td className="px-4 py-3">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${ev.status === "upcoming" ? "bg-tint-blue text-tint-blue-fg" :
+                        ev.status === "ongoing" ? "bg-tint-mint text-tint-mint-fg" :
+                            ev.status === "cancelled" ? "bg-destructive/15 text-destructive" :
+                                "bg-secondary text-muted-foreground"}`}>
                                                         {ev.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex gap-2">
-                                                        {ev.isFeatured && <span className="flex items-center gap-1 text-xs text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded-full"><Star className="h-3 w-3"/> Featured</span>}
-                                                        {ev.isSuspended && <span className="flex items-center gap-1 text-xs text-orange-500 bg-orange-500/10 px-2 py-1 rounded-full"><PowerOff className="h-3 w-3"/> Suspended</span>}
+                                                <td className="px-4 py-3">
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {ev.isFeatured && <span className="flex items-center gap-1 text-xs text-tint-orange-fg bg-tint-orange px-2 py-1 rounded-full"><Star className="h-3 w-3"/> Featured</span>}
+                                                        {ev.isSuspended && <span className="flex items-center gap-1 text-xs text-tint-orange-fg bg-tint-orange px-2 py-1 rounded-full"><PowerOff className="h-3 w-3"/> Suspended</span>}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 text-right">
+                                                <td className="px-4 py-3 text-right">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <button disabled={isProcessing} onClick={() => handleAction(ev._id, ev.isFeatured ? "unfeature" : "feature")} className={`p-1.5 rounded-md transition-colors ${ev.isFeatured ? "text-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`} title={ev.isFeatured ? "Unfeature Event" : "Feature Event"}>
+                                                        <button disabled={isProcessing} onClick={() => handleAction(ev._id, ev.isFeatured ? "unfeature" : "feature")} className={`h-11 w-11 flex items-center justify-center rounded-md transition-colors ${ev.isFeatured ? "text-tint-orange-fg bg-tint-orange" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`} title={ev.isFeatured ? "Unfeature Event" : "Feature Event"}>
                                                             {isProcessing ? <Loader2 className="h-4 w-4 animate-spin"/> : <Star className="h-4 w-4"/>}
                                                         </button>
 
-                                                        <button disabled={isProcessing} onClick={() => handleAction(ev._id, ev.isSuspended ? "unsuspend" : "suspend")} className={`p-1.5 rounded-md transition-colors ${ev.isSuspended ? "text-orange-500 bg-orange-500/10 hover:bg-orange-500/20" : "text-muted-foreground hover:bg-secondary hover:text-orange-500"}`} title={ev.isSuspended ? "Unsuspend Event" : "Suspend Event"}>
+                                                        <button disabled={isProcessing} onClick={() => handleAction(ev._id, ev.isSuspended ? "unsuspend" : "suspend")} className={`h-11 w-11 flex items-center justify-center rounded-md transition-colors ${ev.isSuspended ? "text-tint-orange-fg bg-tint-orange" : "text-muted-foreground hover:bg-secondary hover:text-tint-orange-fg"}`} title={ev.isSuspended ? "Unsuspend Event" : "Suspend Event"}>
                                                             {isProcessing ? <Loader2 className="h-4 w-4 animate-spin"/> : <PowerOff className="h-4 w-4"/>}
                                                         </button>
 
@@ -172,7 +151,7 @@ const AdminEventMonitoring = () => {
                         if (confirm("Are you sure you want to cancel this event? This action cannot be fully undone through the UI.")) {
                             handleAction(ev._id, "cancel");
                         }
-                    }} className={`p-1.5 rounded-md transition-colors ${ev.status === "cancelled" ? "opacity-50 cursor-not-allowed" : "text-muted-foreground hover:bg-red-500/10 hover:text-red-500"}`} title="Cancel Event">
+                    }} className={`h-11 w-11 flex items-center justify-center rounded-md transition-colors ${ev.status === "cancelled" ? "opacity-50 cursor-not-allowed" : "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"}`} title="Cancel Event">
                                                             {isProcessing ? <Loader2 className="h-4 w-4 animate-spin"/> : <Ban className="h-4 w-4"/>}
                                                         </button>
                                                     </div>

@@ -36,24 +36,24 @@ const AdminUtilities = () => {
     };
     return (<AdminLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
           <div className="mb-6">
-            <h1 className="font-display text-xs sm:text-3xl font-bold flex items-center gap-2">
-              <Settings className="h-7 w-7 text-primary"/>
+            <h1 className="font-display text-xl sm:text-3xl font-bold flex items-center gap-2">
+              <Settings className="h-6 w-6 sm:h-7 sm:w-7 text-primary shrink-0"/>
               Admin <span className="text-gradient">Utilities</span>
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">System maintenance and cleanup tools</p>
+            <p className="text-muted-foreground text-xs sm:text-sm mt-1">System maintenance and cleanup tools</p>
           </div>
 
           {/* Danger Zone */}
           <div className="max-w-2xl">
-            <div className="border-2 border-red-500/30 rounded-xl p-6 bg-red-500/5">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-500/20">
-                  <AlertTriangle className="h-6 w-6 text-red-500"/>
+            <div className="border-2 border-red-500/30 rounded-xl p-4 sm:p-6 bg-red-500/5">
+              <div className="flex items-start gap-3 sm:gap-4 mb-4">
+                <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full bg-red-500/20">
+                  <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-red-500"/>
                 </div>
                 <div>
-                  <h2 className="font-display text-xl font-bold text-red-600 dark:text-red-400 mb-2">
+                  <h2 className="font-display text-lg sm:text-xl font-bold text-red-600 dark:text-red-400 mb-2">
                     Danger Zone
                   </h2>
                   <p className="text-sm text-red-600 dark:text-red-400 mb-4">
@@ -62,13 +62,13 @@ const AdminUtilities = () => {
                 </div>
               </div>
 
-              <div className="border border-red-500/20 rounded-lg p-4 bg-red-500/10">
+              <div className="border border-red-500/20 rounded-lg p-3 sm:p-4 bg-red-500/10">
                 <h3 className="font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
                   <Trash2 className="h-4 w-4"/>
                   Delete All Admin-Created Events
                 </h3>
                 <p className="text-sm text-red-600 dark:text-red-400 mb-4">
-                  This will permanently delete all events that were created by admin users across the entire platform. 
+                  This will permanently delete all events that were created by admin users across the entire platform.
                   This includes events in all merchant dashboards, customer views, and booking systems.
                 </p>
                 <ul className="text-xs text-red-600 dark:text-red-400 mb-4 space-y-1">
@@ -77,8 +77,8 @@ const AdminUtilities = () => {
                   <li>• Cannot be undone once executed</li>
                   <li>• Merchant-created events will remain untouched</li>
                 </ul>
-                
-                <Button variant="destructive" onClick={handleDeleteAdminEvents} disabled={deleting} className="bg-red-600 hover:bg-red-700 border-red-500">
+
+                <Button variant="destructive" onClick={handleDeleteAdminEvents} disabled={deleting} className="bg-red-600 hover:bg-red-700 border-red-500 min-h-[40px] w-full sm:w-auto">
                   {deleting ? (<>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                       Deleting Admin Events...
@@ -93,7 +93,7 @@ const AdminUtilities = () => {
 
           {/* Info Section */}
           <div className="mt-8 max-w-2xl">
-            <div className="border border-border rounded-xl p-6 bg-card">
+            <div className="border border-border rounded-xl p-4 sm:p-6 bg-card">
               <h3 className="font-semibold mb-2">How it works</h3>
               <div className="text-sm text-muted-foreground space-y-2">
                 <p>1. The system identifies all users with "admin" role</p>

@@ -78,7 +78,7 @@ const AdminEarnings = () => {
     // Grand Total Admin Earnings
     const totalAdminEarnings = totalMerchantEarnings + totalCommissionEarnings;
     return (<AdminLayout>
-      <section className="py-6 space-y-6">
+      <section className="py-2 sm:py-6 space-y-6">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -89,7 +89,7 @@ const AdminEarnings = () => {
               Track and analyze admin revenue flows from onboarding setup fees, upgrades, and platform commissions.
             </p>
           </div>
-          <Button onClick={loadData} disabled={loading} variant="outline" className="border-[#A68C73]/40 text-[#A68C73] hover:bg-[#A68C73]/5">
+          <Button onClick={loadData} disabled={loading} variant="outline" className="border-[#A68C73]/40 text-[#A68C73] hover:bg-[#A68C73]/5 min-h-[40px] w-full sm:w-auto">
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : null}
             Refresh Earnings
           </Button>
@@ -102,7 +102,7 @@ const AdminEarnings = () => {
             {/* Summary Cards */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {/* Grand Total */}
-              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+              <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.05 }}>
                 <Card className="border-[#A68C73]/30 bg-card overflow-hidden relative">
                   <div className="absolute top-0 right-0 p-3 opacity-10">
                     <TrendingUp className="h-20 w-20 text-[#A68C73]"/>
@@ -124,7 +124,7 @@ const AdminEarnings = () => {
               </motion.div>
 
               {/* Merchant Setup Fees Card */}
-              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+              <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.1 }}>
                 <Card className="border-border bg-card">
                   <CardHeader className="pb-2">
                     <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -148,7 +148,7 @@ const AdminEarnings = () => {
               </motion.div>
 
               {/* Commission Earnings Card */}
-              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+              <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.15 }}>
                 <Card className="border-border bg-card">
                   <CardHeader className="pb-2">
                     <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -173,7 +173,7 @@ const AdminEarnings = () => {
                 </Card>
               </motion.div>
 
-              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }}>
                 <Card className="border-green-500/30 bg-card">
                   <CardHeader className="pb-2">
                     <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -214,7 +214,7 @@ const AdminEarnings = () => {
             </div>
 
             {/* TAB CONTENT: 1. Summary */}
-            {activeSubTab === "summary" && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-6 md:grid-cols-2 mt-4">
+            {activeSubTab === "summary" && (<motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} className="grid gap-6 md:grid-cols-2 mt-4">
                 <Card className="bg-card border-border">
                   <CardHeader>
                     <CardTitle className="text-base font-bold font-display">Merchant Onboarding vs Commissions Split</CardTitle>
@@ -248,7 +248,7 @@ const AdminEarnings = () => {
                 <Card className="bg-card border-border">
                   <CardHeader>
                     <CardTitle className="text-base font-bold font-display">Earnings Rules & Setup</CardTitle>
-                    <CardDescription>How admin revenue is structured on JoyEvents</CardDescription>
+                    <CardDescription>How admin revenue is structured on Eventoza</CardDescription>
                   </CardHeader>
                   <CardContent className="text-sm space-y-4">
                     <div className="p-3 bg-secondary/50 rounded-lg space-y-1.5 border border-border">
@@ -272,7 +272,7 @@ const AdminEarnings = () => {
               </motion.div>)}
 
             {/* TAB CONTENT: 2. Merchant Setup Payments */}
-            {activeSubTab === "merchants" && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4">
+            {activeSubTab === "merchants" && (<motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} className="mt-4">
                 <Card className="bg-card border-border">
                   <CardHeader className="pb-3 flex flex-row items-center justify-between flex-wrap gap-2">
                     <div>
@@ -281,7 +281,7 @@ const AdminEarnings = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="p-0 overflow-hidden overflow-x-auto">
-                    <Table>
+                    <Table className="min-w-[800px]">
                       <TableHeader className="bg-secondary/40">
                         <TableRow className="border-border">
                           <TableHead className="text-muted-foreground whitespace-nowrap">Merchant</TableHead>
@@ -359,14 +359,14 @@ const AdminEarnings = () => {
               </motion.div>)}
 
             {/* TAB CONTENT: 3. Commissions Logs */}
-            {activeSubTab === "commissions" && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4">
+            {activeSubTab === "commissions" && (<motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} className="mt-4">
                 <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base font-bold font-display">Booking Admin Earnings</CardTitle>
                     <CardDescription>Merchant bookings use commission. Admin bookings credit the full paid amount to admin.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-0 overflow-hidden overflow-x-auto">
-                    <Table>
+                    <Table className="min-w-[800px]">
                       <TableHeader className="bg-secondary/40">
                         <TableRow className="border-border">
                           <TableHead className="text-muted-foreground whitespace-nowrap">Booking Event/Service</TableHead>

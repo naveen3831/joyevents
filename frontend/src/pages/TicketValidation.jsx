@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiMarkTicketAsUsed } from "@/lib/api";
 import { API_URL } from "@/lib/config";
+import { useGsapStagger } from "@/lib/gsapAnimations";
 const TicketValidation = () => {
     const { token } = useAuth();
     const [ticketId, setTicketId] = useState("");
@@ -20,6 +21,7 @@ const TicketValidation = () => {
     const [markingAsUsed, setMarkingAsUsed] = useState(false);
     const [markUsedDialogOpen, setMarkUsedDialogOpen] = useState(false);
     const [showAllValidations, setShowAllValidations] = useState(false);
+    const historyRef = useGsapStagger([searchHistory, showAllValidations], { y: 10, stagger: 0.03 });
     const loadRecentValidations = async () => {
         if (!token)
             return;
@@ -139,13 +141,13 @@ const TicketValidation = () => {
       <section className="py-2 sm:py-8 lg:py-10">
         <div className="container mx-auto">
           {/* Header */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="flex items-center gap-3 mb-8">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
+            <div className="flex items-center gap-3 mb-6 sm:mb-8">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground shrink-0">
                 <QrCode className="h-5 w-5"/>
               </div>
               <div>
-                <h1 className="font-display text-3xl font-bold">
+                <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
                   Ticket <span className="text-gradient">Validation</span>
                 </h1>
                 <p className="text-muted-foreground text-sm mt-1">Verify and validate customer tickets at event entrance</p>
@@ -154,7 +156,7 @@ const TicketValidation = () => {
           </motion.div>
 
           {/* Validation Section */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="grid gap-8 lg:grid-cols-3">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.1 }} className="grid gap-8 lg:grid-cols-3">
             {/* Search Panel */}
             <div className="lg:col-span-2">
               <div className="rounded-xl border border-border bg-card p-6">
@@ -167,8 +169,8 @@ const TicketValidation = () => {
                       <span className="text-[10px] text-muted-foreground">{(ticketId || "").length}/30</span>
                     </div>
                     <div className="flex gap-2">
-                      <Input placeholder="Enter Ticket ID (e.g., TKT-1773396713958-FDDMIBBK)" maxLength={30} value={ticketId} onChange={(e) => setTicketId(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))} onKeyPress={handleKeyPress} className="flex-1 font-mono uppercase"/>
-                      <Button onClick={validateTicket} disabled={loading} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
+                      <Input placeholder="Enter Ticket ID (e.g., TKT-1773396713958-FDDMIBBK)" maxLength={30} value={ticketId} onChange={(e) => setTicketId(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))} onKeyPress={handleKeyPress} className="flex-1 font-mono uppercase border-border bg-background rounded-lg min-h-[44px]"/>
+                      <Button onClick={validateTicket} disabled={loading} className="bg-gradient-primary text-primary-foreground hover:opacity-90 min-h-[44px]">
                         {loading ? (<>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                             Validating...
@@ -181,7 +183,7 @@ const TicketValidation = () => {
                   </div>
 
                   {/* Validation Result */}
-                  {validationResult && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`p-6 rounded-lg border-2 ${validationResult.valid
+                  {validationResult && (<motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className={`p-6 rounded-lg border-2 ${validationResult.valid
                 ? "border-green-500/30 bg-green-500/10"
                 : "border-red-500/30 bg-red-500/10"}`}>
                       <div className="flex items-start gap-4">

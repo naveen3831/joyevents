@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useGsapReveal } from "@/lib/gsapAnimations";
 const STATUS_BADGE = {
     assigned: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
     pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
@@ -34,6 +35,9 @@ const STATUS_BADGE = {
 };
 const MerchantDashboard = () => {
     const { token, user, updateUser } = useAuth();
+    const onboardingStepReveal = useGsapReveal();
+    const quotationCardReveal = useGsapReveal();
+    const accountLimitsReveal = useGsapReveal();
     const [bookings, setBookings] = useState([]);
     const [events, setEvents] = useState([]);
     const [services, setServices] = useState([]);
@@ -562,7 +566,7 @@ const MerchantDashboard = () => {
         };
         return (<MerchantLayout>
         <section className="py-8 max-w-4xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="space-y-8">
             <div>
               <h1 className="font-display text-3xl font-bold">
                 Merchant <span className="text-gradient">Onboarding</span>
@@ -571,7 +575,7 @@ const MerchantDashboard = () => {
             </div>
 
             {/* Stepper Header */}
-            <div className="grid grid-cols-4 gap-2 border-b border-border pb-4">
+            <div ref={onboardingStepReveal} className="grid grid-cols-4 gap-2 border-b border-border pb-4">
               {[
                 { step: "details_pending", label: "1. Business Details" },
                 { step: "details_submitted", label: "2. Review" },
@@ -592,7 +596,7 @@ const MerchantDashboard = () => {
             </div>
 
             {/* STEP 1: Details Pending Form */}
-            {mStatus === "details_pending" && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl border border-border bg-card p-6 sm:p-8 space-y-6 shadow-lg">
+            {mStatus === "details_pending" && (<motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} className="rounded-2xl border border-border bg-card p-6 sm:p-8 space-y-6 shadow-lg">
                 <div>
                   <h2 className="font-display text-xl font-bold flex items-center gap-2">
                     <Store className="h-5 w-5 text-primary"/> Tell us about your business
@@ -667,7 +671,7 @@ const MerchantDashboard = () => {
               </motion.div>)}
 
             {/* STEP 2: Details Submitted / Review Pending */}
-            {mStatus === "details_submitted" && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl border border-border bg-card p-8 text-center space-y-6 shadow-lg py-12">
+            {mStatus === "details_submitted" && (<motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} className="rounded-2xl border border-border bg-card p-8 text-center space-y-6 shadow-lg py-12">
                 <div className="mx-auto w-16 h-16 rounded-full bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20">
                   <Clock className="h-8 w-8 text-yellow-500 animate-pulse"/>
                 </div>
@@ -686,7 +690,7 @@ const MerchantDashboard = () => {
               </motion.div>)}
 
             {/* STEP 3: Quotation Sent / Payment Pending */}
-            {mStatus === "quotation_sent" && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            {mStatus === "quotation_sent" && (<motion.div ref={quotationCardReveal} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} className="grid grid-cols-1 md:grid-cols-5 gap-6">
                 {/* Quotation Info */}
                 <div className="md:col-span-2 rounded-2xl border border-border bg-card p-6 space-y-4 shadow-lg flex flex-col justify-between">
                   <div className="space-y-2">
@@ -756,7 +760,7 @@ const MerchantDashboard = () => {
               </motion.div>)}
 
             {/* STEP 4: Paid / Awaiting Approval */}
-            {mStatus === "paid" && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl border border-border bg-card p-8 text-center space-y-6 shadow-lg py-12">
+            {mStatus === "paid" && (<motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} className="rounded-2xl border border-border bg-card p-8 text-center space-y-6 shadow-lg py-12">
                 <div className="mx-auto w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center border border-green-500/20">
                   <CheckCircle2 className="h-8 w-8 text-green-500 animate-bounce"/>
                 </div>
@@ -780,7 +784,7 @@ const MerchantDashboard = () => {
     return (<MerchantLayout>
       <section className="py-2 sm:py-8 lg:py-10">
         <div className="w-full">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row md:items-center md:justify-between">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
               <div className="mb-1 sm:mb-2">
                 <span className="text-muted-foreground text-sm sm:text-lg">Welcome back,</span>
@@ -796,7 +800,7 @@ const MerchantDashboard = () => {
           </motion.div>
 
           {/* Pending Upgrade Quotations Alert Banner */}
-          {tickets.filter(t => t.status === "quotation_sent").map((ticket) => (<motion.div key={ticket._id} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          {tickets.filter(t => t.status === "quotation_sent").map((ticket) => (<motion.div key={ticket._id} initial={{ opacity: 0, y: -10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
               <div className="flex items-center gap-3">
                 <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0 animate-pulse"/>
                 <div>
@@ -819,7 +823,7 @@ const MerchantDashboard = () => {
             </motion.div>))}
 
           {/* Account Limits Card */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-6 p-5 rounded-xl border border-border bg-card shadow-sm">
+          <motion.div ref={accountLimitsReveal} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.1 }} className="mt-6 p-5 rounded-xl border border-border bg-card shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="space-y-1">
                 <h3 className="font-display font-bold text-lg flex items-center gap-2">
@@ -850,20 +854,20 @@ const MerchantDashboard = () => {
 
           {/* Stats — Row 1 */}
           <div className="mt-4 sm:mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-            <StatCard title="Total Bookings" value={loading ? "…" : bookings.length} icon={<Calendar className="h-5 w-5"/>} index={0}/>
-            <StatCard title="Active Bookings" value={loading ? "…" : activeBookings.length} icon={<TrendingUp className="h-5 w-5"/>} index={1}/>
-            <StatCard title="Completed" value={loading ? "…" : completedBookings.length} icon={<CheckCircle2 className="h-5 w-5"/>} index={2}/>
+            <StatCard title="Total Bookings" value={loading ? "…" : bookings.length} icon={<Calendar className="h-5 w-5"/>} index={0} to="/merchant-dashboard/bookings"/>
+            <StatCard title="Active Bookings" value={loading ? "…" : activeBookings.length} icon={<TrendingUp className="h-5 w-5"/>} index={1} to="/merchant-dashboard/bookings"/>
+            <StatCard title="Completed" value={loading ? "…" : completedBookings.length} icon={<CheckCircle2 className="h-5 w-5"/>} index={2} to="/merchant-dashboard/bookings"/>
           </div>
 
           {/* Stats — Row 2 */}
           <div className="mt-3 sm:mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-            <StatCard title="My Events" value={loading ? "…" : events.length} icon={<Calendar className="h-5 w-5"/>} index={3}/>
-            <StatCard title="My Services" value={loading ? "…" : services.length} icon={<Briefcase className="h-5 w-5"/>} index={4}/>
-            <StatCard title="Revenue Earned" value={loading ? "…" : `${formatCurrency(totalEarnings)}`} icon={<DollarSign className="h-5 w-5"/>} index={5}/>
+            <StatCard title="My Events" value={loading ? "…" : events.length} icon={<Calendar className="h-5 w-5"/>} index={3} to="/merchant-dashboard/events"/>
+            <StatCard title="My Services" value={loading ? "…" : services.length} icon={<Briefcase className="h-5 w-5"/>} index={4} to="/merchant-dashboard/services"/>
+            <StatCard title="Revenue Earned" value={loading ? "…" : `${formatCurrency(totalEarnings)}`} icon={<DollarSign className="h-5 w-5"/>} index={5} to="/merchant-dashboard/earnings"/>
           </div>
 
           {/* Bookings Table with tabs */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-12">
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.3 }} className="mt-12">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
               <h2 className="font-display text-sm sm:text-2xl font-bold flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-primary"/> Bookings
@@ -1067,7 +1071,7 @@ const MerchantDashboard = () => {
           </motion.div>
 
           {/* Live Events Section */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-12">
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.4 }} className="mt-12">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-sm sm:text-2xl font-bold flex items-center gap-2">
                 <Video className="h-5 w-5 text-primary"/> Your Live Events
@@ -1094,7 +1098,7 @@ const MerchantDashboard = () => {
                     </div>)}
                 </div>
               </div>) : (<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {events.filter(e => e.live).map((event) => (<motion.div key={event._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="group rounded-xl border border-border bg-card overflow-hidden hover-lift">
+                {events.filter(e => e.live).map((event) => (<motion.div key={event._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="group rounded-xl border border-border bg-card overflow-hidden hover-lift">
                     <div className="relative h-40 overflow-hidden bg-secondary">
                       {event.image ? (<img src={event.image.startsWith("http") ? event.image : `${API_URL}${event.image}`} alt={event.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center text-muted-foreground">
                           <Video className="h-8 w-8 opacity-30"/>
@@ -1306,7 +1310,7 @@ const MerchantDashboard = () => {
             </div>)}
 
           {/* Summary cards */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-12 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.5 }} className="mt-12 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
             <div className="rounded-xl border border-border bg-card p-3 sm:p-6 flex items-center gap-2 sm:gap-4">
               <div className="flex h-8 w-8 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground shrink-0">
                 <Clock className="h-5 w-5"/>
@@ -1337,7 +1341,7 @@ const MerchantDashboard = () => {
           </motion.div>
 
           {/* Promo Codes Section */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-12">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.5 }} className="mt-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-display text-sm sm:text-2xl font-bold flex items-center gap-2">
                 <span className="text-amber-500">🎟️</span> Active Promo Codes
@@ -1363,7 +1367,7 @@ const MerchantDashboard = () => {
           </motion.div>
 
           {/* Customer Reviews Section */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="mt-12">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.6 }} className="mt-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-display text-sm sm:text-2xl font-bold flex items-center gap-2">
                 <Star className="h-5 w-5 text-yellow-500"/> Customer Reviews
@@ -1384,7 +1388,7 @@ const MerchantDashboard = () => {
                 .filter(b => b.rating?.score)
                 .sort((a, b) => new Date(b.rating?.ratedAt || 0).getTime() - new Date(a.rating?.ratedAt || 0).getTime())
                 .slice(0, 6)
-                .map((booking) => (<motion.div key={booking._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card p-5 hover:shadow-lg transition-shadow">
+                .map((booking) => (<motion.div key={booking._id} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="rounded-xl border border-border bg-card p-5 hover:shadow-lg transition-shadow">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <p className="font-semibold text-sm">{booking.customer?.name}</p>
@@ -1407,7 +1411,7 @@ const MerchantDashboard = () => {
               </div>)}
 
             {/* Rating Stats */}
-            {bookings.filter(b => b.rating?.score).length > 0 && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="mt-6 rounded-xl border border-border bg-card p-6">
+            {bookings.filter(b => b.rating?.score).length > 0 && (<motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.7 }} className="mt-6 rounded-xl border border-border bg-card p-6">
                 <h3 className="font-display font-semibold mb-4">Rating Summary</h3>
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5">
                   {(() => {
@@ -1444,7 +1448,7 @@ const MerchantDashboard = () => {
               </motion.div>)}
           </motion.div>
           {/* Payout Status Section */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }} className="mt-12">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.8 }} className="mt-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-display text-sm sm:text-2xl font-bold flex items-center gap-2">
                 <DollarSign className="h-5 w-5 text-green-500"/> Payout Status
@@ -1515,7 +1519,7 @@ const MerchantDashboard = () => {
           </motion.div>
 
           {/* Slots Upgrade Request Tickets History */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }} className="mt-12">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.9 }} className="mt-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-display text-sm sm:text-2xl font-bold flex items-center gap-2">
                 <Ticket className="h-5 w-5 text-indigo-500"/> Slots Upgrade Request Tickets
@@ -1563,7 +1567,7 @@ const MerchantDashboard = () => {
           </motion.div>
 
           {/* Billing & Payments History */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }} className="mt-12">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 1.0 }} className="mt-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-display text-sm sm:text-2xl font-bold flex items-center gap-2">
                 <DollarSign className="h-5 w-5 text-green-500"/> Billing & Payments History

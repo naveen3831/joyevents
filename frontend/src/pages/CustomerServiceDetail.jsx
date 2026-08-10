@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { savePendingServiceBooking, getPendingServiceBooking, clearPendingServiceBooking } from "@/lib/bookingState";
 import LocationPicker from "@/components/LocationPicker";
 import AvailablePromoCodes from "@/components/AvailablePromoCodes";
+import { useGsapStagger } from "@/lib/gsapAnimations";
 const CustomerServiceDetail = () => {
     const { id } = useParams();
     const { isLoggedIn, token } = useAuth();
@@ -193,6 +194,7 @@ const CustomerServiceDetail = () => {
             navigate("/customer-dashboard/cart");
         }
     };
+    const relatedGridRef = useGsapStagger([relatedServices.length]);
     if (loading)
         return (<CustomerLayout>
       <div className="flex items-center justify-center h-[60vh] text-muted-foreground gap-2">
@@ -214,7 +216,7 @@ const CustomerServiceDetail = () => {
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-4rem)] px-3 sm:px-6 lg:px-12 gap-4 sm:gap-8 pb-8 sm:pb-12 mt-4 sm:mt-6">
 
           {/* LEFT — Image + Info */}
-          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="lg:w-1/2 bg-card rounded-2xl border border-border overflow-hidden flex flex-col">
+          <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.15 }} className="lg:w-1/2 bg-card rounded-2xl border border-border overflow-hidden flex flex-col">
             {/* Image */}
             <div className="relative aspect-[16/10] w-full overflow-hidden bg-secondary shrink-0">
               {imgSrc(service.image) ? (<img src={imgSrc(service.image)} alt={service.name} className="h-full w-full object-cover"/>) : (<div className="flex h-full items-center justify-center">
@@ -343,7 +345,7 @@ const CustomerServiceDetail = () => {
           </motion.div>
 
           {/* RIGHT — Booking Form */}
-          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="lg:w-1/2 bg-card rounded-2xl border border-border">
+          <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.15 }} className="lg:w-1/2 bg-card rounded-2xl border border-border">
             <div className="p-8 max-w-lg mx-auto">
               <h2 className="font-display text-2xl font-bold mb-1">Book This Service</h2>
               <p className="text-muted-foreground text-sm mb-8">Fill in the details below to confirm your booking</p>
@@ -490,8 +492,8 @@ const CustomerServiceDetail = () => {
 
         {/* Related Services Section */}
         {relatedServices.length > 0 && (<div className="px-3 sm:px-6 lg:px-12 mt-16 pt-12 pb-16 border-t border-border">
-            <h2 className="font-display text-2xl font-bold mb-6">Related Services</h2>
-            <div className="grid grid-cols-2 gap-4 sm:gap-8 lg:grid-cols-4">
+            <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground mb-6 sm:mb-8">Related Services</h2>
+            <div ref={relatedGridRef} className="grid grid-cols-2 gap-4 sm:gap-8 lg:grid-cols-4">
               {relatedServices.map((r) => (<div key={r._id} onClick={() => navigate(`/customer-dashboard/services/${r._id}`)} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 cursor-pointer">
                   <div className="relative aspect-[4/3] bg-secondary overflow-hidden flex-shrink-0">
                     {r.image ? (<img src={imgSrc(r.image)} alt={r.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center">

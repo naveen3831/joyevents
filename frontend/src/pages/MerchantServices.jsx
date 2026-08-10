@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
+import { useGsapStagger } from "@/lib/gsapAnimations";
 import { Briefcase, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Tag, Upload } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import AdminLayout from "@/components/AdminLayout";
@@ -50,6 +51,7 @@ const MerchantServices = ({ layout = "merchant" } = {}) => {
     const [creatingCat, setCreatingCat] = useState(false);
     const fileRef = useRef(null);
     const galleryRef = useRef(null);
+    const gridRef = useGsapStagger([services]);
     const load = async () => {
         try {
             const [servicesRes, catsRes] = await Promise.all([
@@ -295,14 +297,14 @@ const MerchantServices = ({ layout = "merchant" } = {}) => {
     };
     return (<PageLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
           <div>
-            <h1 className="font-display text-3xl font-bold">
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
               My <span className="text-gradient">Services</span>
             </h1>
             <p className="text-muted-foreground text-sm mt-1">Manage your own services - create, edit, and delete only what you own</p>
           </div>
-          <Button onClick={openCreate} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
+          <Button onClick={openCreate} className="w-full sm:w-auto bg-gradient-primary text-primary-foreground hover:opacity-90 min-h-[44px]">
             <Plus className="mr-2 h-4 w-4"/> New Service
           </Button>
         </motion.div>
@@ -482,20 +484,28 @@ const MerchantServices = ({ layout = "merchant" } = {}) => {
               <AlertCircle className="mx-auto mb-3 h-10 w-10 opacity-30"/>
               <p className="font-medium">No services yet</p>
               <p className="text-xs mt-1">Click "New Service" to create your first service. Only your services are shown here.</p>
-            </div>) : (<div className="grid grid-cols-2 gap-3 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {services.map((svc) => (<motion.div key={svc._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
+            </div>) : (<div ref={gridRef} className="grid grid-cols-2 gap-3 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {services.map((svc) => (<div key={svc._id} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
                   {/* Image */}
                   <div className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-52">
-                    {svc.image ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center text-muted-foreground">
+                    {svc.image ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
                         <Briefcase className="h-12 w-12 opacity-30"/>
                       </div>)}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/>
                     <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
                       From {formatCurrency(svc.price)}
                     </span>
-                    <span className={`absolute top-3 right-3 rounded-full px-2 py-0.5 text-xs font-semibold ${svc.active !== false ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+                    <span className={`absolute top-3 left-3 rounded-full px-2.5 py-1 text-xs font-semibold backdrop-blur-md shadow-sm ${svc.active !== false ? "bg-green-500/80 text-white" : "bg-red-500/80 text-white"}`}>
                       {svc.active !== false ? "Active" : "Inactive"}
                     </span>
+                    <div className="absolute top-3 right-3 flex gap-2 z-10">
+                      <button onClick={() => openEdit(svc)} title="Edit service" className="rounded-full bg-black/70 text-white p-2 hover:bg-primary hover:text-primary-foreground transition-colors shadow-sm">
+                        <Pencil className="h-4 w-4"/>
+                      </button>
+                      <button onClick={() => handleDelete(svc._id)} disabled={deleting === svc._id} title="Delete service" className="rounded-full bg-black/70 text-white p-2 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 shadow-sm">
+                        {deleting === svc._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Info */}
@@ -524,7 +534,7 @@ const MerchantServices = ({ layout = "merchant" } = {}) => {
                       </Button>
                     </div>
                   </div>
-                </motion.div>))}
+                </div>))}
             </div>)}
         </div>
       </section>

@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { apiGetEarningsDashboard, apiRequestWithdrawal, apiGetWithdrawals, apiGetTransactions } from "@/lib/api";
+import StatCard from "@/components/StatCard";
+import { useGsapStagger } from "@/lib/gsapAnimations";
 const EarningsDashboard = () => {
     const { token } = useAuth();
     const [loading, setLoading] = useState(true);
@@ -193,30 +195,7 @@ const EarningsDashboard = () => {
             setSubmittingWithdrawal(false);
         }
     };
-    const COLOR_MAP = {
-      "text-green-600": { bg: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", text: "text-emerald-400" },
-      "text-red-600": { bg: "bg-red-500/10 text-red-400 border border-red-500/20", text: "text-red-400" },
-      "text-blue-600": { bg: "bg-blue-500/10 text-blue-400 border border-blue-500/20", text: "text-blue-400" },
-      "text-orange-600": { bg: "bg-amber-500/10 text-amber-400 border border-amber-500/20", text: "text-amber-400" },
-      "text-purple-600": { bg: "bg-purple-500/10 text-purple-400 border border-purple-500/20", text: "text-purple-400" },
-    };
-    const StatCard = ({ title, value, icon: Icon, color, trend }) => {
-        const theme = COLOR_MAP[color] || { bg: "bg-secondary", text: "text-foreground border border-border" };
-        return (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card p-4 hover-lift">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-muted-foreground line-clamp-1">{title}</p>
-                  <p className={`text-base sm:text-2xl font-bold mt-1 font-display truncate ${theme.text?.split(" ")[0] || "text-foreground"}`} title={value}>{value}</p>
-                  {trend && <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1 font-medium">↑ {trend}</p>}
-                </div>
-                <div className={`p-2.5 rounded-lg ${theme.bg} shrink-0 flex items-center justify-center`}>
-                  <Icon className="h-5 w-5"/>
-                </div>
-              </div>
-            </motion.div>
-        );
-    };
+    const statsGridRef = useGsapStagger([earnings]);
     if (loading) {
         return (<MerchantLayout>
         <section className="py-2 sm:py-8 lg:py-10">
@@ -228,32 +207,32 @@ const EarningsDashboard = () => {
     }
     return (<MerchantLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center justify-between mb-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
             <div>
-              <h1 className="font-display text-base sm:text-3xl font-bold flex items-center gap-2">
-                <DollarSign className="h-7 w-7 text-primary"/>
+              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+                <DollarSign className="h-6 w-6 sm:h-7 sm:w-7 text-primary"/>
                 Earnings <span className="text-gradient">Dashboard</span>
               </h1>
-              <p className="text-muted-foreground text-sm mt-1">Track your earnings, commissions, and withdrawals</p>
+              <p className="text-sm text-muted-foreground mt-1">Track your earnings, commissions, and withdrawals</p>
             </div>
-            <Button onClick={loadEarningsData} variant="outline" size="sm">
+            <Button onClick={loadEarningsData} variant="outline" size="sm" className="w-full sm:w-auto">
               Refresh
             </Button>
           </div>
         </motion.div>
 
         {/* Stats Grid */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 mb-8">
-          <StatCard title="Total Earnings" value={formatCurrency(earnings?.totalEarnings || 0)} icon={TrendingUp} color="text-green-600" trend="12.5%"/>
-          <StatCard title="Commission Deducted" value={formatCurrency(earnings?.totalCommission || 0)} icon={ArrowDownRight} color="text-red-600"/>
-          <StatCard title="Total Withdrawn" value={formatCurrency(earnings?.totalWithdrawn || 0)} icon={Wallet} color="text-blue-600"/>
-          <StatCard title="Total Refunded" value={formatCurrency(earnings?.totalRefunded || 0)} icon={RefreshCcw} color="text-orange-600"/>
-          <StatCard title="Available Balance" value={formatCurrency(earnings?.availableBalance || 0)} icon={DollarSign} color="text-purple-600"/>
-        </motion.div>
+        <div ref={statsGridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 mb-8">
+          <StatCard title="Total Earnings" value={formatCurrency(earnings?.totalEarnings || 0)} icon={<TrendingUp className="h-5 w-5"/>} index={0} trend="12.5%"/>
+          <StatCard title="Commission Deducted" value={formatCurrency(earnings?.totalCommission || 0)} icon={<ArrowDownRight className="h-5 w-5"/>} index={1}/>
+          <StatCard title="Total Withdrawn" value={formatCurrency(earnings?.totalWithdrawn || 0)} icon={<Wallet className="h-5 w-5"/>} index={2}/>
+          <StatCard title="Total Refunded" value={formatCurrency(earnings?.totalRefunded || 0)} icon={<RefreshCcw className="h-5 w-5"/>} index={3}/>
+          <StatCard title="Available Balance" value={formatCurrency(earnings?.availableBalance || 0)} icon={<DollarSign className="h-5 w-5"/>} index={4}/>
+        </div>
 
         {/* Quick Stats */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }} className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 mb-8">
           <div className="rounded-xl border border-border bg-card p-3 sm:p-6">
             <p className="text-sm text-muted-foreground mb-2">Paid Bookings</p>
             <p className="text-xs sm:text-3xl font-bold text-primary">{earnings?.completedBookings || 0}</p>
@@ -269,7 +248,7 @@ const EarningsDashboard = () => {
         </motion.div>
 
         {/* Withdrawal Request Button */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.3 }} className="mb-8">
           <Button onClick={() => setWithdrawalDialogOpen(true)} className="bg-gradient-primary text-primary-foreground hover:opacity-90" size="lg">
             <ArrowUpRight className="h-4 w-4 mr-2"/>
             Request Withdrawal
@@ -277,7 +256,7 @@ const EarningsDashboard = () => {
         </motion.div>
 
         {/* Withdrawal History */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.4 }} className="mb-8">
           <Card>
             <CardHeader>
               <CardTitle>Withdrawal Requests</CardTitle>
@@ -331,7 +310,7 @@ const EarningsDashboard = () => {
         </motion.div>
 
         {/* Transaction History */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.5 }}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

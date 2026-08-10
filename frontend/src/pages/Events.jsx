@@ -256,7 +256,7 @@ const Events = () => {
               <Loader2 className="h-5 w-5 animate-spin"/> Loading events…
             </div>) : filtered.length === 0 ? (<div className="py-20 text-center text-muted-foreground">
               No events found matching your criteria.
-            </div>) : (<div className="mt-8 grid grid-cols-2 gap-3 md:gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            </div>) : (<div className="mt-8 grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filtered.map((event, idx) => (<motion.div key={event._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.07 }}>
                   <EventCard event={event} index={idx} onBookNow={handleBookNow} onViewDetails={(e) => navigate(`/events/${e._id}`)} onImageClick={(imageIdx) => handleImageClick(event, imageIdx)} isFavorited={!!favMap[event._id]} onToggleFavorite={role === "customer" ? handleToggleFavorite : undefined}/>
                 </motion.div>))}
@@ -264,43 +264,6 @@ const Events = () => {
         </div>
       </section>
 
-      {/* Promo Codes Section */}
-      {!promoLoading && promoCodes.length > 0 && (<section className="py-12 bg-secondary/30">
-          <div className="container mx-auto">
-            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="mb-8">
-              <h2 className="font-display text-lg sm:text-2xl font-bold md:text-3xl">
-                <span className="text-gradient">Exclusive</span> Offers
-              </h2>
-              <p className="mt-1 text-muted-foreground">Active promo codes for your next booking</p>
-            </motion.div>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {promoCodes.slice(0, 3).map((promo, idx) => (<motion.div key={promo._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.1 }} className="rounded-xl border border-border bg-card p-4 hover-lift">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <code className="bg-primary/10 px-2 py-1 rounded font-mono font-bold text-primary text-sm">
-                        {promo.code}
-                      </code>
-                      {promo.description && (<p className="text-xs text-muted-foreground mt-1">{promo.description}</p>)}
-                    </div>
-                    <button onClick={() => {
-                    navigator.clipboard.writeText(promo.code);
-                    toast.success("Code copied!");
-                }} className="text-muted-foreground hover:text-foreground transition-colors">
-                      <Copy className="h-4 w-4"/>
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-border">
-                    <span className="font-semibold text-primary">
-                      {promo.discountType === "percentage" ? `${promo.discountValue}% OFF` : `${formatCurrency(promo.discountValue)} OFF`}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {promo.maxUses ? `${promo.currentUses}/${promo.maxUses} used` : "Unlimited"}
-                    </span>
-                  </div>
-                </motion.div>))}
-            </div>
-          </div>
-        </section>)}
 
       {/* Booking Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>

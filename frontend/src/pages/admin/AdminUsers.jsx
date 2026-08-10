@@ -1,19 +1,134 @@
 import { motion } from "framer-motion";
 import { Users, CheckCircle, AlertTriangle, Search, Filter, UserX, UserCheck, KeyRound, FileText, CheckCircle2, DollarSign } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
+import { useGsapReveal } from "@/lib/gsapAnimations";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useEffect } from "react";
 import { apiCreateUser, apiListUsers, apiUpdateUser, apiDeleteUser, apiResetPassword, apiSendMerchantQuotation, apiActivateMerchant, apiGetTickets, apiSendTicketQuotation, apiApproveTicket } from "@/lib/api";
 import { sanitizeEmailInput, sanitizeNameInput, validateEmail, validateSignupForm, validateNewPasswordForm, EMAIL_HINT, PASSWORD_HINT, EMAIL_MAX_LENGTH, NAME_MAX_LENGTH, } from "@/lib/validation";
 import { formatCurrency } from "@/lib/utils";
+import { useLocation } from "react-router-dom";
+
+const UsersTableBody = ({ list, emptyMessage, setSelectedMerchantDetails, setIsDetailsModalOpen, setSelectedMerchantForQuote, setQuoteAmount, setIsQuoteDialogOpen, setSelectedMerchantForActivation, setMaxEvents, setMaxServices, setIsActivationDialogOpen, handleOpenResetPassword, handleToggleStatus, isTogglingStatus, handleOpenEdit, handleDelete, isDeleting, }) => (<table className="w-full text-xs">
+    <thead>
+      <tr className="bg-secondary">
+        <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Name</th>
+        <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Email</th>
+        <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Mobile</th>
+        <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Role</th>
+        <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Joined</th>
+        <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap hidden md:table-cell">Status</th>
+        <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Onboarding status</th>
+        <th className="text-right px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {list.map((u) => (<tr key={u._id} className="border-b border-border last:border-0 hover:bg-secondary/50 transition-colors">
+          <td className="px-2 py-2.5 align-middle font-medium text-xs">{u.name}</td>
+          <td className="px-2 py-2.5 align-middle text-muted-foreground text-xs">{u.email}</td>
+          <td className="px-2 py-2.5 align-middle text-muted-foreground text-xs">{u.mobile || "—"}</td>
+          <td className="px-2 py-2.5 align-middle">
+            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${u.role === 'admin' ? 'bg-primary/20 text-primary' :
+            u.role === 'merchant' ? 'bg-tint-blue text-tint-blue-fg' :
+                'bg-secondary text-foreground'}`}>
+              {u.role}
+            </span>
+          </td>
+          <td className="px-2 py-2.5 align-middle text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</td>
+          <td className="px-2 py-2.5 align-middle hidden md:table-cell">
+            <span className={`flex items-center gap-1.5 text-xs font-medium ${u.status === "deactivated" ? "text-tint-orange-fg" : "text-tint-mint-fg"}`}>
+              {u.status === "deactivated" ? (<>
+                  <AlertTriangle className="h-3.5 w-3.5"/> Deactivated
+                </>) : (<>
+                  <CheckCircle className="h-3.5 w-3.5"/> Active
+                </>)}
+            </span>
+          </td>
+          {/* Onboarding status Column */}
+          <td className="px-2 py-2.5 align-middle">
+            {u.role === "merchant" ? (<div className="flex flex-col gap-1">
+                <span className={`inline-flex items-center w-fit rounded-full px-2 py-0.5 text-[10px] font-bold ${u.merchantStatus === "active" ? "bg-tint-mint text-tint-mint-fg"
+                : u.merchantStatus === "paid" ? "bg-tint-violet text-tint-violet-fg"
+                    : u.merchantStatus === "quotation_sent" ? "bg-tint-orange text-tint-orange-fg"
+                        : u.merchantStatus === "details_submitted" ? "bg-tint-orange text-tint-orange-fg"
+                            : "bg-secondary text-muted-foreground"}`}>
+                  {u.merchantStatus === "active" ? "Activated"
+                : u.merchantStatus === "paid" ? "Paid (Awaiting Activation)"
+                    : u.merchantStatus === "quotation_sent" ? "Quotation Sent"
+                        : u.merchantStatus === "details_submitted" ? "Review Pending"
+                            : "Details Pending"}
+                </span>
+                {u.merchantStatus === "quotation_sent" && (<span className="text-[10px] text-muted-foreground font-semibold">Quote: {formatCurrency(u.quotationAmount || 0)}</span>)}
+                {u.merchantStatus === "active" && (<span className="text-[10px] text-muted-foreground">Limits: {u.maxEvents || 5}E / {u.maxServices || 5}S</span>)}
+              </div>) : (<span className="text-muted-foreground text-xs">—</span>)}
+          </td>
+          <td className="px-2 py-2.5 align-middle text-right">
+            <div className="flex items-center justify-end gap-1.5 flex-nowrap whitespace-nowrap">
+              {/* Onboarding actions */}
+              {u.role === "merchant" && (<>
+                  {u.merchantDetails?.businessName && (<Button variant="outline" size="sm" className="text-orange-600 border-orange-500/30 hover:bg-orange-500/10" onClick={() => {
+                setSelectedMerchantDetails(u);
+                setIsDetailsModalOpen(true);
+            }}>
+                      <FileText className="h-3.5 w-3.5 mr-1"/> Details
+                    </Button>)}
+                  {u.merchantStatus !== "active" && u.merchantStatus !== "paid" && (<Button variant="outline" size="sm" className="text-yellow-600 border-yellow-500/30 hover:bg-yellow-500/10" onClick={() => {
+                setSelectedMerchantForQuote(u);
+                setQuoteAmount(u.quotationAmount?.toString() || "");
+                setIsQuoteDialogOpen(true);
+            }}>
+                      <DollarSign className="h-3.5 w-3.5 mr-1"/> Quote
+                    </Button>)}
+                </>)}
+              {u.role === "merchant" && u.merchantStatus === "paid" && (<Button variant="outline" size="sm" className="text-purple-600 border-purple-500/30 hover:bg-purple-500/10" onClick={() => {
+            setSelectedMerchantForActivation(u);
+            setMaxEvents(u.maxEvents?.toString() || "5");
+            setMaxServices(u.maxServices?.toString() || "5");
+            setIsActivationDialogOpen(true);
+        }}>
+                  <CheckCircle2 className="h-3.5 w-3.5 mr-1"/> Activate
+                </Button>)}
+              {u.role === "merchant" && u.merchantStatus === "active" && (<Button variant="outline" size="sm" className="text-green-600 border-green-500/30 hover:bg-green-500/10" onClick={() => {
+            setSelectedMerchantForActivation(u);
+            setMaxEvents(u.maxEvents?.toString() || "5");
+            setMaxServices(u.maxServices?.toString() || "5");
+            setIsActivationDialogOpen(true);
+        }} title="Modify account listing limits">
+                  Limits
+                </Button>)}
+
+              <Button variant="outline" size="sm" onClick={() => handleOpenResetPassword(u)} title="Reset Password" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                <KeyRound className="h-4 w-4"/>
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleToggleStatus(u._id, u.status || "active")} disabled={isTogglingStatus === u._id} className={u.status === "deactivated" ? "text-green-600 hover:text-green-700" : "text-orange-600 hover:text-orange-700"}>
+                {isTogglingStatus === u._id ? ("...") : u.status === "deactivated" ? (<>
+                    <UserCheck className="h-3.5 w-3.5 mr-1"/> Activate
+                  </>) : (<>
+                    <UserX className="h-3.5 w-3.5 mr-1"/> Deactivate
+                  </>)}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleOpenEdit(u)}>Edit</Button>
+              <Button variant="destructive" size="sm" disabled={isDeleting === u._id} onClick={() => handleDelete(u._id)}>
+                {isDeleting === u._id ? "..." : "Delete"}
+              </Button>
+            </div>
+          </td>
+        </tr>))}
+      {list.length === 0 && (<tr>
+          <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
+            {emptyMessage}
+          </td>
+        </tr>)}
+    </tbody>
+  </table>);
 const AdminUsers = () => {
     const { token } = useAuth();
+    const location = useLocation();
     const [users, setUsers] = useState([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -26,9 +141,19 @@ const AdminUsers = () => {
     const [resetPassword, setResetPassword] = useState("");
     const [isResettingPassword, setIsResettingPassword] = useState(false);
     // New States for Onboarding and Ticketing Flow
-    const queryParams = new URLSearchParams(window.location.search);
+    const queryParams = new URLSearchParams(location.search);
     const initialTab = queryParams.get("tab") || "users";
     const [activeTab, setActiveTab] = useState(initialTab);
+    // Role filter is driven by the sidebar's Users/Merchants accordion links (?role=customer|merchant)
+    const roleFilter = queryParams.get("role"); // "merchant" | "customer" | null (both)
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const tab = params.get("tab");
+        if (tab) {
+            setActiveTab(tab);
+        }
+    }, [location.search]);
     const [searchQuery, setSearchQuery] = useState("");
     const [tickets, setTickets] = useState([]);
     const [loadingTickets, setLoadingTickets] = useState(false);
@@ -59,6 +184,10 @@ const AdminUsers = () => {
         if (activeTab === "registrations") {
             return matchesSearch && u.role === "merchant" && (u.merchantStatus === "details_submitted" || u.merchantStatus === "paid");
         }
+        if (roleFilter === "merchant")
+            return matchesSearch && u.role === "merchant";
+        if (roleFilter === "customer")
+            return matchesSearch && u.role !== "merchant";
         return matchesSearch;
     });
     const loadUsers = async () => {
@@ -340,14 +469,22 @@ const AdminUsers = () => {
             setIsResettingPassword(false);
         }
     };
+    const userRowHandlers = {
+        setSelectedMerchantDetails, setIsDetailsModalOpen, setSelectedMerchantForQuote, setQuoteAmount,
+        setIsQuoteDialogOpen, setSelectedMerchantForActivation, setMaxEvents, setMaxServices,
+        setIsActivationDialogOpen, handleOpenResetPassword, handleToggleStatus, isTogglingStatus,
+        handleOpenEdit, handleDelete, isDeleting,
+    };
     return (<AdminLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
           <div>
-            <h1 className="font-display text-xs sm:text-3xl font-bold truncate">
-              User <span className="text-gradient">Management</span>
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
+              {roleFilter === "merchant" ? (<>Merchant <span className="text-gradient">Management</span></>) : roleFilter === "customer" ? (<>User <span className="text-gradient">Management</span></>) : (<>User <span className="text-gradient">Management</span></>)}
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">Manage all platform users, merchants, onboarding, and limit request tickets</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {roleFilter === "merchant" ? "Manage merchants, onboarding, and limit request tickets" : roleFilter === "customer" ? "Manage customer and admin accounts" : "Manage all platform users, merchants, onboarding, and limit request tickets"}
+            </p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -427,14 +564,14 @@ const AdminUsers = () => {
               </form>
             </DialogContent>
           </Dialog>
-        </motion.div>
+        </div>
 
         {/* Pending Tickets Alerts */}
         {(() => {
             const pendingTicketsCount = tickets.filter(t => t.status === "pending").length;
             const paidTicketsCount = tickets.filter(t => t.status === "paid").length;
             return (<>
-              {pendingTicketsCount > 0 && (<motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+              {pendingTicketsCount > 0 && (<motion.div initial={{ opacity: 0, y: -10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                   <div className="flex items-center gap-3">
                     <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0 animate-pulse"/>
                     <div>
@@ -449,7 +586,7 @@ const AdminUsers = () => {
                   </Button>
                 </motion.div>)}
 
-              {paidTicketsCount > 0 && (<motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 p-4 rounded-xl border border-green-500/30 bg-green-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+              {paidTicketsCount > 0 && (<motion.div initial={{ opacity: 0, y: -10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-4 p-4 rounded-xl border border-green-500/30 bg-green-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 animate-bounce"/>
                     <div>
@@ -473,31 +610,31 @@ const AdminUsers = () => {
         })()}
 
         {/* Tab Headers */}
-        <div className="flex gap-4 border-b border-border mt-6 pb-2">
-          <button onClick={() => setActiveTab("users")} className={`font-semibold text-sm pb-2 border-b-2 transition-all ${activeTab === "users" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+        <div className="flex flex-wrap gap-2 mt-6">
+          <button onClick={() => setActiveTab("users")} className={`min-h-[44px] px-4 rounded-full text-sm font-semibold transition-all ${activeTab === "users" ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
             All Users & Onboarding
           </button>
-          <button onClick={() => setActiveTab("registrations")} className={`font-semibold text-sm pb-2 border-b-2 transition-all ${activeTab === "registrations" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+          <button onClick={() => setActiveTab("registrations")} className={`min-h-[44px] px-4 rounded-full text-sm font-semibold transition-all ${activeTab === "registrations" ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
             Registration Requests ({users.filter(u => u.role === "merchant" && (u.merchantStatus === "details_submitted" || u.merchantStatus === "paid")).length})
           </button>
           <button onClick={() => {
             setActiveTab("tickets");
             loadTickets();
-        }} className={`font-semibold text-sm pb-2 border-b-2 transition-all ${activeTab === "tickets" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+        }} className={`min-h-[44px] px-4 rounded-full text-sm font-semibold transition-all ${activeTab === "tickets" ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
             Slots Upgrade Tickets
           </button>
           <button onClick={() => {
             setActiveTab("billing");
             loadUsers();
             loadTickets();
-        }} className={`font-semibold text-sm pb-2 border-b-2 transition-all ${activeTab === "billing" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+        }} className={`min-h-[44px] px-4 rounded-full text-sm font-semibold transition-all ${activeTab === "billing" ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
             Billing & Payments History
           </button>
         </div>
 
         {activeTab === "users" || activeTab === "registrations" ? (<>
             {/* Filters */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-6 flex gap-3">
+            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }} className="mt-6 flex gap-3">
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
                 <Input placeholder="Search users..." maxLength={30} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 bg-card border-border"/>
@@ -506,123 +643,14 @@ const AdminUsers = () => {
             </motion.div>
 
             {/* Users Table */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-6 rounded-xl border border-border bg-card overflow-x-auto w-full">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-border bg-secondary/50">
-                    <th className="text-left px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Name</th>
-                    <th className="text-left px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Email</th>
-                    <th className="text-left px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Mobile</th>
-                    <th className="text-left px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Role</th>
-                    <th className="text-left px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Joined</th>
-                    <th className="text-left px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Status</th>
-                    <th className="text-left px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Onboarding status</th>
-                    <th className="text-right px-2 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map((u) => (<tr key={u._id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                      <td className="px-2 py-2.5 align-middle font-medium text-xs">{u.name}</td>
-                      <td className="px-2 py-2.5 align-middle text-muted-foreground text-xs">{u.email}</td>
-                      <td className="px-2 py-2.5 align-middle text-muted-foreground text-xs">{u.mobile || "—"}</td>
-                      <td className="px-2 py-2.5 align-middle">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${u.role === 'admin' ? 'bg-primary/20 text-primary' :
-                    u.role === 'merchant' ? 'bg-blue-500/20 text-blue-500' :
-                        'bg-secondary text-foreground'}`}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="px-2 py-2.5 align-middle text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</td>
-                      <td className="px-2 py-2.5 align-middle hidden md:table-cell">
-                        <span className={`flex items-center gap-1.5 text-xs font-medium ${u.status === "deactivated" ? "text-orange-500" : "text-green-500"}`}>
-                          {u.status === "deactivated" ? (<>
-                              <AlertTriangle className="h-3.5 w-3.5"/> Deactivated
-                            </>) : (<>
-                              <CheckCircle className="h-3.5 w-3.5"/> Active
-                            </>)}
-                        </span>
-                      </td>
-                      {/* Onboarding status Column */}
-                      <td className="px-2 py-2.5 align-middle">
-                        {u.role === "merchant" ? (<div className="flex flex-col gap-1">
-                            <span className={`inline-flex items-center w-fit rounded-full px-2 py-0.5 text-[10px] font-bold border ${u.merchantStatus === "active" ? "bg-green-500/10 text-green-500 border-green-500/20"
-                        : u.merchantStatus === "paid" ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
-                            : u.merchantStatus === "quotation_sent" ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
-                                : u.merchantStatus === "details_submitted" ? "bg-orange-500/10 text-orange-500 border-orange-500/20"
-                                    : "bg-secondary text-muted-foreground border-border"}`}>
-                              {u.merchantStatus === "active" ? "Activated"
-                        : u.merchantStatus === "paid" ? "Paid (Awaiting Activation)"
-                            : u.merchantStatus === "quotation_sent" ? "Quotation Sent"
-                                : u.merchantStatus === "details_submitted" ? "Review Pending"
-                                    : "Details Pending"}
-                            </span>
-                            {u.merchantStatus === "quotation_sent" && (<span className="text-[10px] text-muted-foreground font-semibold">Quote: {formatCurrency(u.quotationAmount || 0)}</span>)}
-                            {u.merchantStatus === "active" && (<span className="text-[10px] text-muted-foreground">Limits: {u.maxEvents || 5}E / {u.maxServices || 5}S</span>)}
-                          </div>) : (<span className="text-muted-foreground text-xs">—</span>)}
-                      </td>
-                      <td className="px-2 py-2.5 align-middle text-right">
-                        <div className="flex items-center justify-end gap-1.5 flex-nowrap whitespace-nowrap">
-                          {/* Onboarding actions */}
-                          {u.role === "merchant" && (<>
-                              {u.merchantDetails?.businessName && (<Button variant="outline" size="sm" className="text-orange-600 border-orange-500/30 hover:bg-orange-500/10" onClick={() => {
-                            setSelectedMerchantDetails(u);
-                            setIsDetailsModalOpen(true);
-                        }}>
-                                  <FileText className="h-3.5 w-3.5 mr-1"/> Details
-                                </Button>)}
-                              {u.merchantStatus !== "active" && u.merchantStatus !== "paid" && (<Button variant="outline" size="sm" className="text-yellow-600 border-yellow-500/30 hover:bg-yellow-500/10" onClick={() => {
-                            setSelectedMerchantForQuote(u);
-                            setQuoteAmount(u.quotationAmount?.toString() || "");
-                            setIsQuoteDialogOpen(true);
-                        }}>
-                                  <DollarSign className="h-3.5 w-3.5 mr-1"/> Quote
-                                </Button>)}
-                            </>)}
-                          {u.role === "merchant" && u.merchantStatus === "paid" && (<Button variant="outline" size="sm" className="text-purple-600 border-purple-500/30 hover:bg-purple-500/10" onClick={() => {
-                        setSelectedMerchantForActivation(u);
-                        setMaxEvents(u.maxEvents?.toString() || "5");
-                        setMaxServices(u.maxServices?.toString() || "5");
-                        setIsActivationDialogOpen(true);
-                    }}>
-                              <CheckCircle2 className="h-3.5 w-3.5 mr-1"/> Activate
-                            </Button>)}
-                          {u.role === "merchant" && u.merchantStatus === "active" && (<Button variant="outline" size="sm" className="text-green-600 border-green-500/30 hover:bg-green-500/10" onClick={() => {
-                        setSelectedMerchantForActivation(u);
-                        setMaxEvents(u.maxEvents?.toString() || "5");
-                        setMaxServices(u.maxServices?.toString() || "5");
-                        setIsActivationDialogOpen(true);
-                    }} title="Modify account listing limits">
-                              Limits
-                            </Button>)}
-
-                          <Button variant="outline" size="sm" onClick={() => handleOpenResetPassword(u)} title="Reset Password" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                            <KeyRound className="h-4 w-4"/>
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleToggleStatus(u._id, u.status || "active")} disabled={isTogglingStatus === u._id} className={u.status === "deactivated" ? "text-green-600 hover:text-green-700" : "text-orange-600 hover:text-orange-700"}>
-                            {isTogglingStatus === u._id ? ("...") : u.status === "deactivated" ? (<>
-                                <UserCheck className="h-3.5 w-3.5 mr-1"/> Activate
-                              </>) : (<>
-                                <UserX className="h-3.5 w-3.5 mr-1"/> Deactivate
-                              </>)}
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleOpenEdit(u)}>Edit</Button>
-                          <Button variant="destructive" size="sm" disabled={isDeleting === u._id} onClick={() => handleDelete(u._id)}>
-                            {isDeleting === u._id ? "..." : "Delete"}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>))}
-                  {filteredUsers.length === 0 && (<tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
-                        {activeTab === "registrations" ? "No pending registration requests found" : "No users found"}
-                      </td>
-                    </tr>)}
-                </tbody>
-              </table>
-            </motion.div>
+            <div className="mt-6 rounded-xl border border-border overflow-hidden bg-card">
+              <div className="overflow-x-auto w-full">
+                <UsersTableBody list={filteredUsers} emptyMessage={activeTab === "registrations" ? "No pending registration requests found" : roleFilter === "merchant" ? "No merchants found" : roleFilter === "customer" ? "No users found" : "No users found"} {...userRowHandlers}/>
+              </div>
+            </div>
           </>) : activeTab === "tickets" ? (<>
             {/* Tickets Table */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6 rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
               <table className="w-full text-sm min-w-[700px]">
                 <thead>
                   <tr className="border-b border-border bg-secondary/50">
@@ -697,7 +725,7 @@ const AdminUsers = () => {
             </motion.div>
           </>) : (<>
             {/* Billing & Payments History Table */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6 rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
               <table className="w-full text-sm min-w-[700px]">
                 <thead>
                   <tr className="border-b border-border bg-secondary/50">

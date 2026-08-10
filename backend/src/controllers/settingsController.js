@@ -53,8 +53,8 @@ export const getPlatformSettings = async (_req, res) => {
     ]);
 
     res.json({
-      platformName: nameDoc?.value || "JoyEvents",
-      supportEmail: emailDoc?.value || "hello@joyevents.com",
+      platformName: nameDoc?.value || "Eventoza",
+      supportEmail: emailDoc?.value || "hello@eventoza.com",
       adminPreferences: normalizeAdminPreferences(parseJsonSetting(preferencesDoc, DEFAULT_ADMIN_PREFERENCES)),
     });
   } catch (e) {
@@ -137,17 +137,17 @@ export const getHomepageSettings = async (_req, res) => {
   try {
     const doc = await Settings.findOne({ key: "homepageSettings" });
     const fallback = {
-      heroTitle: "Create Unforgettable Moments",
+      heroTitle: "Your Vision, Transformed Into Extraordinary Events",
       heroSubtitle: "From intimate workshops to grand festivals — discover, book, and manage events that bring people together and create lasting memories.",
       eventsCount: "1,800+",
       attendeesCount: "50K+",
       merchantsCount: "340+",
       contactPhone: "+1 (555) 123-4567",
-      contactEmail: "info@joyevents.com",
+      contactEmail: "info@eventoza.com",
       contactAddress: "123 Event Ave, Celebrate City",
       contactWorkingHours: "Mon - Fri, 9:00 AM - 6:00 PM",
       aboutTitle: "We build unforgettable event experiences",
-      aboutSubtitle: "JoyEvents brings strategy, hospitality, production, and design together so every celebration feels effortless, premium, and deeply memorable.",
+      aboutSubtitle: "Eventoza brings strategy, hospitality, production, and design together so every celebration feels effortless, premium, and deeply memorable.",
       aboutExperience: "12+",
       portfolioTitle: "A portfolio shaped by atmosphere, scale, and detail",
       portfolioSubtitle: "Explore the types of experiences we deliver across corporate productions, luxury celebrations, and high-impact event launches.",

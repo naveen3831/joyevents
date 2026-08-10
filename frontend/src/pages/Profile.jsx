@@ -91,9 +91,9 @@ const Profile = () => {
       </div>);
     }
     return (<div className="py-2 sm:py-8 lg:py-10">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full">
-        <div className="mb-6">
-          <h1 className="font-display text-3xl font-bold">
+      <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="w-full">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
             My <span className="text-gradient">Profile</span>
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
@@ -101,7 +101,7 @@ const Profile = () => {
           </p>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-8">
+        <div className="rounded-xl border border-border bg-card p-5 sm:p-8">
           <div className="flex items-center gap-4 mb-8">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground">
               <User className="h-8 w-8"/>
@@ -116,21 +116,21 @@ const Profile = () => {
             {/* Name Field */}
             <div>
               <label className="block text-sm font-medium mb-2">Name</label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 {editing ? (<>
-                    <Input value={name} onChange={(e) => setName(sanitizeNameInput(e.target.value))} placeholder="Enter your name" maxLength={NAME_MAX_LENGTH} className="flex-1" disabled={loading}/>
-                    <p className="mt-1 text-xs text-muted-foreground">{NAME_HINT}</p>
-                    <Button size="sm" onClick={handleSave} disabled={loading || !name.trim()} className="bg-green-600 hover:bg-green-700">
+                    <Input value={name} onChange={(e) => setName(sanitizeNameInput(e.target.value))} placeholder="Enter your name" maxLength={NAME_MAX_LENGTH} className="flex-1 min-w-[160px] min-h-[44px]" disabled={loading}/>
+                    <Button size="sm" onClick={handleSave} disabled={loading || !name.trim()} className="bg-gradient-primary text-primary-foreground hover:opacity-90 min-h-[44px] min-w-[44px]">
                       <Save className="h-4 w-4"/>
                     </Button>
-                    <Button size="sm" variant="outline" onClick={handleCancel} disabled={loading}>
+                    <Button size="sm" variant="outline" onClick={handleCancel} disabled={loading} className="min-h-[44px] min-w-[44px]">
                       <X className="h-4 w-4"/>
                     </Button>
+                    <p className="w-full text-xs text-muted-foreground">{NAME_HINT}</p>
                   </>) : (<>
-                    <div className="flex-1 px-3 py-2 rounded-md border border-border bg-secondary/50 text-foreground">
+                    <div className="flex-1 px-3 py-2 rounded-md border border-border bg-secondary/50 text-foreground min-h-[44px] flex items-center">
                       {user.name}
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                    <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="min-h-[44px] min-w-[44px]">
                       <Edit2 className="h-4 w-4"/>
                     </Button>
                   </>)}

@@ -12,6 +12,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Download, Copy, CheckCircle2, Plus, Edit2, Loader2, Trash2, Power, PowerOff } from "lucide-react";
 import { toast } from "sonner";
 import { API_URL } from "@/lib/config";
+import { useGsapStagger } from "@/lib/gsapAnimations";
 export default function QRCodeGenerator() {
     const { user, token } = useAuth();
     const [events, setEvents] = useState([]);
@@ -21,6 +22,8 @@ export default function QRCodeGenerator() {
     const [copied, setCopied] = useState(null);
     const [updating, setUpdating] = useState(false);
     const qrRefs = useRef({});
+    const eventsGridRef = useGsapStagger([events]);
+    const servicesGridRef = useGsapStagger([services]);
     // Dialog state
     const [dialogOpen, setDialogOpen] = useState(false);
     const [currentItem, setCurrentItem] = useState(null);
@@ -244,8 +247,8 @@ export default function QRCodeGenerator() {
     };
     if (loading) {
         return (<MerchantLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
+        <div className="flex items-center justify-center h-96 p-4">
+          <div className="bg-card border border-border rounded-xl p-10 text-center">
             <p className="text-muted-foreground">Loading your events and services...</p>
           </div>
         </div>
@@ -253,34 +256,32 @@ export default function QRCodeGenerator() {
     }
     if (error) {
         return (<MerchantLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <p className="text-red-500">{error}</p>
+        <div className="flex items-center justify-center h-96 p-4">
+          <div className="bg-card border border-border rounded-xl p-10 text-center">
+            <p className="text-destructive">{error}</p>
           </div>
         </div>
       </MerchantLayout>);
     }
     return (<MerchantLayout>
-      <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">QR Code Generator</h1>
-          <p className="text-muted-foreground mt-2">
+      <div className="space-y-6 sm:space-y-8 p-4 sm:p-6">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">QR Code Generator</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Create QR codes for your events and services. Anyone can scan to view details.
           </p>
         </div>
 
         <Tabs defaultValue="events" className="w-full">
-          <TabsList>
-            <TabsTrigger value="events">Events ({events.length})</TabsTrigger>
-            <TabsTrigger value="services">Services ({services.length})</TabsTrigger>
+          <TabsList className="bg-secondary p-1 gap-1 h-auto rounded-full">
+            <TabsTrigger value="events" className="rounded-full px-4 py-2 text-sm min-h-[36px] data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none">Events ({events.length})</TabsTrigger>
+            <TabsTrigger value="services" className="rounded-full px-4 py-2 text-sm min-h-[36px] data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none">Services ({services.length})</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="events" className="space-y-4">
-            {events.length === 0 ? (<Card>
-                <CardContent className="pt-6">
-                  <p className="text-center text-muted-foreground">No events found</p>
-                </CardContent>
-              </Card>) : (<div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <TabsContent value="events" className="space-y-4 mt-4">
+            {events.length === 0 ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
+                <p className="text-muted-foreground">No events found</p>
+              </div>) : (<div ref={eventsGridRef} className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {events.map((event) => (<Card key={event._id} className="flex flex-col">
                     <CardHeader className="p-3 sm:p-6">
                       <CardTitle className="text-xs sm:text-lg line-clamp-1">{event.title}</CardTitle>
@@ -353,12 +354,10 @@ export default function QRCodeGenerator() {
               </div>)}
           </TabsContent>
 
-          <TabsContent value="services" className="space-y-4">
-            {services.length === 0 ? (<Card>
-                <CardContent className="pt-6">
-                  <p className="text-center text-muted-foreground">No services found</p>
-                </CardContent>
-              </Card>) : (<div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <TabsContent value="services" className="space-y-4 mt-4">
+            {services.length === 0 ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
+                <p className="text-muted-foreground">No services found</p>
+              </div>) : (<div ref={servicesGridRef} className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {services.map((service) => (<Card key={service._id} className="flex flex-col">
                     <CardHeader className="p-3 sm:p-6">
                       <CardTitle className="text-xs sm:text-lg line-clamp-1">{service.name}</CardTitle>

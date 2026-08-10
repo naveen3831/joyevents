@@ -166,12 +166,12 @@ const AdminPayments = () => {
 
     return (<AdminLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
           <div className="mb-6">
-            <h1 className="font-display text-xs sm:text-3xl font-bold truncate">
+            <h1 className="font-display text-xl sm:text-3xl font-bold truncate">
               Payment <span className="text-gradient">Management</span>
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">
+            <p className="text-muted-foreground text-xs sm:text-sm mt-1">
               Understand collected payments, pending dues, commissions, merchant payouts, and refunds in one place.
             </p>
           </div>
@@ -196,7 +196,7 @@ const AdminPayments = () => {
                 <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-40"/>
                 <p>No payment transactions found.</p>
             </div>) : (<div className="rounded-xl border border-border bg-card overflow-x-auto w-full">
-                <table className="w-full text-xs">
+                <table className="w-full text-xs min-w-[1100px]">
                   <thead>
                     <tr className="border-b border-border bg-secondary/50">
                       <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Booking</th>

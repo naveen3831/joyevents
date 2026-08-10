@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiGetInbox, apiMarkMessageRead, apiDeleteMessage, apiReplyToMessage } from "@/lib/api";
 import { toast } from "sonner";
+import { useGsapStagger } from "@/lib/gsapAnimations";
 const MerchantInbox = () => {
     const { token } = useAuth();
     const [messages, setMessages] = useState([]);
@@ -72,32 +73,33 @@ const MerchantInbox = () => {
         }
     };
     const unread = messages.filter(m => !m.read).length;
+    const listRef = useGsapStagger([messages], { y: 14, stagger: 0.05 });
     return (<MerchantLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center justify-between mb-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
             <div>
-              <h1 className="font-display text-3xl font-bold flex items-center gap-2">
-                <Inbox className="h-7 w-7 text-primary"/> Customer <span className="text-gradient">Inbox</span>
+              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+                <Inbox className="h-6 w-6 text-primary"/> Customer <span className="text-gradient">Inbox</span>
               </h1>
-              <p className="text-muted-foreground text-sm mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Messages from customers about your events & services
                 {unread > 0 && <span className="ml-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded-full">{unread} unread</span>}
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={load} className="gap-2">
+            <Button variant="outline" size="sm" onClick={load} className="gap-2 w-full sm:w-auto min-h-[44px]">
               <RefreshCw className="h-4 w-4"/> Refresh
             </Button>
           </div>
 
           {loading ? (<div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
               <Loader2 className="h-5 w-5 animate-spin"/> Loading messages…
-            </div>) : messages.length === 0 ? (<div className="rounded-xl border border-border bg-card p-16 text-center text-muted-foreground">
-              <Inbox className="h-14 w-14 mx-auto mb-4 opacity-20"/>
-              <p className="font-medium text-lg">No messages yet</p>
-              <p className="text-sm mt-1">Customer enquiries will appear here</p>
-            </div>) : (<div className="space-y-3">
-              {messages.map((msg, idx) => (<motion.div key={msg._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }} className={`rounded-xl border bg-card overflow-hidden transition-colors ${msg.read ? "border-border" : "border-primary/40 bg-primary/5"}`}>
+            </div>) : messages.length === 0 ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
+              <Inbox className="h-14 w-14 mx-auto mb-4 opacity-30 text-muted-foreground"/>
+              <p className="font-medium text-lg text-foreground">No messages yet</p>
+              <p className="text-sm mt-1 text-muted-foreground">Customer enquiries will appear here</p>
+            </div>) : (<div ref={listRef} className="space-y-3">
+              {messages.map((msg, idx) => (<motion.div key={msg._id} className={`rounded-xl border bg-card overflow-hidden transition-colors ${msg.read ? "border-border" : "border-primary/40 bg-primary/5"}`}>
                   {/* Header */}
                   <div className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-secondary/30 transition-colors" onClick={() => handleExpand(msg)}>
                     <div className="flex items-center gap-3 min-w-0">
@@ -119,7 +121,7 @@ const MerchantInbox = () => {
                       <span className="text-xs text-muted-foreground hidden sm:block">
                         {new Date(msg.createdAt).toLocaleDateString()} {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
-                      <button onClick={e => { e.stopPropagation(); handleDelete(msg._id); }} className="text-muted-foreground hover:text-red-500 transition-colors p-1">
+                      <button onClick={e => { e.stopPropagation(); handleDelete(msg._id); }} className="text-muted-foreground hover:text-red-500 transition-colors p-2.5 -m-1.5 min-h-[44px] min-w-[44px] flex items-center justify-center">
                         <Trash2 className="h-4 w-4"/>
                       </button>
                       {expanded === msg._id ? <ChevronUp className="h-4 w-4 text-muted-foreground"/> : <ChevronDown className="h-4 w-4 text-muted-foreground"/>}

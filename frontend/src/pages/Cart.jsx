@@ -9,11 +9,13 @@ import CustomerLayout from "@/components/CustomerLayout";
 import { Button } from "@/components/ui/button";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
+import { useGsapStagger } from "@/lib/gsapAnimations";
 const Cart = () => {
     const { cartItems, removeFromCart, clearCart } = useCart();
     const { token } = useAuth();
     const navigate = useNavigate();
     const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const itemsRef = useGsapStagger([cartItems.length]);
     // Group items by type
     const eventItems = cartItems.filter(item => item.type === "event");
     const serviceItems = cartItems.filter(item => item.type === "service");
@@ -97,21 +99,21 @@ const Cart = () => {
     };
     if (cartItems.length === 0) {
         return (<CustomerLayout>
-        <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-4">
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5 }} className="w-20 h-20 bg-secondary/80 rounded-full flex items-center justify-center mb-6 border border-white/10">
-            <ShoppingBag className="h-10 w-10 text-muted-foreground"/>
-          </motion.div>
-          <h2 className="font-display text-3xl font-black mb-2">Your Cart is Empty</h2>
-          <p className="text-muted-foreground text-sm max-w-sm mb-8">
-            Browse our wide selection of ticketed events and premium event service providers to build your custom experience.
-          </p>
-          <div className="flex gap-4">
-            <Button onClick={() => navigate("/customer-dashboard/browse-events")} className="bg-gradient-primary">
-              Browse Events
-            </Button>
-            <Button onClick={() => navigate("/customer-dashboard/browse-services")} variant="outline">
-              Browse Services
-            </Button>
+        <div className="min-h-[70vh] flex items-center justify-center px-4">
+          <div className="bg-card border border-border rounded-xl p-10 text-center max-w-md w-full">
+            <ShoppingBag className="h-12 w-12 mx-auto mb-4 opacity-30 text-muted-foreground"/>
+            <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground mb-2">Your Cart is Empty</h2>
+            <p className="text-muted-foreground text-sm max-w-sm mx-auto mb-8">
+              Browse our wide selection of ticketed events and premium event service providers to build your custom experience.
+            </p>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Button onClick={() => navigate("/customer-dashboard/browse-events")} className="bg-gradient-primary min-h-[44px]">
+                Browse Events
+              </Button>
+              <Button onClick={() => navigate("/customer-dashboard/browse-services")} variant="outline" className="min-h-[44px]">
+                Browse Services
+              </Button>
+            </div>
           </div>
         </div>
       </CustomerLayout>);
@@ -120,26 +122,26 @@ const Cart = () => {
       <div className="min-h-screen px-4 sm:px-6 lg:px-12 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
             <div>
-              <h1 className="font-display text-4xl font-black tracking-tight">Shopping Cart</h1>
-              <p className="text-muted-foreground text-sm mt-1">
+              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Shopping Cart</h1>
+              <p className="text-sm text-muted-foreground mt-1">
                 You have {cartItems.length} configured items in your cart
               </p>
             </div>
-            <Button variant="ghost" size="sm" onClick={clearCart} className="text-red-400 hover:text-red-300">
+            <Button variant="ghost" size="sm" onClick={clearCart} className="text-red-400 hover:text-red-300 min-h-[44px]">
               Clear All
             </Button>
           </div>
 
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Left - Cart items */}
-            <div className="flex-1 space-y-6">
+            <div ref={itemsRef} className="flex-1 space-y-6">
               <AnimatePresence>
                 {cartItems.map((item) => (<motion.div key={item.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -50 }} className="relative flex flex-col md:flex-row rounded-2xl border border-border bg-card shadow-card overflow-hidden hover:border-primary/40 hover:shadow-elevated transition-all">
                     {/* Item Thumbnail */}
                     <div className="w-full md:w-72 xl:w-80 aspect-[16/10] md:aspect-[4/3] bg-secondary/60 dark:bg-secondary shrink-0 relative overflow-hidden border-b md:border-b-0 md:border-r border-border">
-                      {imgSrc(item.image) ? (<img src={imgSrc(item.image)} alt={item.name} className="h-full w-full object-contain p-2"/>) : (<div className="flex h-full items-center justify-center">
+                      {imgSrc(item.image) ? (<img src={imgSrc(item.image)} alt={item.name} className="h-full w-full object-contain p-2"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh">
                           {item.type === "event" ? (<Calendar className="h-12 w-12 opacity-10"/>) : (<Briefcase className="h-12 w-12 opacity-10"/>)}
                         </div>)}
                       <span className={`absolute top-3 left-3 rounded-full text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 shadow-md ${item.type === "event" ? "bg-primary text-primary-foreground" : "bg-amber-500 text-black"}`}>

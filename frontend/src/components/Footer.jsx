@@ -1,7 +1,8 @@
-import { Calendar, Mail, MapPin, Phone } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePlatformName } from "@/hooks/usePlatformName";
 import { useHomepageSettings } from "@/hooks/useHomepageSettings";
+import Logo from "@/components/Logo";
 const Footer = () => {
     const platformName = usePlatformName();
     const settings = useHomepageSettings();
@@ -10,9 +11,7 @@ const Footer = () => {
 
       {/* Brand row — full width on mobile */}
       <div className="mb-4 sm:mb-8 flex items-center gap-2">
-        <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-primary shrink-0">
-          <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary-foreground"/>
-        </div>
+        <Logo className="h-7 w-7 sm:h-8 sm:w-8 shrink-0"/>
         <span className="font-display text-base sm:text-lg font-bold">{platformName}</span>
       </div>
       <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-8 sm:max-w-xs">

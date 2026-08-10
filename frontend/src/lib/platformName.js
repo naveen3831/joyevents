@@ -2,8 +2,8 @@ import { API_URL } from "./config";
 import { validateEmail } from "./validation";
 const NAME_KEY = "platformName";
 const EMAIL_KEY = "platformSupportEmail";
-const DEFAULT_NAME = "JoyEvents";
-const DEFAULT_EMAIL = "joyevents@gamil.com";
+const DEFAULT_NAME = "Eventoza";
+const DEFAULT_EMAIL = "eventoza@gmail.com";
 export const getPlatformName = () => localStorage.getItem(NAME_KEY) || DEFAULT_NAME;
 export const setPlatformName = (name) => {
     localStorage.setItem(NAME_KEY, name.trim() || DEFAULT_NAME);

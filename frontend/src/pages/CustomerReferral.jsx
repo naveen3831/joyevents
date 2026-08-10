@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Gift, Link as LinkIcon, Loader2, Wallet } from "lucide-react";
+import { Copy, Gift, Link as LinkIcon, Loader2, Wallet, Users, Clock, CheckCircle2, Tag } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiGetMyReferral, apiVerifyToken } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
+import StatCard from "@/components/StatCard";
+import { useGsapStagger } from "@/lib/gsapAnimations";
 
 const statusClass = (status) => {
     if (status === "completed" || status === "paid" || status === "confirmed")
@@ -57,6 +59,8 @@ const CustomerReferral = () => {
         };
     }, [token]);
 
+    const statsRef = useGsapStagger([data]);
+
     const copyText = async (value, label) => {
         try {
             await navigator.clipboard.writeText(value);
@@ -70,9 +74,9 @@ const CustomerReferral = () => {
     return (<CustomerLayout>
       <div className="min-h-screen px-4 sm:px-6 lg:px-12 py-8">
         <div className="max-w-6xl mx-auto space-y-6">
-          <div>
-            <h1 className="font-display text-4xl font-black tracking-tight">Referral</h1>
-            <p className="text-muted-foreground text-sm mt-1">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Referral</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Share your referral ID. Your friend gets a discount, and your wallet gets a bonus after their booking is completed.
             </p>
           </div>
@@ -128,31 +132,11 @@ const CustomerReferral = () => {
                 </Card>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="pt-5">
-                    <p className="text-xs text-muted-foreground">Users Referred</p>
-                    <p className="text-2xl font-bold mt-1">{data?.stats?.total || 0}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-5">
-                    <p className="text-xs text-muted-foreground">Pending Bonus</p>
-                    <p className="text-2xl font-bold mt-1">{data?.stats?.pending || 0}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-5">
-                    <p className="text-xs text-muted-foreground">Completed Referrals</p>
-                    <p className="text-2xl font-bold mt-1">{data?.stats?.completed || 0}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-5">
-                    <p className="text-xs text-muted-foreground">Codes Used By You</p>
-                    <p className="text-2xl font-bold mt-1">{data?.stats?.used || 0}</p>
-                  </CardContent>
-                </Card>
+              <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                <StatCard title="Users Referred" value={data?.stats?.total || 0} icon={<Users className="h-5 w-5"/>} index={0}/>
+                <StatCard title="Pending Bonus" value={data?.stats?.pending || 0} icon={<Clock className="h-5 w-5"/>} index={1}/>
+                <StatCard title="Completed Referrals" value={data?.stats?.completed || 0} icon={<CheckCircle2 className="h-5 w-5"/>} index={2}/>
+                <StatCard title="Codes Used By You" value={data?.stats?.used || 0} icon={<Tag className="h-5 w-5"/>} index={3}/>
               </div>
 
               <Card>
@@ -160,8 +144,9 @@ const CustomerReferral = () => {
                   <CardTitle>People Who Used Your Referral</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {!data?.referredBookings?.length ? (<div className="py-12 text-center text-muted-foreground">
-                      No referral bookings yet.
+                  {!data?.referredBookings?.length ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
+                      <Gift className="h-10 w-10 mx-auto mb-3 opacity-30"/>
+                      <p className="text-muted-foreground">No referral bookings yet.</p>
                     </div>) : (<div className="overflow-x-auto">
                       <table className="w-full text-left text-sm">
                         <thead className="border-b border-border text-xs uppercase text-muted-foreground">
@@ -205,8 +190,9 @@ const CustomerReferral = () => {
                   <CardTitle>Referral Codes You Used</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {!data?.usedReferralBookings?.length ? (<div className="py-12 text-center text-muted-foreground">
-                      No bookings made with a referral code yet.
+                  {!data?.usedReferralBookings?.length ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
+                      <Tag className="h-10 w-10 mx-auto mb-3 opacity-30"/>
+                      <p className="text-muted-foreground">No bookings made with a referral code yet.</p>
                     </div>) : (<div className="overflow-x-auto">
                       <table className="w-full text-left text-sm">
                         <thead className="border-b border-border text-xs uppercase text-muted-foreground">

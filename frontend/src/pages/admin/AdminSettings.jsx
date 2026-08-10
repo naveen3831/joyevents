@@ -53,7 +53,7 @@ const AdminSettings = () => {
                 const data = await apiGetPlatformSettings();
                 if (cancelled)
                     return;
-                setPlatformNameState(sanitizePlatformName(data.platformName || "JoyEvents"));
+                setPlatformNameState(sanitizePlatformName(data.platformName || "Eventoza"));
                 setSupportEmail(sanitizeEmailInput(data.supportEmail || ""));
                 setAdminPreferences({ ...DEFAULT_ADMIN_PREFERENCES, ...(data.adminPreferences || {}) });
             }
@@ -110,17 +110,24 @@ const AdminSettings = () => {
         setAdminPreferences((current) => ({ ...current, [key]: value }));
     };
     const handleResetDefaults = () => {
-        setPlatformNameState("JoyEvents");
-        setSupportEmail("hello@joyevents.com");
+        setPlatformNameState("Eventoza");
+        setSupportEmail("hello@eventoza.com");
         setAdminPreferences(DEFAULT_ADMIN_PREFERENCES);
         setSaved(false);
     };
     return (<AdminLayout>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
+          Platform <span className="text-gradient">Settings</span>
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">Manage your account, notifications, and security preferences</p>
+      </div>
+
       <AccountSettingsContent />
 
       <section className="mt-8 space-y-6">
           {/* General */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="rounded-xl border border-border bg-card p-3 sm:p-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }} className="rounded-xl border border-border bg-card p-3 sm:p-6">
             <h2 className="font-display text-lg font-bold flex items-center gap-2 mb-4">
               <Globe className="h-4 w-4 text-primary"/> General
             </h2>
@@ -129,7 +136,7 @@ const AdminSettings = () => {
                 <Label className="text-sm text-muted-foreground">Platform Name</Label>
                 <p className="text-xs text-muted-foreground mt-0.5 mb-1.5">This name appears in the navbar, sidebar, footer, and browser title.</p>
                 <div className="flex gap-2">
-                  <Input value={platformName} onChange={e => setPlatformNameState(sanitizePlatformName(e.target.value))} maxLength={PLATFORM_NAME_MAX_LENGTH} aria-invalid={!!platformNameError} disabled={loading || saving} className="bg-secondary border-border" placeholder="e.g. JoyEvents"/>
+                  <Input value={platformName} onChange={e => setPlatformNameState(sanitizePlatformName(e.target.value))} maxLength={PLATFORM_NAME_MAX_LENGTH} aria-invalid={!!platformNameError} disabled={loading || saving} className="bg-secondary border-border" placeholder="e.g. Eventoza"/>
                 </div>
                 <p className={`mt-1 text-xs ${platformNameError ? "text-destructive" : "text-muted-foreground"}`}>
                   {platformNameError || PLATFORM_NAME_HINT}
@@ -137,7 +144,7 @@ const AdminSettings = () => {
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">Support Email</Label>
-                <Input type="text" inputMode="email" maxLength={EMAIL_MAX_LENGTH} value={supportEmail} onChange={e => setSupportEmail(sanitizeEmailInput(e.target.value))} aria-invalid={!!supportEmailError} disabled={loading || saving} className="mt-1 bg-secondary border-border" placeholder="joyevents@gamil.com"/>
+                <Input type="text" inputMode="email" maxLength={EMAIL_MAX_LENGTH} value={supportEmail} onChange={e => setSupportEmail(sanitizeEmailInput(e.target.value))} aria-invalid={!!supportEmailError} disabled={loading || saving} className="mt-1 bg-secondary border-border" placeholder="eventoza@gmail.com"/>
                 <p className={`mt-1 text-xs ${supportEmailError ? "text-destructive" : "text-muted-foreground"}`}>
                   {supportEmailError || EMAIL_HINT}
                 </p>
@@ -146,7 +153,7 @@ const AdminSettings = () => {
           </motion.div>
 
           {/* Notifications */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="rounded-xl border border-border bg-card p-3 sm:p-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.3 }} className="rounded-xl border border-border bg-card p-3 sm:p-6">
             <h2 className="font-display text-lg font-bold flex items-center gap-2 mb-4">
               <Bell className="h-4 w-4 text-primary"/> Notifications
             </h2>
@@ -164,7 +171,7 @@ const AdminSettings = () => {
           </motion.div>
 
           {/* Security */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="rounded-xl border border-border bg-card p-3 sm:p-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.4 }} className="rounded-xl border border-border bg-card p-3 sm:p-6">
             <h2 className="font-display text-lg font-bold flex items-center gap-2 mb-4">
               <Shield className="h-4 w-4 text-primary"/> Security
             </h2>
@@ -184,11 +191,11 @@ const AdminSettings = () => {
             </div>
           </motion.div>
 
-          <div className="flex gap-3">
-            <Button onClick={handleSave} disabled={loading || saving || hasValidationErrors} className="bg-gradient-primary text-primary-foreground hover:opacity-90 gap-2">
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={handleSave} disabled={loading || saving || hasValidationErrors} className="bg-gradient-primary text-primary-foreground hover:opacity-90 gap-2 min-h-[40px]">
               {saved ? <><Check className="h-4 w-4"/> Saved</> : saving ? "Saving..." : "Save Changes"}
             </Button>
-            <Button variant="outline" onClick={handleResetDefaults} disabled={loading || saving}>
+            <Button variant="outline" onClick={handleResetDefaults} disabled={loading || saving} className="min-h-[40px]">
               Reset Defaults
             </Button>
           </div>

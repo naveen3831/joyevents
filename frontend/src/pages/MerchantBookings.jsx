@@ -11,6 +11,7 @@ import { apiAssignedBookings, apiUpdateBookingStatus, apiRejectBooking, apiAppro
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from "@/components/ui/dropdown-menu";
+import { useGsapStagger } from "@/lib/gsapAnimations";
 const STATUS_BADGE = {
     assigned: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
     pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
@@ -45,6 +46,7 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
     const [cancelFeeOption, setCancelFeeOption] = useState("preset");
     const [customCancelFee, setCustomCancelFee] = useState("");
     const [submittingCancelAction, setSubmittingCancelAction] = useState(false);
+    const rowsRef = useGsapStagger([items, tab], { y: 12, stagger: 0.03 });
     const load = async () => {
         if (!token)
             return;
@@ -187,7 +189,7 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
       <section className="py-2 sm:py-8 lg:py-10">
         <div className="container mx-auto">
           {/* Header with Back Button */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
             <div className="flex items-center gap-3 mb-6">
               <Link to="/merchant-dashboard">
                 <Button variant="ghost" size="sm">
@@ -195,37 +197,39 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
                 </Button>
               </Link>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground">
-                <Calendar className="h-5 w-5"/>
-              </div>
-              <div>
-                <h1 className="font-display text-3xl font-bold">
-                  Assigned <span className="text-gradient">Bookings</span>
-                </h1>
-                <p className="text-muted-foreground text-sm">Manage your assigned bookings and track performance history</p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground">
+                  <Calendar className="h-5 w-5"/>
+                </div>
+                <div>
+                  <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
+                    Assigned <span className="text-gradient">Bookings</span>
+                  </h1>
+                  <p className="text-sm text-muted-foreground">Manage your assigned bookings and track performance history</p>
+                </div>
               </div>
             </div>
 
             {/* Tabs */}
-            <div className="flex items-center gap-4 mt-8 mb-4">
-              <button onClick={() => setTab("active")} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${tab === "active" ? "bg-gradient-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
+            <div className="flex items-center gap-3">
+              <button onClick={() => setTab("active")} className={`min-h-[44px] px-6 py-2 rounded-full text-sm font-medium transition-all ${tab === "active" ? "bg-gradient-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
                 Active ({activeItems.length})
               </button>
-              <button onClick={() => setTab("history")} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${tab === "history" ? "bg-gradient-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
+              <button onClick={() => setTab("history")} className={`min-h-[44px] px-6 py-2 rounded-full text-sm font-medium transition-all ${tab === "history" ? "bg-gradient-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
                 History ({historyItems.length})
               </button>
             </div>
           </motion.div>
 
           {/* Content */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }} className="mt-4">
             {loading ? (<div className="flex items-center justify-center py-20">
                 <Loader2 className="h-8 w-8 animate-spin text-primary"/>
-              </div>) : displayItems.length === 0 ? (<div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground">
-                <AlertCircle className="mx-auto mb-4 h-12 w-12 opacity-40"/>
-                <p className="font-medium text-lg">No {tab} bookings</p>
-                <p className="text-sm mt-2">Your {tab} bookings will appear here</p>
+              </div>) : displayItems.length === 0 ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
+                <AlertCircle className="mx-auto mb-4 h-12 w-12 opacity-30 text-muted-foreground"/>
+                <p className="font-medium text-lg text-foreground">No {tab} bookings</p>
+                <p className="text-sm mt-2 text-muted-foreground">Your {tab} bookings will appear here</p>
               </div>) : (<div className="rounded-xl border border-border bg-card overflow-x-auto w-full">
                 <table className="w-full text-xs">
                   <thead>
@@ -239,7 +243,7 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
                       <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Action</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody ref={rowsRef}>
                     {displayItems.map((b) => (<tr key={b._id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
                         <td className="px-2 py-2.5 font-medium">
                           <div>

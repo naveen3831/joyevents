@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Users, Calendar, TrendingUp, Loader2, AlertCircle, Eye, BookOpen } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
+import StatCard from "@/components/StatCard";
+import { useGsapReveal } from "@/lib/gsapAnimations";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiGetAdminRecommendationData } from "@/lib/api";
 import { toast } from "sonner";
@@ -20,7 +22,7 @@ const AdminRecommendations = () => {
     return (<AdminLayout>
       <section className="py-2 sm:py-8 lg:py-10">
         <div className="container mx-auto">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mb-8">
             <div className="flex items-center gap-3 mb-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground">
                 <Sparkles className="h-5 w-5"/>
@@ -44,12 +46,12 @@ const AdminRecommendations = () => {
                 { label: "Total Bookings", value: data.totalBookings?.toLocaleString(), icon: BookOpen, color: "text-green-400" },
                 { label: "Active Events", value: data.totalEvents?.toLocaleString(), icon: Calendar, color: "text-blue-400" },
                 { label: "Est. Total Reach", value: data.topRecommended?.reduce((s, e) => s + e.estimatedReach, 0)?.toLocaleString(), icon: Eye, color: "text-yellow-400" },
-            ].map((card, i) => (<motion.div key={card.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} className="rounded-xl border border-border bg-card p-5 flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary shrink-0">
-                      <card.icon className={`h-5 w-5 ${card.color}`}/>
+            ].map((card, i) => (<motion.div key={card.label} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: i * 0.08 }} className="rounded-xl border border-border bg-card p-3 sm:p-5 flex items-center gap-3 sm:gap-4">
+                    <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-secondary shrink-0">
+                      <card.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${card.color}`}/>
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">{card.label}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground truncate">{card.label}</p>
                       <p className="font-display text-xs sm:text-2xl font-bold truncate">{card.value}</p>
                     </div>
                   </motion.div>))}
@@ -78,7 +80,7 @@ const AdminRecommendations = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {data.topRecommended.map((event, idx) => (<motion.tr key={event._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.03 }} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
+                        {data.topRecommended.map((event, idx) => (<motion.tr key={event._id} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: idx * 0.03 }} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
                             <td className="px-4 py-3 font-medium max-w-[180px]">
                               <div className="truncate">{event.title}</div>
                               {event.isFeatured && <span className="text-xs text-yellow-400">⭐ Featured</span>}

@@ -256,15 +256,15 @@ const AdminPayouts = () => {
     const totalCommission = adminSummary?.bookingCommissionEarnings ?? merchantPayouts.reduce((sum, p) => sum + p.commission, 0);
     return (<AdminLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-4">
-              <Wallet className="h-8 w-8 text-primary"/>
-              <div>
-                <h1 className="font-display text-xs sm:text-3xl font-bold truncate">
+              <Wallet className="h-7 w-7 sm:h-8 sm:w-8 text-primary shrink-0"/>
+              <div className="min-w-0">
+                <h1 className="font-display text-xl sm:text-3xl font-bold truncate">
                   Merchant <span className="text-gradient">Payouts</span>
                 </h1>
-                <p className="text-muted-foreground text-sm mt-1">
+                <p className="text-muted-foreground text-xs sm:text-sm mt-1">
                   Manage and process merchant payouts from completed bookings
                 </p>
               </div>
@@ -345,7 +345,7 @@ const AdminPayouts = () => {
                     </p>
                   </div>
                 </div>
-                <Button onClick={openAdminWithdrawDialog} disabled={!adminSummary || adminSummary.availableBalance <= 0}>
+                <Button onClick={openAdminWithdrawDialog} disabled={!adminSummary || adminSummary.availableBalance <= 0} className="min-h-[40px] w-full sm:w-auto">
                   <Wallet className="mr-2 h-4 w-4"/>
                   Withdraw Admin Earnings
                 </Button>
@@ -401,7 +401,7 @@ const AdminPayouts = () => {
                   <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-30"/>
                   <p>No pending withdrawal requests.</p>
                 </div>) : (<div className="overflow-x-auto w-full">
-                  <Table className="text-xs">
+                  <Table className="text-xs min-w-[900px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="py-2.5 px-2">Merchant</TableHead>
@@ -481,7 +481,7 @@ const AdminPayouts = () => {
                   <Wallet className="h-12 w-12 mx-auto mb-4 opacity-30"/>
                   <p>No merchant payouts to process.</p>
                 </div>) : (<div className="overflow-x-auto w-full">
-                  <Table className="text-xs">
+                  <Table className="text-xs min-w-[900px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="py-2.5 px-2">Merchant</TableHead>
@@ -553,7 +553,7 @@ const AdminPayouts = () => {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Merchant Name</Label>
                 <p className="text-sm font-medium mt-1">{selectedMerchant?.name}</p>
@@ -573,14 +573,14 @@ const AdminPayouts = () => {
               </div>
               <div className="flex justify-between items-center mb-2">
                 <Label>Platform Commission (5%)</Label>
-                <p className="text-sm font-semibold text-green-600">
+                <p className="text-sm font-semibold text-tint-mint-fg">
                   -{formatCurrency(selectedMerchant ? merchantPayouts.find(p => p.merchant._id === selectedMerchant._id)?.commission : 0)}
                 </p>
               </div>
               <div className="border-t pt-2 mt-2">
                 <div className="flex justify-between items-center">
                   <Label className="text-base">Net Payout Amount</Label>
-                  <p className="text-lg font-bold text-purple-600">
+                  <p className="text-lg font-bold text-tint-violet-fg">
                     {formatCurrency(selectedMerchant ? merchantPayouts.find(p => p.merchant._id === selectedMerchant._id)?.netPayout : 0)}
                   </p>
                 </div>
@@ -592,11 +592,11 @@ const AdminPayouts = () => {
               <Textarea id="payout-note" value={payoutNote} onChange={(e) => setPayoutNote(e.target.value)} placeholder="Add a note for this payout..." rows={3}/>
             </div>
 
-            <div className="flex items-start gap-3 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
-              <CreditCard className="h-5 w-5 text-blue-500 mt-0.5 shrink-0"/>
-              <div className="text-sm text-blue-200">
+            <div className="flex items-start gap-3 p-4 bg-tint-blue/50 rounded-lg border border-border">
+              <CreditCard className="h-5 w-5 text-tint-blue-fg mt-0.5 shrink-0"/>
+              <div className="text-sm text-tint-blue-fg">
                 <p className="font-medium mb-1">Payout Information:</p>
-                <ul className="list-disc list-inside space-y-1 text-blue-300/80">
+                <ul className="list-disc list-inside space-y-1 text-tint-blue-fg/80">
                   <li>The payout will be transferred to the merchant's registered account</li>
                   <li>Transaction ID will be generated upon successful transfer</li>
                   <li>Both admin and merchant will receive confirmation</li>
@@ -636,7 +636,7 @@ const AdminPayouts = () => {
           <div className="space-y-3 py-1">
             <div className="rounded-md bg-secondary p-2">
               <p className="text-xs text-muted-foreground">Available Admin Earnings</p>
-              <p className="text-lg font-bold text-green-600">{formatCurrency(adminSummary?.availableBalance || 0)}</p>
+              <p className="text-lg font-bold text-tint-mint-fg">{formatCurrency(adminSummary?.availableBalance || 0)}</p>
             </div>
 
             <div>
@@ -707,7 +707,7 @@ const AdminPayouts = () => {
               <div className="border-t pt-2 mt-2">
                 <div className="flex justify-between items-center">
                   <Label className="text-base">Withdrawal Amount</Label>
-                  <p className="text-lg font-bold text-red-600">
+                  <p className="text-lg font-bold text-destructive">
                     {formatCurrency(selectedWithdrawal?.amount)}
                   </p>
                 </div>
@@ -719,11 +719,11 @@ const AdminPayouts = () => {
               <Textarea id="rejection-reason" value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} placeholder="Please provide a reason for rejecting this withdrawal request..." rows={4}/>
             </div>
 
-            <div className="flex items-start gap-3 p-4 bg-red-500/10 rounded-lg border border-red-500/20">
-              <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 shrink-0"/>
-              <div className="text-sm text-red-200">
+            <div className="flex items-start gap-3 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+              <AlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0"/>
+              <div className="text-sm text-destructive">
                 <p className="font-medium mb-1">Important Information:</p>
-                <ul className="list-disc list-inside space-y-1 text-red-300/80">
+                <ul className="list-disc list-inside space-y-1 text-destructive/80">
                   <li>The merchant will be notified of this rejection</li>
                   <li>The rejection reason will be visible to the merchant</li>
                   <li>The withdrawal status will be changed to "rejected"</li>
@@ -737,7 +737,7 @@ const AdminPayouts = () => {
             <Button variant="outline" onClick={() => setRejectDialogOpen(false)} disabled={actionInProgress === selectedWithdrawal?._id}>
               Cancel
             </Button>
-            <Button onClick={handleRejectWithdrawal} disabled={actionInProgress === selectedWithdrawal?._id || !rejectionReason.trim()} className="bg-red-600 hover:bg-red-700 text-white">
+            <Button onClick={handleRejectWithdrawal} disabled={actionInProgress === selectedWithdrawal?._id || !rejectionReason.trim()} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
               {actionInProgress === selectedWithdrawal?._id ? (<>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                   Rejecting...

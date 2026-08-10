@@ -78,10 +78,10 @@ const AdminReferrals = () => {
       <section className="py-2 sm:py-8 lg:py-10 space-y-6">
         <div>
           <div className="flex items-center gap-3">
-            <Gift className="h-8 w-8 text-primary"/>
-            <div>
-              <h1 className="font-display text-3xl font-bold">Referral Management</h1>
-              <p className="text-muted-foreground text-sm mt-1">
+            <Gift className="h-7 w-7 sm:h-8 sm:w-8 text-primary shrink-0"/>
+            <div className="min-w-0">
+              <h1 className="font-display text-xl sm:text-3xl font-bold truncate">Referral Management</h1>
+              <p className="text-muted-foreground text-xs sm:text-sm mt-1">
                 Set referral discount and wallet bonus amounts for completed bookings.
               </p>
             </div>
@@ -89,27 +89,27 @@ const AdminReferrals = () => {
         </div>
 
         {loading ? (<Card>
-            <CardContent className="p-12 flex justify-center items-center gap-2 text-muted-foreground">
+            <CardContent className="p-8 sm:p-12 flex justify-center items-center gap-2 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin"/> Loading referrals...
             </CardContent>
           </Card>) : (<>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <Card>
-                <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground">Referral Bookings</p>
-                  <p className="text-3xl font-bold mt-1">{stats.total}</p>
+                <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Referral Bookings</p>
+                  <p className="font-display text-xl sm:text-3xl font-bold mt-1">{stats.total}</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground">Discount Given</p>
-                  <p className="text-3xl font-bold mt-1">{formatCurrency(stats.discountGiven || 0)}</p>
+                <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Discount Given</p>
+                  <p className="font-display text-xl sm:text-3xl font-bold mt-1 truncate">{formatCurrency(stats.discountGiven || 0)}</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground">Wallet Bonus Paid</p>
-                  <p className="text-3xl font-bold mt-1">{formatCurrency(stats.bonusPaid || 0)}</p>
+                <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Wallet Bonus Paid</p>
+                  <p className="font-display text-xl sm:text-3xl font-bold mt-1 truncate">{formatCurrency(stats.bonusPaid || 0)}</p>
                 </CardContent>
               </Card>
             </div>
@@ -135,7 +135,7 @@ const AdminReferrals = () => {
                   <span className="text-sm font-medium">Referral program active</span>
                   <Switch checked={settings.isActive} onCheckedChange={(checked) => setSettings((current) => ({ ...current, isActive: checked }))}/>
                 </div>
-                <Button onClick={saveSettings} disabled={saving} className="gap-2">
+                <Button onClick={saveSettings} disabled={saving} className="gap-2 min-h-[40px]">
                   <Save className="h-4 w-4"/> {saving ? "Saving..." : "Save Referral Settings"}
                 </Button>
               </CardContent>
@@ -147,7 +147,7 @@ const AdminReferrals = () => {
               </CardHeader>
               <CardContent>
                 {!bookings.length ? (<div className="py-12 text-center text-muted-foreground">No referral activity yet.</div>) : (<div className="overflow-x-auto w-full">
-                    <table className="w-full text-left text-xs">
+                    <table className="w-full text-left text-xs min-w-[700px]">
                       <thead className="border-b border-border text-[10px] uppercase text-muted-foreground bg-secondary/50">
                         <tr>
                           <th className="px-2 py-2.5">Referrer</th>

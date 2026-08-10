@@ -635,10 +635,10 @@ const EventDetail = () => {
         {/* Related Events Section */}
         {relatedEvents.length > 0 && (<div className="px-3 sm:px-6 lg:px-12 mt-16 pt-12 pb-16 border-t border-border w-full relative z-10">
             <h2 className="font-display text-3xl font-black tracking-tight mb-8">Related Events</h2>
-            <div className="grid grid-cols-2 gap-4 sm:gap-8 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:gap-8 sm:grid-cols-2 lg:grid-cols-4">
               {relatedEvents.map((r) => (<div key={r._id} onClick={() => navigate(`/events/${r._id}`)} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 cursor-pointer">
                   <div className="relative aspect-[4/3] bg-secondary overflow-hidden flex-shrink-0">
-                    {r.image ? (<img src={imgSrc(r.image)} alt={r.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center">
+                    {r.image ? (<img src={imgSrc(r.image)} alt={r.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh">
                         <CalendarDays className="h-8 w-8 opacity-20"/>
                       </div>)}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/>

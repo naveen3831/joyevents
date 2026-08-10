@@ -195,7 +195,7 @@ const Portfolio = () => {
       </motion.div>
       <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3">
         {[
-            { quote: "JoyEvents transformed our annual summit into a world-class experience. The attention to detail was unmatched.", name: "Sarah Chen", role: "VP Operations, NovaTech" },
+            { quote: "Eventoza transformed our annual summit into a world-class experience. The attention to detail was unmatched.", name: "Sarah Chen", role: "VP Operations, NovaTech" },
             { quote: "Our wedding was everything we dreamed of and more. The team managed every tiny detail so we could just enjoy the day.", name: "James & Priya Harrington", role: "Wedding Clients" },
             { quote: "The brand activation exceeded all our KPIs. Media coverage, social engagement, guest experience — all top-tier.", name: "Marcus Webb", role: "Marketing Director, Brandify" },
         ].map((t, i) => (<motion.div key={i} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="rounded-2xl border border-border bg-card p-6">

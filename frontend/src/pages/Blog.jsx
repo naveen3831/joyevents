@@ -24,7 +24,7 @@ const Blog = () => {
         <div className="container mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
-              <Tag className="h-3.5 w-3.5"/> JoyEvents Blog
+              <Tag className="h-3.5 w-3.5"/> Eventoza Blog
             </span>
             <h1 className="font-display mt-4 text-2xl font-bold leading-tight sm:text-5xl md:text-6xl">
               Insights &amp; <span className="text-primary">Inspiration</span>

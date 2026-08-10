@@ -14,6 +14,7 @@ import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import { savePendingEventBooking, getPendingEventBooking, clearPendingEventBooking } from "@/lib/bookingState";
 import AvailablePromoCodes from "@/components/AvailablePromoCodes";
+import { useGsapStagger } from "@/lib/gsapAnimations";
 const CustomerEventDetail = () => {
     const { id } = useParams();
     const { isLoggedIn, token } = useAuth();
@@ -275,6 +276,7 @@ const CustomerEventDetail = () => {
         }
         return event.tickets || [];
     };
+    const relatedGridRef = useGsapStagger([relatedEvents.length]);
     if (loading)
         return (<CustomerLayout>
       <div className="flex items-center justify-center h-[60vh] text-muted-foreground gap-2">
@@ -300,10 +302,10 @@ const CustomerEventDetail = () => {
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-4rem)] px-3 sm:px-6 lg:px-12 gap-4 sm:gap-8 pb-8 sm:pb-12 mt-4 sm:mt-6">
 
           {/* LEFT — Image + Info */}
-          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="lg:w-1/2 bg-card rounded-2xl border border-border overflow-hidden flex flex-col">
+          <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.15 }} className="lg:w-1/2 bg-card rounded-2xl border border-border overflow-hidden flex flex-col">
             {/* Image */}
             <div className="relative aspect-[16/10] w-full overflow-hidden bg-secondary shrink-0">
-              {imgSrc(event.image) ? (<img src={imgSrc(event.image)} alt={event.title} className="h-full w-full object-cover"/>) : (<div className="flex h-full items-center justify-center">
+              {imgSrc(event.image) ? (<img src={imgSrc(event.image)} alt={event.title} className="h-full w-full object-cover"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh">
                   <CalendarDays className="h-24 w-24 opacity-10"/>
                 </div>)}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"/>
@@ -460,7 +462,7 @@ const CustomerEventDetail = () => {
           </motion.div>
 
           {/* RIGHT — Booking Form */}
-          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="lg:w-1/2 bg-card rounded-2xl border border-border">
+          <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.15 }} className="lg:w-1/2 bg-card rounded-2xl border border-border">
             <div className="p-8 max-w-lg mx-auto">
               <h2 className="font-display text-2xl font-bold mb-1">
                 {event.live ? "Event Details" : "Book This Event"}
@@ -650,11 +652,11 @@ const CustomerEventDetail = () => {
 
         {/* Related Events Section */}
         {relatedEvents.length > 0 && (<div className="px-3 sm:px-6 lg:px-12 mt-16 pt-12 pb-16 border-t border-border">
-            <h2 className="font-display text-2xl font-bold mb-6">Related Events</h2>
-            <div className="grid grid-cols-2 gap-4 sm:gap-8 lg:grid-cols-4">
+            <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground mb-6 sm:mb-8">Related Events</h2>
+            <div ref={relatedGridRef} className="grid grid-cols-2 gap-4 sm:gap-8 lg:grid-cols-4">
               {relatedEvents.map((r) => (<div key={r._id} onClick={() => navigate(`/customer-dashboard/events/${r._id}`)} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 cursor-pointer">
                   <div className="relative aspect-[4/3] bg-secondary overflow-hidden flex-shrink-0">
-                    {r.image ? (<img src={imgSrc(r.image)} alt={r.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center">
+                    {r.image ? (<img src={imgSrc(r.image)} alt={r.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh">
                         <CalendarDays className="h-8 w-8 opacity-20"/>
                       </div>)}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/>

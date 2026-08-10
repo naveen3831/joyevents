@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiGetCustomerInbox, apiCustomerReply } from "@/lib/api";
 import { toast } from "sonner";
+import { useGsapStagger } from "@/lib/gsapAnimations";
 const CustomerMessages = () => {
     const { token, user } = useAuth();
     const [messages, setMessages] = useState([]);
@@ -47,22 +48,25 @@ const CustomerMessages = () => {
         }
     };
     const hasReplies = (msg) => msg.replies?.some((r) => r.from === "merchant");
+    const listRef = useGsapStagger([messages.length, loading]);
     return (<CustomerLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="font-display text-3xl font-bold flex items-center gap-2 mb-2">
-            <MessageSquare className="h-7 w-7 text-primary"/> My <span className="text-gradient">Messages</span>
-          </h1>
-          <p className="text-muted-foreground text-sm mb-6">Your conversations with event & service organisers</p>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
+          <div className="mb-6 sm:mb-8">
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+              <MessageSquare className="h-6 w-6 text-primary"/> My <span className="text-gradient">Messages</span>
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">Your conversations with event & service organisers</p>
+          </div>
 
           {loading ? (<div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
               <Loader2 className="h-5 w-5 animate-spin"/> Loading…
-            </div>) : messages.length === 0 ? (<div className="rounded-xl border border-border bg-card p-16 text-center text-muted-foreground">
-              <MessageSquare className="h-14 w-14 mx-auto mb-4 opacity-20"/>
-              <p className="font-medium text-lg">No messages yet</p>
-              <p className="text-sm mt-1">Contact an organiser from any event or service page</p>
-            </div>) : (<div className="space-y-3">
-              {messages.map((msg, idx) => (<motion.div key={msg._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }} className={`rounded-xl border bg-card overflow-hidden ${hasReplies(msg) ? "border-primary/40" : "border-border"}`}>
+            </div>) : messages.length === 0 ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
+              <MessageSquare className="h-14 w-14 mx-auto mb-4 opacity-30 text-muted-foreground"/>
+              <p className="font-medium text-lg text-foreground">No messages yet</p>
+              <p className="text-sm mt-1 text-muted-foreground">Contact an organiser from any event or service page</p>
+            </div>) : (<div ref={listRef} className="space-y-3">
+              {messages.map((msg, idx) => (<motion.div key={msg._id} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: idx * 0.04 }} className={`rounded-xl border bg-card overflow-hidden ${hasReplies(msg) ? "border-primary/40" : "border-border"}`}>
                   {/* Header */}
                   <div className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-secondary/30 transition-colors" onClick={() => setExpanded(expanded === msg._id ? null : msg._id)}>
                     <div className="flex items-center gap-3 min-w-0">

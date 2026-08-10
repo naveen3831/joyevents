@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, X, Loader2, Briefcase, CheckCircle2, Star, Users, Zap, Search, Image as ImageIcon, ChevronLeft, ChevronRight, MapPin, Navigation, Tag, Copy, Mail } from "lucide-react";
+import { ArrowRight, X, Loader2, Briefcase, CheckCircle2, Star, Users, Zap, Search, Image as ImageIcon, ChevronLeft, ChevronRight, MapPin, Navigation, Tag, Copy, Mail, Eye, CalendarCheck, Sparkle } from "lucide-react";
+import { useGsapStagger, useGsapCardHover } from "@/lib/gsapAnimations";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,65 @@ const PROCESS = [
     { step: "04", title: "Event Day", desc: "Relax and enjoy — our professionals handle every detail on the day." },
 ];
 import { useHomepageSettings } from "@/hooks/useHomepageSettings";
+
+const HIGHLIGHT_TINTS = [
+    "bg-tint-orange text-tint-orange-fg",
+    "bg-tint-pink text-tint-pink-fg",
+    "bg-tint-violet text-tint-violet-fg",
+    "bg-tint-blue text-tint-blue-fg",
+];
+
+const ServiceGridCard = ({ svc, imgSrc, navigate, openBook, handleContactService }) => {
+    const hoverRef = useGsapCardHover({ lift: -8, scale: 1.015 });
+    return (
+        <div ref={hoverRef} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col shadow-card will-change-transform w-full h-full">
+            <div className="relative overflow-hidden bg-secondary shrink-0 w-full h-48 sm:h-52 cursor-pointer" onClick={() => navigate(`/services/${svc._id}`)}>
+                {imgSrc(svc.image) ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full w-full items-center justify-center bg-gradient-mesh text-primary/30">
+                    <Briefcase className="h-10 w-10 opacity-30"/>
+                  </div>)}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"/>
+                <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow-glow">
+                    From {formatCurrency(svc.price)}
+                </span>
+            </div>
+            <div className="p-4 sm:p-5 flex flex-col flex-1 min-w-0 justify-between">
+                <div>
+                    <h3 className="font-display text-base sm:text-lg font-bold leading-snug text-foreground cursor-pointer group-hover:text-primary transition-colors line-clamp-2" onClick={() => navigate(`/services/${svc._id}`)}>{svc.name}</h3>
+
+                    {svc.averageRating && svc.averageRating > 0 ? (<div className="flex items-center gap-1 mt-2">
+                        <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0"/>
+                        <span className="text-xs font-semibold">{svc.averageRating.toFixed(1)}</span>
+                        <span className="text-[10px] text-muted-foreground">({svc.ratingCount || 0})</span>
+                      </div>) : null}
+
+                    {svc.highlights?.length > 0 && (<ul className="mt-3 space-y-1.5 flex-1">
+                        {svc.highlights.slice(0, 2).map((h, hi) => (<li key={h} className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${HIGHLIGHT_TINTS[hi % HIGHLIGHT_TINTS.length]}`}>
+                              <Sparkle className="h-3 w-3"/>
+                            </span>
+                            <span className="line-clamp-1">{h}</span>
+                          </li>))}
+                      </ul>)}
+                </div>
+
+                <div className="mt-4 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                        <Button variant="outline" className="min-h-[40px] rounded-xl text-xs font-semibold border-border hover:bg-secondary text-foreground gap-1.5" onClick={() => navigate(`/services/${svc._id}`)}>
+                            <Eye className="h-4 w-4"/> Details
+                        </Button>
+                        <Button className="min-h-[40px] rounded-xl text-xs font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow gap-1.5" onClick={() => openBook(svc)}>
+                            <CalendarCheck className="h-4 w-4"/> Book Now
+                        </Button>
+                    </div>
+                    {svc.createdBy && (<button onClick={() => handleContactService(svc)} className="w-full min-h-[34px] rounded-xl text-xs font-medium border border-border/80 hover:bg-secondary transition-all text-muted-foreground flex items-center justify-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5"/> Contact Organiser
+                      </button>)}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const Services = () => {
     const settings = useHomepageSettings();
     const { isLoggedIn, role, token } = useAuth();
@@ -147,6 +207,7 @@ const Services = () => {
         const matchesCategory = activeCategory === "All" || (service.category || "General") === activeCategory;
         return matchesSearch && matchesCategory;
     });
+    const servicesPageGridRef = useGsapStagger([filteredServices.length], { scrollTrigger: true, y: 24 });
     const openBook = (svc) => {
         const dashboardUrl = `/customer-dashboard/services/${svc._id}`;
         if (!isLoggedIn || !token) {
@@ -373,95 +434,12 @@ const Services = () => {
               <Briefcase className="h-12 w-12 opacity-30"/>
               <p className="font-medium">No services available right now.</p>
               <p className="text-sm">Check back soon or contact us directly.</p>
-            </div>) : (<div className="mt-8 grid grid-cols-2 gap-3 md:gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredServices.map((svc, i) => (<motion.div key={svc._id} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
-                  <div className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-52 cursor-pointer" onClick={() => navigate(`/services/${svc._id}`)}>
-                    {imgSrc(svc.image) ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center text-muted-foreground">
-                        <Briefcase className="h-12 w-12 opacity-30"/>
-                      </div>)}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/>
-                    <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                      From {formatCurrency(svc.price)}
-                    </span>
-                  </div>
-                  <div className="p-2 sm:p-5 flex flex-col flex-1">
-                    <h3 className="font-display text-lg font-semibold text-foreground cursor-pointer hover:text-primary transition-colors" onClick={() => navigate(`/services/${svc._id}`)}>{svc.name}</h3>
-                    {/* Rating display */}
-                    {svc.averageRating && svc.averageRating > 0 ? (<div className="flex items-center gap-1 mt-1">
-                        <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0"/>
-                        <span className="text-xs font-semibold">
-                          {svc.averageRating.toFixed(1)}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          ({svc.ratingCount || 0})
-                        </span>
-                      </div>) : null}
-                    {svc.highlights?.length > 0 && (<ul className="mt-3 space-y-1">
-                        {svc.highlights.slice(0, 2).map((h) => (<li key={h} className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0"/>
-                            {h}
-                          </li>))}
-                        {svc.highlights.length > 2 && (<li className="text-xs text-primary font-medium pl-3 cursor-pointer hover:underline" onClick={() => navigate(`/services/${svc._id}`)}>
-                            +{svc.highlights.length - 2} more
-                          </li>)}
-                      </ul>)}
-
-                    <div className="flex-1"/>
-
-                    <div className="mt-4 flex flex-col gap-2">
-                      <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10" onClick={() => navigate(`/services/${svc._id}`)}>
-                        View Details
-                      </Button>
-                      <Button className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90" onClick={() => openBook(svc)}>
-                        Book Now
-                      </Button>
-                      {svc.createdBy && (<button onClick={() => handleContactService(svc)} className="w-full rounded-lg py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium border border-border hover:bg-secondary transition-all text-muted-foreground flex items-center justify-center gap-1">
-                          <Mail className="h-3.5 w-3.5"/> Contact Organiser
-                        </button>)}
-                    </div>
-                  </div>
-                </motion.div>))}
+            </div>) : (<div ref={servicesPageGridRef} className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredServices.map((svc) => (<ServiceGridCard key={svc._id} svc={svc} imgSrc={imgSrc} navigate={navigate} openBook={openBook} handleContactService={handleContactService}/>))}
             </div>)}
         </div>
       </section>
 
-      {/* Promo Codes Section */}
-      {!promoLoading && promoCodes.length > 0 && (<section className="py-20 bg-secondary/30">
-          <div className="container mx-auto">
-            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="mb-12">
-              <h2 className="font-display text-xl sm:text-3xl font-bold md:text-4xl">
-                <span className="text-gradient">Exclusive</span> Offers
-              </h2>
-              <p className="mt-2 text-muted-foreground">Active promo codes for your next booking</p>
-            </motion.div>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {promoCodes.slice(0, 3).map((promo, idx) => (<motion.div key={promo._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.1 }} className="rounded-xl border border-border bg-card p-5 hover-lift">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <code className="bg-primary/10 px-3 py-1 rounded font-mono font-bold text-primary text-sm">
-                        {promo.code}
-                      </code>
-                      {promo.description && (<p className="text-xs text-muted-foreground mt-2">{promo.description}</p>)}
-                    </div>
-                    <button onClick={() => {
-                    navigator.clipboard.writeText(promo.code);
-                    toast.success("Code copied!");
-                }} className="text-muted-foreground hover:text-foreground transition-colors">
-                      <Copy className="h-4 w-4"/>
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between pt-3 border-t border-border">
-                    <span className="font-semibold text-primary">
-                      {promo.discountType === "percentage" ? `${promo.discountValue}% OFF` : `${formatCurrency(promo.discountValue)} OFF`}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {promo.maxUses ? `${promo.currentUses}/${promo.maxUses} used` : "Unlimited"}
-                    </span>
-                  </div>
-                </motion.div>))}
-            </div>
-          </div>
-        </section>)}
 
       {/* ── Why Choose Us + Second Image ─────────────── */}
       <section className="bg-secondary/20 py-20">

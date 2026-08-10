@@ -1,5 +1,5 @@
-import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
+import { useGsapStagger } from "@/lib/gsapAnimations";
 import { Calendar, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, DollarSign, Upload, Ticket } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import AdminLayout from "@/components/AdminLayout";
@@ -63,6 +63,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
     const [formErrors, setFormErrors] = useState({});
     const [ticketError, setTicketError] = useState("");
     const [creatingCat, setCreatingCat] = useState(false);
+    const gridRef = useGsapStagger([events]);
     const handleCreateCategory = async () => {
         const trimmed = newCatName.trim();
         setNewCatError("");
@@ -422,48 +423,49 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
     };
     return (<PageLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
           <div>
-            <h1 className="font-display text-3xl font-bold">
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
               My <span className="text-gradient">Events</span>
             </h1>
             <p className="text-muted-foreground text-sm mt-1">Manage your created events - edit or delete only what you own</p>
           </div>
-          <Button onClick={openCreate} className="bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow">
+          <Button onClick={openCreate} className="w-full sm:w-auto bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow min-h-11">
             <Plus className="mr-2 h-4 w-4"/> Add Event
           </Button>
         </div>
 
-
-
         {loading ? (<div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
             <Loader2 className="h-5 w-5 animate-spin"/> Loading…
-          </div>) : events.length === 0 ? (<div className="rounded-xl border border-border bg-card p-10 text-center text-muted-foreground">
-            <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-40"/>
-            No events yet. Create your first event to get started. Only your events are shown here.
-          </div>) : (<div className="grid grid-cols-2 gap-3 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {events.map((ev) => (<motion.div key={ev._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
+          </div>) : events.length === 0 ? (<div className="rounded-xl border border-border bg-card p-10 text-center">
+            <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-30 text-muted-foreground"/>
+            <p className="text-muted-foreground">No events yet. Create your first event to get started. Only your events are shown here.</p>
+          </div>) : (<div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6 lg:grid-cols-3">
+            {events.map((ev) => (<div key={ev._id} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
                 {/* Image */}
                 <div className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-52">
-                  {imgSrc(ev.image) ? (<img src={imgSrc(ev.image)} alt={ev.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center text-muted-foreground">
+                  {imgSrc(ev.image) ? (<img src={imgSrc(ev.image)} alt={ev.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
                       <ImageIcon className="h-12 w-12 opacity-30"/>
                     </div>)}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"/>
+                  <span className={`absolute top-3 left-3 rounded-full px-2.5 py-1 text-xs font-semibold capitalize backdrop-blur-md shadow-sm ${ev.status === "upcoming" ? "bg-blue-500/80 text-white" : ev.status === "ongoing" ? "bg-green-500/80 text-white" : "bg-gray-500/80 text-white"}`}>
+                    {ev.status}
+                  </span>
                   <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
                     {ev.category}
                   </span>
-                  <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => openEdit(ev)} className="rounded-full bg-black/60 p-2 hover:bg-primary hover:text-primary-foreground transition-colors">
+                  <div className="absolute top-3 right-3 flex gap-2 z-10">
+                    <button onClick={() => openEdit(ev)} title="Edit event" className="rounded-full bg-black/70 text-white p-2 hover:bg-primary hover:text-primary-foreground transition-colors shadow-sm">
                       <Pencil className="h-4 w-4"/>
                     </button>
-                    <button onClick={() => handleDelete(ev._id)} disabled={deletingId === ev._id} className="rounded-full bg-black/60 p-2 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50">
+                    <button onClick={() => handleDelete(ev._id)} disabled={deletingId === ev._id} title="Delete event" className="rounded-full bg-black/70 text-white p-2 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 shadow-sm">
                       {deletingId === ev._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
                     </button>
                   </div>
                 </div>
 
                 {/* Info */}
-                <div className="p-2 sm:p-5 flex flex-col flex-1">
+                <div className="p-3.5 sm:p-5 flex flex-col flex-1">
                   <h3 className="font-display font-semibold text-lg line-clamp-1">{ev.title}</h3>
                   <p className="text-xs text-muted-foreground mt-1">{ev.location}</p>
                   <p className="text-xs text-muted-foreground">{new Date(ev.datetime).toLocaleString()}</p>
@@ -547,8 +549,18 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                       {ev.status}
                     </span>
                   </div>
+
+                  {/* Actions */}
+                  <div className="mt-3 flex gap-2 border-t border-border pt-3">
+                    <Button size="sm" variant="outline" className="flex-1 min-h-[38px] rounded-xl font-semibold border-border/80 hover:bg-secondary" onClick={() => openEdit(ev)}>
+                      <Pencil className="mr-1.5 h-3.5 w-3.5"/> Edit Event
+                    </Button>
+                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-white hover:bg-red-500 shrink-0 min-h-[38px] rounded-xl" disabled={deletingId === ev._id} onClick={() => handleDelete(ev._id)}>
+                      {deletingId === ev._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
+                    </Button>
+                  </div>
                 </div>
-              </motion.div>))}
+              </div>))}
           </div>)}
 
         {/* Modal */}
@@ -608,7 +620,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                               <X className="h-3 w-3"/>
                             </button>
                           </div>))}
-                        {galleryPreviews.length < 4 && (<div className="flex h-full items-center justify-center text-muted-foreground">
+                        {galleryPreviews.length < 4 && (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
                             <Plus className="h-6 w-6"/>
                           </div>)}
                       </div>)}
@@ -628,7 +640,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                 if (formErrors.title)
                     setFormErrors(prev => ({ ...prev, title: "" }));
             }} placeholder="Enter event title" maxLength={100} required aria-invalid={Boolean(formErrors.title)}/>
-                  {formErrors.title && <p className="text-xs text-red-500 mt-1">{formErrors.title}</p>}
+                  {formErrors.title && <p className="text-xs text-destructive mt-1">{formErrors.title}</p>}
                 </div>
 
                 <div>
@@ -641,7 +653,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                 if (formErrors.description)
                     setFormErrors(prev => ({ ...prev, description: "" }));
             }} placeholder="Describe your event..." rows={3} maxLength={1000} required aria-invalid={Boolean(formErrors.description)}/>
-                  {formErrors.description && <p className="text-xs text-red-500 mt-1">{formErrors.description}</p>}
+                  {formErrors.description && <p className="text-xs text-destructive mt-1">{formErrors.description}</p>}
                 </div>
 
                 {/* Event Type Selection */}
@@ -760,7 +772,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                       </div>
                     </div>
                   </div>)}
-                {ticketError && (<p className="text-xs text-red-500 mt-2">{ticketError}</p>)}
+                {ticketError && (<p className="text-xs text-destructive mt-2">{ticketError}</p>)}
 
                 {/* Ticket Types Section - Show for day/night sessions */}
                 {eventType === "ticketed" && ticketedType === "dayNight" && (<div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
@@ -937,7 +949,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                 if (formErrors.location)
                     setFormErrors(prev => ({ ...prev, location: "" }));
             }} placeholder="Event venue" maxLength={150} required aria-invalid={Boolean(formErrors.location)}/>
-                  {formErrors.location && <p className="text-xs text-red-500 mt-1">{formErrors.location}</p>}
+                  {formErrors.location && <p className="text-xs text-destructive mt-1">{formErrors.location}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -948,7 +960,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                     if (formErrors.price)
                         setFormErrors(prev => ({ ...prev, price: "" }));
                 }} placeholder="1" required aria-invalid={Boolean(formErrors.price)}/>
-                      {formErrors.price && <p className="text-xs text-red-500 mt-1">{formErrors.price}</p>}
+                      {formErrors.price && <p className="text-xs text-destructive mt-1">{formErrors.price}</p>}
                     </div>)}
                   <div>
                     <Label className="text-sm text-muted-foreground">Category</Label>
@@ -996,7 +1008,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                     if (formErrors.maxAttendees)
                         setFormErrors(prev => ({ ...prev, maxAttendees: "" }));
                 }} placeholder="e.g. 100 (leave 0 for unlimited)"/>
-                    {formErrors.maxAttendees && <p className="text-xs text-red-500 mt-1">{formErrors.maxAttendees}</p>}
+                    {formErrors.maxAttendees && <p className="text-xs text-destructive mt-1">{formErrors.maxAttendees}</p>}
                   </div>)}
 
                 <div>

@@ -69,6 +69,22 @@ export default {
                     DEFAULT: "hsl(var(--warning))",
                     foreground: "hsl(var(--warning-foreground))",
                 },
+                navy: {
+                    DEFAULT: "hsl(var(--navy))",
+                    foreground: "hsl(var(--navy-foreground))",
+                },
+                tint: {
+                    orange: "hsl(var(--tint-orange))",
+                    "orange-fg": "hsl(var(--tint-orange-fg))",
+                    pink: "hsl(var(--tint-pink))",
+                    "pink-fg": "hsl(var(--tint-pink-fg))",
+                    violet: "hsl(var(--tint-violet))",
+                    "violet-fg": "hsl(var(--tint-violet-fg))",
+                    blue: "hsl(var(--tint-blue))",
+                    "blue-fg": "hsl(var(--tint-blue-fg))",
+                    mint: "hsl(var(--tint-mint))",
+                    "mint-fg": "hsl(var(--tint-mint-fg))",
+                },
                 sidebar: {
                     DEFAULT: "hsl(var(--sidebar-background))",
                     foreground: "hsl(var(--sidebar-foreground))",

@@ -134,7 +134,7 @@ const MyRequests = () => {
         const bookingTime = new Date(b.datetime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
         const issuedDate = new Date(b.createdAt || Date.now()).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
         const completedDate = b.completedAt ? new Date(b.completedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }) : "—";
-        const merchantName = b.assignedTo?.name || "JoyEvents Team";
+        const merchantName = b.assignedTo?.name || "Eventoza Team";
         const merchantEmail = b.assignedTo?.email || "";
         const location = b.event?.location || b.customerLocation?.address || "—";
         const paymentMethod = b.paymentMethod === "upi" ? `UPI${b.upiId ? ` (${b.upiId})` : ""}` : b.paymentMethod === "card" ? `Card${b.cardLast4 ? ` ····${b.cardLast4}` : ""}${b.cardholderName ? ` · ${b.cardholderName}` : ""}` : "CARD";
@@ -244,7 +244,7 @@ const MyRequests = () => {
 <body>
 <div class="page">
   <div class="header">
-    <div class="brand">🎉 JoyEvents<span>Premium Event Services Platform</span></div>
+    <div class="brand">🎉 Eventoza<span>Premium Event Services Platform</span></div>
     <div class="inv-meta">
       <h2>INVOICE</h2>
       <p>${invoiceNo}</p>
@@ -265,7 +265,7 @@ const MyRequests = () => {
         <h4>Service Provider</h4>
         <div class="name">${merchantName}</div>
         ${merchantEmail ? `<p>${merchantEmail}</p>` : ""}
-        <p>JoyEvents Platform</p>
+        <p>Eventoza Platform</p>
       </div>
     </div>
 
@@ -313,8 +313,8 @@ const MyRequests = () => {
   </div>
 
   <div class="footer">
-    Thank you for choosing JoyEvents! &nbsp;·&nbsp; This is a computer-generated invoice — no signature required.<br>
-    For support: support@joyevents.com &nbsp;·&nbsp; www.joyevents.com
+    Thank you for choosing Eventoza! &nbsp;·&nbsp; This is a computer-generated invoice — no signature required.<br>
+    For support: support@eventoza.com &nbsp;·&nbsp; www.eventoza.com
   </div>
 </div>
 </body>
@@ -334,7 +334,7 @@ const MyRequests = () => {
       <section className="py-2 sm:py-8 lg:py-10">
         <div className="container mx-auto">
           {/* Header with Back Button */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
             <div className="flex items-center gap-3 mb-6">
               <Link to="/customer-dashboard">
                 <Button variant="ghost" size="sm">
@@ -347,7 +347,7 @@ const MyRequests = () => {
                 <Ticket className="h-5 w-5"/>
               </div>
               <div>
-                <h1 className="font-display text-3xl font-bold">
+                <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
                   My <span className="text-gradient">Bookings</span>
                 </h1>
                 <p className="text-muted-foreground text-sm">View all your booking requests and their status</p>
@@ -356,11 +356,11 @@ const MyRequests = () => {
           </motion.div>
 
           {/* Content */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-8">
-            {items.length === 0 ? (<div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground">
-                <AlertCircle className="mx-auto mb-4 h-12 w-12 opacity-40"/>
-                <p className="font-medium text-lg">No bookings yet</p>
-                <p className="text-sm mt-2">Your booking requests will appear here</p>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }} className="mb-6 sm:mb-8 mt-6 sm:mt-8">
+            {items.length === 0 ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
+                <AlertCircle className="mx-auto mb-4 h-12 w-12 opacity-30"/>
+                <p className="font-medium text-lg text-muted-foreground">No bookings yet</p>
+                <p className="text-sm mt-2 text-muted-foreground">Your booking requests will appear here</p>
             </div>) : (<div className="rounded-xl border border-border bg-card overflow-x-auto w-full">
                 <table className="w-full text-xs">
                   <thead>
@@ -578,7 +578,7 @@ const MyRequests = () => {
   <div class="ticket">
     <div class="ticket-header">
       <h1>🎫 EVENT TICKET</h1>
-      <p>JoyEvents</p>
+      <p>Eventoza</p>
     </div>
     ${eventImage ? `<img src="${eventImage}" alt="Event" class="event-image" onerror="this.style.display='none'">` : ''}
     <div class="ticket-body">

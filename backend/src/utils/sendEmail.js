@@ -18,10 +18,10 @@ export const getSmtpConfig = () => {
     if (match) {
       from = `"${match[1].trim()}" <${match[2].trim()}>`;
     } else if (user) {
-      from = `"JoyEvents" <${user}>`;
+      from = `"Eventoza" <${user}>`;
     }
   }
-  if (!from && user) from = `"JoyEvents" <${user}>`;
+  if (!from && user) from = `"Eventoza" <${user}>`;
 
   return { user, pass, host, port, secure, from };
 };
@@ -67,11 +67,11 @@ export const sendMerchantCredentials = async ({ name, email, password }) => {
     await transporter.sendMail({
       from,
       to: email,
-      subject: "Welcome to JoyEvents! Your Merchant Account Created",
+      subject: "Welcome to Eventoza! Your Merchant Account Created",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
           <div style="background: linear-gradient(135deg, #FF5A00, #FF8C00); padding: 30px; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to JoyEvents!</h1>
+            <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to Eventoza!</h1>
           </div>
           <div style="padding: 30px; color: #333;">
             <p style="font-size: 16px;">Hi <strong>${name}</strong>,</p>
@@ -93,7 +93,7 @@ export const sendMerchantCredentials = async ({ name, email, password }) => {
               Please change your password immediately after your first login for account security.
             </p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-            <p style="color: #aaa; font-size: 12px; text-align: center;">JoyEvents Platform</p>
+            <p style="color: #aaa; font-size: 12px; text-align: center;">Eventoza Platform</p>
           </div>
         </div>
       `,
@@ -134,7 +134,7 @@ export const sendPasswordResetEmail = async ({ name, email, resetUrl }) => {
       from,
       to: email,
       replyTo: user,
-      subject: "Reset Your Password — JoyEvents",
+      subject: "Reset Your Password — Eventoza",
       text: `Hi ${name},\n\nReset your password: ${resetUrl}\n\nThis link expires in 1 hour.\n`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
@@ -152,7 +152,7 @@ export const sendPasswordResetEmail = async ({ name, email, resetUrl }) => {
             <p style="color: #888; font-size: 13px;">This link expires in <strong>1 hour</strong>. If you didn't request this, you can safely ignore this email.</p>
             <p style="color: #aaa; font-size: 12px; word-break: break-all;">Or copy this link: ${resetUrl}</p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-            <p style="color: #aaa; font-size: 12px; text-align: center;">JoyEvents</p>
+            <p style="color: #aaa; font-size: 12px; text-align: center;">Eventoza</p>
           </div>
         </div>
       `,
@@ -192,7 +192,7 @@ export const sendContactMessage = async ({
       from,
       to: merchantEmail,
       replyTo: senderEmail,
-      subject: `New enquiry about "${itemTitle}" — JoyEvents`,
+      subject: `New enquiry about "${itemTitle}" — Eventoza`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
           <div style="background: linear-gradient(135deg, #FF5A00, #FF8C00); padding: 24px 30px;">
@@ -207,7 +207,7 @@ export const sendContactMessage = async ({
             </div>
             <p style="color: #555; font-size: 13px;">You can reply directly to this email to respond to the customer.</p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-            <p style="color: #aaa; font-size: 12px; text-align: center;">JoyEvents</p>
+            <p style="color: #aaa; font-size: 12px; text-align: center;">Eventoza</p>
           </div>
         </div>
       `,
@@ -237,10 +237,10 @@ export const sendContactUsToAdmin = async ({
     : user;
   try {
     await transporter.sendMail({
-      from: `"JoyEvents" <${user}>`,
+      from: `"Eventoza" <${user}>`,
       to: adminEmail,
       replyTo: email,
-      subject: `[Contact Us Request] ${subject || "New Inquiry"} — JoyEvents`,
+      subject: `[Contact Us Request] ${subject || "New Inquiry"} — Eventoza`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
           <div style="background: linear-gradient(135deg, #FF5A00, #FF8C00); padding: 24px 30px;">
@@ -257,7 +257,7 @@ export const sendContactUsToAdmin = async ({
             </div>
             <p style="color: #555; font-size: 13px;">You can reply directly to this email to respond to the user.</p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-            <p style="color: #aaa; font-size: 12px; text-align: center;">JoyEvents</p>
+            <p style="color: #aaa; font-size: 12px; text-align: center;">Eventoza</p>
           </div>
         </div>
       `,

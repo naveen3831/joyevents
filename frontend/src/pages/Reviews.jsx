@@ -42,7 +42,7 @@ const Reviews = () => {
               What Our <span className="text-gradient">Customers</span> Say
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Real experiences from real people. Every review is from a verified booking on JoyEvents — 
+              Real experiences from real people. Every review is from a verified booking on Eventoza — 
               helping you choose the perfect event or service with confidence.
             </p>
           </motion.div>

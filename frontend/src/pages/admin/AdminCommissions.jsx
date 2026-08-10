@@ -140,15 +140,15 @@ const AdminCommissions = () => {
     const totalMerchantPayout = commissionRows.reduce((sum, row) => sum + row.payout, 0);
     return (<AdminLayout>
       <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-4">
-              <Calculator className="h-8 w-8 text-primary"/>
-              <div>
-                <h1 className="font-display text-xs sm:text-3xl font-bold truncate">
+              <Calculator className="h-7 w-7 sm:h-8 sm:w-8 text-primary shrink-0"/>
+              <div className="min-w-0">
+                <h1 className="font-display text-xl sm:text-3xl font-bold truncate">
                   Commission <span className="text-gradient">Management</span>
                 </h1>
-                <p className="text-muted-foreground text-sm mt-1">
+                <p className="text-muted-foreground text-xs sm:text-sm mt-1">
                   Set the platform commission rate. Changes only apply to future bookings.
                 </p>
               </div>
@@ -183,7 +183,7 @@ const AdminCommissions = () => {
                       <span className="text-muted-foreground text-sm">%</span>
                     </div>
                   </div>
-                  <Button onClick={validateAndConfirm} disabled={savingRate} className="w-full sm:w-auto">
+                  <Button onClick={validateAndConfirm} disabled={savingRate} className="w-full sm:w-auto min-h-[40px]">
                     Update Rate
                     <ArrowRight className="ml-2 h-4 w-4"/>
                   </Button>
@@ -270,59 +270,59 @@ const AdminCommissions = () => {
                   <Calculator className="h-12 w-12 mx-auto mb-4 opacity-30"/>
                   <p>No paid bookings to show commissions.</p>
                 </div>) : (<div className="overflow-x-auto w-full">
-                  <Table className="text-xs">
-                    <TableHeader>
+                  <Table className="text-xs min-w-[900px]">
+                    <TableHeader className="bg-secondary">
                       <TableRow>
-                        <TableHead className="py-2.5 px-2">Booking ID</TableHead>
-                        <TableHead className="py-2.5 px-2">Service / Event</TableHead>
-                        <TableHead className="py-2.5 px-2">Customer</TableHead>
-                        <TableHead className="py-2.5 px-2">Merchant</TableHead>
-                        <TableHead className="py-2.5 px-2">Price</TableHead>
-                        <TableHead className="py-2.5 px-2">Commission Rate</TableHead>
-                        <TableHead className="py-2.5 px-2">Admin Earnings</TableHead>
-                        <TableHead className="py-2.5 px-2">Merchant Payout</TableHead>
-                        <TableHead className="py-2.5 px-2">Date</TableHead>
-                        <TableHead className="py-2.5 px-2">Status</TableHead>
+                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Booking ID</TableHead>
+                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Service / Event</TableHead>
+                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Customer</TableHead>
+                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Merchant</TableHead>
+                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Price</TableHead>
+                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Commission Rate</TableHead>
+                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Admin Earnings</TableHead>
+                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Merchant Payout</TableHead>
+                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Date</TableHead>
+                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {commissionRows.map(({ booking, adminEarning, payout, rateLabel, isSaved, isAdminBooking }) => {
-                  return (<TableRow key={booking._id}>
-                              <TableCell className="font-mono text-xs py-2.5 px-2">{booking._id.slice(-8)}</TableCell>
-                              <TableCell className="py-2.5 px-2">
+                  return (<TableRow key={booking._id} className="hover:bg-secondary/50">
+                              <TableCell className="font-mono text-xs py-3 px-4">{booking._id.slice(-8)}</TableCell>
+                              <TableCell className="py-3 px-4">
                                 <p className="font-medium text-xs">
                                   {booking.service?.name || booking.serviceName || booking.event?.title || "—"}
                                 </p>
                               </TableCell>
-                              <TableCell className="py-2.5 px-2">
+                              <TableCell className="py-3 px-4">
                                 <p className="font-medium text-xs">{booking.customer?.name}</p>
                                 <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{booking.customer?.email}</p>
                               </TableCell>
-                              <TableCell className="py-2.5 px-2">
+                              <TableCell className="py-3 px-4">
                                 {booking.assignedTo ? (<>
                                     <p className="font-medium text-xs">{booking.assignedTo.name}</p>
                                     <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{booking.assignedTo.email}</p>
                                   </>) : <span className="text-[10px] text-muted-foreground">Unassigned</span>}
                               </TableCell>
-                              <TableCell className="font-semibold text-xs py-2.5 px-2">{formatCurrency(booking.price)}</TableCell>
-                              <TableCell className="py-2.5 px-2">
-                                <Badge variant="outline" className={`px-1.5 py-0.5 text-[9px] ${isAdminBooking ? "bg-blue-500/15 text-blue-400 border border-blue-500/30" : isSaved ? "bg-green-500/15 text-green-400 border border-green-500/30" : "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30"}`}>
+                              <TableCell className="font-semibold text-xs py-3 px-4">{formatCurrency(booking.price)}</TableCell>
+                              <TableCell className="py-3 px-4">
+                                <Badge variant="outline" className={`px-1.5 py-0.5 text-[9px] border-0 ${isAdminBooking ? "bg-tint-blue text-tint-blue-fg" : isSaved ? "bg-tint-mint text-tint-mint-fg" : "bg-tint-orange text-tint-orange-fg"}`}>
                                   {rateLabel}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="text-green-500 font-semibold text-xs py-2.5 px-2">
+                              <TableCell className="text-tint-mint-fg font-semibold text-xs py-3 px-4">
                                 {formatCurrency(adminEarning)}
                               </TableCell>
-                              <TableCell className="text-purple-500 font-semibold text-xs py-2.5 px-2">
+                              <TableCell className="text-tint-violet-fg font-semibold text-xs py-3 px-4">
                                 {formatCurrency(payout)}
                               </TableCell>
-                              <TableCell className="text-muted-foreground text-[10px] py-2.5 px-2">
+                              <TableCell className="text-muted-foreground text-[10px] py-3 px-4">
                                 {new Date(booking.datetime).toLocaleDateString()}
                               </TableCell>
-                              <TableCell className="py-2.5 px-2">
-                                <Badge variant="outline" className={`px-1.5 py-0.5 text-[9px] ${booking.status === "completed"
-                          ? "bg-green-500/15 text-green-400 border border-green-500/30"
-                          : "bg-blue-500/15 text-blue-400 border border-blue-500/30"}`}>
+                              <TableCell className="py-3 px-4">
+                                <Badge variant="outline" className={`px-1.5 py-0.5 text-[9px] border-0 ${booking.status === "completed"
+                          ? "bg-tint-mint text-tint-mint-fg"
+                          : "bg-tint-blue text-tint-blue-fg"}`}>
                                   {booking.status}
                                 </Badge>
                               </TableCell>

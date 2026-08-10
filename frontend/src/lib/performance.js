@@ -1,5 +1,5 @@
 /**
- * Performance Optimization Utilities for JoyEvents
+ * Performance Optimization Utilities for Eventoza
  * Helps with lazy loading, prefetching, and resource management
  */
 // Prefetch a page when user is likely to navigate to it
@@ -80,7 +80,7 @@ export const measurePerformance = () => {
                 if (perfData) {
                     const pageLoadTime = perfData.loadEventEnd - perfData.startTime;
                     const domReadyTime = perfData.domContentLoadedEventEnd - perfData.startTime;
-                    console.log(`⚡ JoyEvents Performance:`);
+                    console.log(`⚡ Eventoza Performance:`);
                     console.log(`  DOM Ready: ${Math.round(domReadyTime)}ms`);
                     console.log(`  Page Loaded: ${Math.round(pageLoadTime)}ms`);
                     // Store in localStorage for analytics

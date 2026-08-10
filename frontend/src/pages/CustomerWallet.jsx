@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { apiGetTransactions, apiWithdrawWallet, apiAddWalletFunds, apiVerifyToken } from "@/lib/api";
+import { useGsapStagger } from "@/lib/gsapAnimations";
 const CustomerWallet = () => {
     const { token, user, updateUser } = useAuth();
     const [transactions, setTransactions] = useState([]);
@@ -35,6 +36,7 @@ const CustomerWallet = () => {
     const [accountNumber, setAccountNumber] = useState("");
     const [ifscCode, setIfscCode] = useState("");
     const [withdrawing, setWithdrawing] = useState(false);
+    const txRef = useGsapStagger([transactions]);
     const loadData = async () => {
         if (!token)
             return;
@@ -154,9 +156,9 @@ const CustomerWallet = () => {
         <div className="max-w-6xl mx-auto space-y-8">
           
           {/* Header */}
-          <div>
-            <h1 className="font-display text-4xl font-black tracking-tight">Wallet</h1>
-            <p className="text-muted-foreground text-sm mt-1">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Wallet</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Manage your balance, add funds, or withdraw to your bank account.
             </p>
           </div>
@@ -179,10 +181,10 @@ const CustomerWallet = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-4 mt-8">
-                  <Button onClick={() => setDepositModal(true)} className="bg-gradient-primary text-primary-foreground font-bold gap-2">
+                  <Button onClick={() => setDepositModal(true)} className="bg-gradient-primary text-primary-foreground font-bold gap-2 min-h-[44px]">
                     <Plus className="h-4 w-4"/> Add Funds
                   </Button>
-                  <Button onClick={() => setWithdrawModal(true)} variant="outline" disabled={!user?.walletBalance || user.walletBalance <= 0} className="border-primary/30 text-primary hover:bg-primary/10 font-bold gap-2">
+                  <Button onClick={() => setWithdrawModal(true)} variant="outline" disabled={!user?.walletBalance || user.walletBalance <= 0} className="border-primary/30 text-primary hover:bg-primary/10 font-bold gap-2 min-h-[44px]">
                     <Landmark className="h-4 w-4"/> Withdraw to Bank / UPI
                   </Button>
                 </div>
@@ -241,7 +243,7 @@ const CustomerWallet = () => {
                           <th className="px-6 py-4 text-right">Amount</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-border text-sm">
+                      <tbody ref={txRef} className="divide-y divide-border text-sm">
                         {transactions.map((tx) => {
                 const isDeposit = tx.type === "refund" || tx.type === "referral_bonus"; // credit
                 return (<tr key={tx._id} className="hover:bg-secondary/50 dark:hover:bg-white/5 transition-colors">
