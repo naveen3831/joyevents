@@ -29,21 +29,17 @@ const Login = () => {
     // If already logged in, check if we should redirect to dashboard or wait for authReturnTo
     useEffect(() => {
         sessionStorage.removeItem("forceLoginNoRedirect");
-        if (!redirectParam) {
+        const savedReturnTo = localStorage.getItem("authReturnTo");
+        const effectiveRedirect = redirectParam || savedReturnTo;
+
+        console.log('📋 Login useEffect - isLoggedIn:', isLoggedIn, 'role:', role, 'effectiveRedirect:', effectiveRedirect);
+        if (isLoggedIn && role) {
+            console.log('✅ Already logged in, redirecting to target:', effectiveRedirect || dashboardPaths[role]);
             localStorage.removeItem("authReturnTo");
-        }
-        console.log('📋 Login useEffect - isLoggedIn:', isLoggedIn, 'role:', role, 'redirectParam:', redirectParam);
-        if (isLoggedIn && role && !redirectParam) {
-            console.log('✅ Already logged in with no return URL, redirecting to dashboard');
-            navigate(dashboardPaths[role], { replace: true });
-        }
-        else if (isLoggedIn && role && redirectParam) {
-            console.log('⏳ Already logged in WITH redirect, will auto-redirect...');
-            setTimeout(() => {
-                navigate(redirectParam, { replace: true });
-            }, 100);
+            navigate(effectiveRedirect || dashboardPaths[role], { replace: true });
         }
     }, [isLoggedIn, role, navigate, redirectParam]);
+
     // Show error if redirected due to deactivation
     useEffect(() => {
         const errorParam = searchParams.get("error");
@@ -52,6 +48,7 @@ const Login = () => {
             navigate("/login", { replace: true });
         }
     }, [location.search, navigate]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         const formErr = validateLoginForm(email, password);
@@ -85,10 +82,11 @@ const Login = () => {
             setIsLoggedIn(true);
             setSessionActive();
             toast.success(`${roleLabels[userRole]} login successful!`);
-            const target = redirectParam || dashboardPaths[userRole];
-            if (!redirectParam) {
-                localStorage.removeItem("authReturnTo");
-            }
+            
+            const savedReturnTo = localStorage.getItem("authReturnTo");
+            const targetRedirect = redirectParam || savedReturnTo;
+            const target = targetRedirect || dashboardPaths[userRole];
+            localStorage.removeItem("authReturnTo");
             navigate(target, { replace: true });
         }
         catch (err) {

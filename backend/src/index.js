@@ -19,8 +19,10 @@ import settingsRoutes from "./routes/settings.js";
 import contactRoutes from "./routes/contact.js";
 import recommendationRoutes from "./routes/recommendations.js";
 import referralRoutes from "./routes/referrals.js";
+import customServiceRoutes from "./routes/customServiceRequests.js";
 import { connectDB } from "./config/db.js";
 import { getSmtpConfig, isSmtpConfigured } from "./utils/sendEmail.js";
+import { emitResourceChanged, setupRealtime } from "./realtime.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -36,11 +38,8 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors({  
   origin: (origin, callback) => {
-    // In production, ALLOWED_ORIGINS env var can restrict to specific domains.
-    // Falls back to allowing all origins (safe for APIs that use token auth).
     const allowed = process.env.ALLOWED_ORIGINS;
     if (!allowed) {
-      // No restriction configured — allow all (default for dev and single-domain deploys)
       return callback(null, true);
     }
     const list = allowed.split(",").map(o => o.trim());
@@ -52,13 +51,27 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+app.use((req, res, next) => {
+  res.on("finish", () => {
+    if (!["POST", "PATCH", "PUT", "DELETE"].includes(req.method)) return;
+    if (res.statusCode < 200 || res.statusCode >= 400) return;
+    if (!req.originalUrl.startsWith("/api/")) return;
+
+    const [resource = "unknown"] = req.originalUrl.replace(/^\/api\//, "").split("/");
+    emitResourceChanged({
+      resource,
+      action: req.method.toLowerCase(),
+      actorId: req.user?._id,
+    });
+  });
+  next();
+});
 
 // Serve uploaded images as static files
 app.use("/uploads", express.static(resolve(__dirname, "../uploads")));
 
 app.get("/health", async (_req, res) => {
   try {
-    // Basic health check
     const health = {
       status: "ok",
       uptime: process.uptime(),
@@ -72,25 +85,16 @@ app.get("/health", async (_req, res) => {
       }
     };
 
-    // Test database connection
     try {
       const mongoose = await import("mongoose");
       if (mongoose.default.connection.readyState === 1) {
         health.database = "connected";
-        
-        // Test basic database operations
         const User = (await import("./models/User.js")).default;
-        const userCount = await User.countDocuments();
-        health.userCount = userCount;
-        
+        health.userCount = await User.countDocuments();
         const Booking = (await import("./models/Booking.js")).default;
-        const bookingCount = await Booking.countDocuments();
-        health.bookingCount = bookingCount;
-        
+        health.bookingCount = await Booking.countDocuments();
         const Event = (await import("./models/Event.js")).default;
-        const eventCount = await Event.countDocuments();
-        health.eventCount = eventCount;
-        
+        health.eventCount = await Event.countDocuments();
       } else {
         health.database = "disconnected";
         health.dbState = mongoose.default.connection.readyState;
@@ -125,9 +129,8 @@ app.use("/api/contact", contactRoutes);
 app.use("/api/recommendations", recommendationRoutes);
 app.use("/api/merchant", merchantRoutes);
 app.use("/api/referrals", referralRoutes);
+app.use("/api/custom-service-requests", customServiceRoutes);
 
-// Serve frontend build only in non-Docker / single-process mode (PM2 / local)
-// In Docker, Nginx serves the frontend and proxies /api → this backend.
 if (process.env.SERVE_FRONTEND === "true") {
   const frontendDist = resolve(__dirname, "../../frontend/dist");
   if (existsSync(frontendDist)) {
@@ -173,6 +176,7 @@ async function start() {
     const server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`API server running on http://0.0.0.0:${PORT}`);
     });
+    setupRealtime(server);
     
     server.on("error", (err) => {
       if (err && err.code === "EADDRINUSE") {
@@ -196,7 +200,6 @@ async function start() {
 
 start();
 
-// Global error handlers to prevent crashes
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
 });

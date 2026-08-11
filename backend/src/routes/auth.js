@@ -4,6 +4,7 @@ import * as authController from "../controllers/authController.js";
 import User from "../models/User.js";
 import Withdrawal from "../models/Withdrawal.js";
 import Transaction from "../models/Transaction.js";
+import { emitWalletUpdated } from "../realtime.js";
 
 const router = Router();
 
@@ -66,10 +67,12 @@ router.post("/withdraw", verifyToken, async (req, res) => {
       merchant: req.user._id,
       type: "withdrawal",
       amount: withdrawAmount,
-      description: `Wallet withdrawal of ${withdrawAmount} via ${paymentMethod.toUpperCase()}`,
+      description: `Wallet withdrawal of ₹${withdrawAmount} via ${paymentMethod.toUpperCase()}`,
       status: "completed",
       relatedId: withdrawal._id.toString()
     });
+    
+    emitWalletUpdated(req.user._id, userObj.walletBalance);
     
     res.json({ success: true, walletBalance: userObj.walletBalance, withdrawal });
   } catch (error) {
@@ -115,6 +118,8 @@ router.post("/add-wallet-funds", verifyToken, async (req, res) => {
       status: "completed",
       relatedId: `DEP-${Date.now()}`
     });
+
+    emitWalletUpdated(req.user._id, userObj.walletBalance);
 
     res.json({ success: true, walletBalance: userObj.walletBalance });
   } catch (error) {

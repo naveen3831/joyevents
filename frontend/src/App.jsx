@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PublicRoute from "@/components/PublicRoute";
 import ScrollToTop from "@/components/ScrollToTop";
+import RealtimeBridge from "@/components/RealtimeBridge";
 // Global fetch interceptor to handle account deactivation instantly
 const originalFetch = window.fetch;
 window.fetch = async (...args) => {
@@ -265,6 +266,7 @@ const App = () => (<ThemeProvider attribute="class" defaultTheme="light" forcedT
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
             <CartProvider>
+              <RealtimeBridge />
               <ScrollToTop />
               <Toaster />
               <Sonner />

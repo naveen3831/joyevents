@@ -28,15 +28,15 @@ const StatCard = ({ title, value, icon, trend, index = 0, to }) => {
   }, []);
 
   const content = (
-    <div ref={ref} className={`rounded-lg border border-border bg-card p-3 sm:p-5 shadow-card will-change-transform ${to ? "cursor-pointer transition-shadow hover:shadow-card hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}>
-      <div className="flex items-center justify-between gap-2">
+    <div ref={ref} className={`rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-card will-change-transform ${to ? "cursor-pointer transition-shadow hover:shadow-card hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}>
+      <div className="flex items-center justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">{title}</p>
-          <p className="mt-0.5 sm:mt-1 font-display text-sm sm:text-2xl font-bold text-foreground truncate">{value}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1 font-medium">{title}</p>
+          <p className="mt-1 font-display text-lg sm:text-2xl font-bold text-foreground truncate">{value}</p>
           {trend && <p className="mt-0.5 text-xs text-success">{trend}</p>}
         </div>
-        <div className={`tint-chip h-8 w-8 sm:h-10 sm:w-10 ${tint.chip}`}>
-          <span className="[&>svg]:h-4 [&>svg]:w-4 sm:[&>svg]:h-5 sm:[&>svg]:w-5">{icon}</span>
+        <div className={`tint-chip h-10 w-10 sm:h-11 sm:w-11 shrink-0 ${tint.chip}`}>
+          <span className="[&>svg]:h-5 [&>svg]:w-5">{icon}</span>
         </div>
       </div>
     </div>

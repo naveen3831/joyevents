@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { savePendingEventBooking, getPendingEventBooking, clearPendingEventBooking } from "@/lib/bookingState";
 import AvailablePromoCodes from "@/components/AvailablePromoCodes";
 import { useGsapStagger } from "@/lib/gsapAnimations";
+import { useRealtimeEvent } from "@/hooks/useRealtimeEvent";
 const CustomerEventDetail = () => {
     const { id } = useParams();
     const { isLoggedIn, token } = useAuth();
@@ -89,6 +90,12 @@ const CustomerEventDetail = () => {
         const interval = setInterval(() => load(false), 5000);
         return () => clearInterval(interval);
     }, [id]);
+
+    useRealtimeEvent("realtime:tickets-updated", (data) => {
+        if (!data?.eventId || data.eventId === id) {
+            apiGetEventById(id).then((r) => r.event && setEvent(r.event)).catch(() => {});
+        }
+    });
     // Favorites
     useEffect(() => {
         if (!event || !isLoggedIn || !token)

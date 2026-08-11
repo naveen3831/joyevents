@@ -38,4 +38,12 @@ npm run build
 location / {
   try_files $uri $uri/ /index.html;
 }
+
+location /ws {
+  proxy_pass http://localhost:5000;
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "upgrade";
+  proxy_set_header Host $host;
+}
 ```

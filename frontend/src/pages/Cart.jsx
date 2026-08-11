@@ -7,69 +7,90 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, Ticket, Calendar, Briefcase, MapPin, Loader2, ShoppingBag, Percent } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import SimplePayment from "@/components/SimplePayment";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import { useGsapStagger } from "@/lib/gsapAnimations";
+
 const Cart = () => {
     const { cartItems, removeFromCart, clearCart } = useCart();
     const { token } = useAuth();
     const navigate = useNavigate();
     const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+    const [createdBookingForPayment, setCreatedBookingForPayment] = useState(null);
+    const [paymentAmount, setPaymentAmount] = useState(0);
     const itemsRef = useGsapStagger([cartItems.length]);
+
     // Group items by type
     const eventItems = cartItems.filter(item => item.type === "event");
     const serviceItems = cartItems.filter(item => item.type === "service");
+
     // Calculations
     const eventsSubtotal = eventItems.reduce((sum, item) => sum + item.price, 0);
     const servicesSubtotal = serviceItems.reduce((sum, item) => sum + item.price, 0);
     const totalDiscount = cartItems.reduce((sum, item) => sum + (item.discountAmount || 0), 0);
     const grandTotal = eventsSubtotal + servicesSubtotal;
+
     const imgSrc = (image) => !image ? "" : image.startsWith("http") ? image : `${API_URL}${image}`;
+
     const handleCheckoutClick = () => {
-        if (cartItems.length === 0)
-            return;
-        executeBulkBookings();
+        if (cartItems.length === 0) return;
+        
+        if (eventItems.length > 0) {
+            // Open payment modal immediately WITHOUT creating any booking in DB first!
+            const firstEvent = eventItems[0];
+            const bookingDataObj = {
+                eventName: firstEvent.name,
+                eventId: firstEvent.itemId,
+                price: eventsSubtotal,
+                date: firstEvent.date,
+                time: firstEvent.time,
+                selectedTickets: firstEvent.details?.selectedTickets || {},
+                selectedSession: firstEvent.details?.selectedSession || "",
+                seatNumbers: firstEvent.details?.selectedSeatNumbers || [],
+                customerLocation: firstEvent.details?.customerLocation || null,
+                promoCode: firstEvent.appliedPromo ? {
+                    code: firstEvent.appliedPromo.code || "",
+                    _id: firstEvent.appliedPromo._id || null,
+                    promoCodeId: firstEvent.appliedPromo._id || null,
+                    kind: firstEvent.appliedPromo.kind || "",
+                    discountType: firstEvent.appliedPromo.discountType || "",
+                    discountValue: firstEvent.appliedPromo.discountValue || 0,
+                    discountAmount: firstEvent.discountAmount || 0,
+                    originalPrice: firstEvent.originalPrice || firstEvent.price,
+                    finalPrice: firstEvent.price
+                } : undefined,
+                originalAmount: firstEvent.originalPrice,
+                discount: firstEvent.discountAmount
+            };
+
+            setCreatedBookingForPayment(bookingDataObj);
+            setPaymentAmount(eventsSubtotal);
+            setPaymentModalOpen(true);
+        } else {
+            // Only service items - submit request for vendor quote
+            submitServiceRequestsOnly();
+        }
     };
-    const executeBulkBookings = async () => {
+
+    const submitServiceRequestsOnly = async () => {
         setCheckoutLoading(true);
         try {
-            const promises = cartItems.map(async (item) => {
-                const isEvent = item.type === "event";
-                const initialStatus = isEvent ? "awaiting_payment" : "pending_approval";
-                // Construct booking payload
+            for (const item of serviceItems) {
                 const payload = {
-                    serviceName: item.type === "service" ? item.name : undefined,
-                    eventName: item.type === "event" ? item.name : undefined,
-                    eventId: item.type === "event" ? item.itemId : undefined,
-                    serviceId: item.type === "service" ? item.itemId : undefined,
+                    serviceName: item.name,
+                    serviceId: item.itemId,
                     price: item.price,
                     date: item.date,
                     time: item.time,
-                    isEvent: isEvent,
-                    status: initialStatus,
+                    isEvent: false,
+                    status: "pending_approval",
                     paymentStatus: "pending",
-                    deferPayment: isEvent,
-                    quantity: item.details.quantity || 1,
-                    selectedTickets: item.details.selectedTickets || {},
-                    selectedSession: item.details.selectedSession || "",
-                    addOns: item.details.addOns || [],
-                    guestCount: item.details.guestCount || 0,
-                    customerLocation: item.details.customerLocation || null,
-                    seatNumbers: item.details.selectedSeatNumbers || [],
-                    promoCode: item.appliedPromo ? {
-                        code: item.appliedPromo.code || "",
-                        _id: item.appliedPromo._id || null,
-                        promoCodeId: item.appliedPromo._id || null,
-                        kind: item.appliedPromo.kind || "",
-                        referrerId: item.appliedPromo.referrerId || null,
-                        referrerName: item.appliedPromo.referrerName || "",
-                        bonusAmount: item.appliedPromo.bonusAmount || 0,
-                        discountType: item.appliedPromo.discountType || "",
-                        discountValue: item.appliedPromo.discountValue || 0,
-                        discountAmount: item.discountAmount,
-                        originalPrice: item.originalPrice,
-                        finalPrice: item.price
-                    } : undefined
+                    customerLocation: item.details?.customerLocation || null,
+                    addOns: item.details?.addOns || [],
+                    guestCount: item.details?.guestCount || 0
                 };
                 const res = await fetch(`${API_URL}/api/bookings`, {
                     method: "POST",
@@ -81,44 +102,94 @@ const Cart = () => {
                 });
                 if (!res.ok) {
                     const err = await res.json().catch(() => ({}));
-                    throw new Error(err?.error || `Booking failed for ${item.name}`);
+                    throw new Error(err?.error || `Failed to submit request for ${item.name}`);
                 }
-                return res.json();
-            });
-            await Promise.all(promises);
-            toast.success("Bookings created. Review and pay from My Bookings.");
+            }
+            toast.success("Service enquiries submitted! Vendors will review and send quotes.");
             clearCart();
-            navigate("/customer-dashboard/bookings");
-        }
-        catch (err) {
-            toast.error(err?.message || "Checkout failed. Some bookings could not be processed.");
-        }
-        finally {
+            navigate("/my-requests");
+        } catch (err) {
+            toast.error(err?.message || "Failed to submit service requests.");
+        } finally {
             setCheckoutLoading(false);
         }
     };
-    if (cartItems.length === 0) {
-        return (<CustomerLayout>
-        <div className="min-h-[70vh] flex items-center justify-center px-4">
-          <div className="bg-card border border-border rounded-xl p-10 text-center max-w-md w-full">
-            <ShoppingBag className="h-12 w-12 mx-auto mb-4 opacity-30 text-muted-foreground"/>
-            <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground mb-2">Your Cart is Empty</h2>
-            <p className="text-muted-foreground text-sm max-w-sm mx-auto mb-8">
-              Browse our wide selection of ticketed events and premium event service providers to build your custom experience.
-            </p>
-            <div className="flex flex-wrap gap-3 justify-center">
-              <Button onClick={() => navigate("/customer-dashboard/browse-events")} className="bg-gradient-primary min-h-[44px]">
-                Browse Events
-              </Button>
-              <Button onClick={() => navigate("/customer-dashboard/browse-services")} variant="outline" className="min-h-[44px]">
-                Browse Services
-              </Button>
-            </div>
-          </div>
-        </div>
-      </CustomerLayout>);
-    }
+    const downloadTicket = (booking, currentUser) => {
+        const targetBooking = booking || createdBookingForPayment;
+        const ticketId = targetBooking?.ticketId || `TKT-${targetBooking?._id?.slice(-8).toUpperCase() || 'PASS'}`;
+        const eventTitle = targetBooking?.event?.title || targetBooking?.eventName || targetBooking?.serviceName || "Event Ticket";
+        const eventDate = targetBooking?.datetime ? new Date(targetBooking.datetime).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : (targetBooking?.date || "N/A");
+        const eventTime = targetBooking?.datetime ? new Date(targetBooking.datetime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : (targetBooking?.time || "N/A");
+        const location = targetBooking?.event?.location || targetBooking?.customerLocation?.address || "Venue TBA";
+        const pricePaid = formatCurrency(targetBooking?.price || paymentAmount || 0);
+        const customerName = currentUser?.name || user?.name || "Customer";
+        const eventImage = targetBooking?.event?.image ? (targetBooking.event.image.startsWith('http') ? targetBooking.event.image : `${API_URL}${targetBooking.event.image}`) : '';
+        const qrData = encodeURIComponent(`${ticketId}|${eventTitle}|${targetBooking?.price || paymentAmount}`);
+
+        const ticketHTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Ticket - ${eventTitle}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Roboto, sans-serif; background: #0f172a; padding: 20px; color: #fff; display: flex; justify-content: center; }
+    .ticket { width: 100%; max-width: 500px; background: #1e293b; border-radius: 20px; overflow: hidden; border: 1px solid #334155; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+    .ticket-header { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; padding: 20px; text-align: center; }
+    .ticket-header h1 { font-size: 24px; font-weight: 800; letter-spacing: 1px; }
+    .ticket-header p { font-size: 12px; opacity: 0.9; margin-top: 4px; }
+    ${eventImage ? `.event-image { width: 100%; height: 200px; object-fit: cover; }` : ''}
+    .ticket-body { padding: 20px; }
+    .event-name { font-size: 20px; font-weight: 700; color: #f8fafc; margin-bottom: 14px; }
+    .info-row { display: flex; justify-content: space-between; padding: 8px 12px; background: #334155; border-radius: 10px; margin-bottom: 8px; font-size: 13px; }
+    .info-label { color: #94a3b8; }
+    .info-value { color: #f8fafc; font-weight: 600; }
+    .badge { display: inline-block; padding: 6px 16px; background: #10b981; color: white; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-top: 10px; }
+    .footer { background: #0f172a; padding: 20px; text-align: center; border-top: 2px dashed #334155; }
+    .ticket-id { font-family: monospace; font-size: 18px; font-weight: 700; color: #a855f7; letter-spacing: 2px; margin-top: 6px; }
+    .qr-img { width: 150px; height: 150px; border-radius: 12px; padding: 8px; background: white; margin: 12px auto; }
+  </style>
+</head>
+<body>
+  <div class="ticket">
+    <div class="ticket-header">
+      <h1>🎫 OFFICIAL EVENT TICKET</h1>
+      <p>EVENTOZA CONFIRMED PASS</p>
+    </div>
+    ${eventImage ? `<img src="${eventImage}" class="event-image" alt="Event Cover"/>` : ''}
+    <div class="ticket-body">
+      <div class="event-name">${eventTitle}</div>
+      <div class="info-row"><span class="info-label">👤 Attendee</span><span class="info-value">${customerName}</span></div>
+      <div class="info-row"><span class="info-label">📅 Date</span><span class="info-value">${eventDate}</span></div>
+      <div class="info-row"><span class="info-label">⏰ Time</span><span class="info-value">${eventTime}</span></div>
+      <div class="info-row"><span class="info-label">📍 Venue</span><span class="info-value">${location}</span></div>
+      <div class="info-row"><span class="info-label">💳 Amount Paid</span><span class="info-value">${pricePaid}</span></div>
+      <div style="text-align: center;">
+        <span class="badge">✓ CONFIRMED PASS</span>
+      </div>
+    </div>
+    <div class="footer">
+      <div style="font-size: 11px; color: #94a3b8;">TICKET VERIFICATION CODE</div>
+      <div class="ticket-id">${ticketId}</div>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}" class="qr-img" alt="QR Code"/>
+      <p style="font-size: 11px; color: #64748b;">Show this QR code at event entry</p>
+    </div>
+  </div>
+</body>
+</html>`;
+        const blob = new Blob([ticketHTML], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Ticket_${ticketId}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     return (<CustomerLayout>
+      {/* ... layout components ... */}
       <div className="min-h-screen px-4 sm:px-6 lg:px-12 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -266,22 +337,34 @@ const Cart = () => {
                     </span>
                   </div>
 
-                  {eventItems.length > 0 && serviceItems.length > 0 && (<div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-xs text-muted-foreground leading-relaxed">
-                      Review checkout: your event and service bookings will be created first. Pay for event bookings from My Bookings after reviewing them.
-                    </div>)}
+                  {eventItems.length > 0 && serviceItems.length > 0 && (
+                    <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-xs text-muted-foreground leading-relaxed">
+                      Complete payment for your event items below. Service requests will be sent to providers for quotation.
+                    </div>
+                  )}
 
-                  {eventItems.length > 0 && serviceItems.length === 0 && (<div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-xs text-muted-foreground leading-relaxed">
-                      Event bookings are created first. Review your booking details, then use Pay Now from My Bookings.
-                    </div>)}
+                  {eventItems.length > 0 && serviceItems.length === 0 && (
+                    <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-xs text-muted-foreground leading-relaxed">
+                      Proceed to payment to confirm your event booking and generate your digital ticket instantly.
+                    </div>
+                  )}
 
-                  {serviceItems.length > 0 && eventItems.length === 0 && (<div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-4 text-xs text-muted-foreground leading-relaxed">
+                  {serviceItems.length > 0 && eventItems.length === 0 && (
+                    <div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-4 text-xs text-muted-foreground leading-relaxed">
                       Service requests do not require immediate payments. Vendors will review your requests and send quotations.
-                    </div>)}
+                    </div>
+                  )}
 
                   <Button onClick={handleCheckoutClick} disabled={checkoutLoading} className="w-full h-12 text-base bg-gradient-primary hover:opacity-90 font-bold disabled:opacity-50">
-                    {checkoutLoading ? (<>
+                    {checkoutLoading ? (
+                      <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2"/> Processing…
-                      </>) : eventItems.length > 0 ? ("Create Bookings & Review") : ("Submit Booking Requests")}
+                      </>
+                    ) : eventItems.length > 0 ? (
+                      "Proceed to Pay & Confirm"
+                    ) : (
+                      "Submit Booking Requests"
+                    )}
                   </Button>
                 </div>
               </div>
@@ -289,6 +372,39 @@ const Cart = () => {
           </div>
         </div>
       </div>
-    </CustomerLayout>);
+
+      {/* Payment Modal */}
+      <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
+        <DialogContent className="max-w-md w-[95vw] max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="font-display text-lg font-bold">Complete Event Payment</DialogTitle>
+          </DialogHeader>
+          {createdBookingForPayment && (
+            <SimplePayment
+              amount={paymentAmount}
+              bookingData={createdBookingForPayment}
+              onSuccess={async (paidBooking) => {
+                setPaymentModalOpen(false);
+                setCreatedBookingForPayment(null);
+                clearCart();
+                toast.success("✨ Payment successful! Booking confirmed & ticket downloaded.");
+                try {
+                  downloadTicket(paidBooking, user);
+                } catch (e) {}
+                if (serviceItems.length > 0) {
+                  await submitServiceRequestsOnly();
+                }
+                navigate("/my-requests");
+              }}
+              onError={(err) => {
+                toast.error(err || "Payment failed");
+              }}
+              onClose={() => setPaymentModalOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </CustomerLayout>
+  );
 };
 export default Cart;

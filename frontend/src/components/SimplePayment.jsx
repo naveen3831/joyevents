@@ -7,7 +7,7 @@ import { CreditCard, Smartphone, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiCreateBooking, apiPayForBooking, apiVerifyToken } from "@/lib/api";
-const SimplePayment = ({ amount, bookingId, bookingData, onSuccess, onError, onClose, initUseWallet }) => {
+const SimplePayment = ({ amount, bookingId, isCustomPay, bookingData = {}, onSuccess, onError, onClose, initUseWallet }) => {
     const { token, user, updateUser } = useAuth();
     const [selectedMethod, setSelectedMethod] = useState("card");
     const [loading, setLoading] = useState(false);
@@ -64,7 +64,16 @@ const SimplePayment = ({ amount, bookingId, bookingData, onSuccess, onError, onC
             });
             const finalPaymentMethod = remainingAmount === 0 ? "wallet" : selectedMethod;
             let result;
-            if (bookingId) {
+            if (isCustomPay || bookingData?.isCustomPay) {
+                result = {
+                    booking: {
+                        paymentMethod: finalPaymentMethod,
+                        paymentId: `PAY-${Date.now()}`,
+                        paymentDetails
+                    }
+                };
+            }
+            else if (bookingId) {
                 // Payment for an existing booking
                 result = await apiPayForBooking(bookingId, {
                     paymentMethod: finalPaymentMethod,

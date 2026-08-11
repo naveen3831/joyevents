@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useGsapReveal } from "@/lib/gsapAnimations";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 const STATUS_BADGE = {
     assigned: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
     pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
@@ -130,6 +131,7 @@ const MerchantDashboard = () => {
         }
     };
     useEffect(() => { loadBookings(); }, [token, user?.merchantStatus]);
+    useRealtimeRefresh(["bookings", "earnings", "events", "merchant", "notifications", "services"], loadBookings);
     // Smooth real-time updates without blinking
     useEffect(() => {
         if (!token)

@@ -51,6 +51,32 @@ const NotificationBell = () => {
         const interval = setInterval(fetchCount, 30000);
         return () => clearInterval(interval);
     }, [token]);
+    useEffect(() => {
+        if (!token)
+            return;
+        const handleRealtimeNotification = (event) => {
+            const notification = event.detail;
+            if (!notification?._id)
+                return;
+            setUnreadCount(prev => prev + (notification.status === "unread" ? 1 : 0));
+            setNotifications(prev => {
+                if (prev.some(item => item._id === notification._id))
+                    return prev;
+                return [notification, ...prev].slice(0, 10);
+            });
+        };
+        const handleRealtimeResourceChanged = (event) => {
+            if (event.detail?.resource === "notifications") {
+                loadNotifications();
+            }
+        };
+        window.addEventListener("realtime:notification", handleRealtimeNotification);
+        window.addEventListener("realtime:resource-changed", handleRealtimeResourceChanged);
+        return () => {
+            window.removeEventListener("realtime:notification", handleRealtimeNotification);
+            window.removeEventListener("realtime:resource-changed", handleRealtimeResourceChanged);
+        };
+    }, [token]);
     // Full load when dropdown opens
     useEffect(() => {
         if (isOpen && token) {
@@ -105,8 +131,8 @@ const NotificationBell = () => {
         }
     };
     return (<div className="relative inline-block">
-        <Button variant="ghost" onClick={() => setIsOpen(!isOpen)} className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all relative shrink-0 shadow-sm ${isOpen ? "bg-gradient-primary text-primary-foreground border-transparent shadow-glow" : "bg-secondary/50 border-border/40 hover:bg-secondary hover:border-border/80 text-foreground/80 hover:text-foreground"}`} title="Notifications">
-          <Bell className={`h-5 w-5 transition-colors ${isOpen ? "text-primary-foreground" : unreadCount > 0 ? "text-primary" : ""}`}/>
+        <Button variant="ghost" onClick={() => setIsOpen(!isOpen)} className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all relative shrink-0 shadow-sm ${isOpen ? "bg-gradient-primary text-primary-foreground border-transparent shadow-glow" : "bg-amber-500/15 border-amber-500/30 text-amber-500 hover:bg-amber-500/25"}`} title="Notifications">
+          <Bell className={`h-4.5 w-4.5 transition-colors ${isOpen ? "text-primary-foreground" : "text-amber-500 fill-amber-500/20"}`}/>
           {unreadCount > 0 && (<>
               <span className={`absolute -top-1 -right-1 flex h-4.5 min-w-[1.125rem] px-1 items-center justify-center rounded-full text-[8px] font-bold shadow-glow border border-background z-10 ${isOpen ? "bg-background text-primary" : "bg-red-500 text-white"}`}>
                 {unreadCount > 9 ? "9+" : unreadCount}

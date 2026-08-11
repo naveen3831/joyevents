@@ -6,6 +6,7 @@ import Message from "../models/Message.js";
 import { verifyToken } from "../middleware/auth.js";
 import { sendContactMessage } from "../utils/sendEmail.js";
 import { validateEmail, normalizeEmail } from "../utils/validation.js";
+import { emitMessageCreated, emitMessageReplied, emitNotificationCreated } from "../realtime.js";
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ router.post("/merchant", async (req, res) => {
 
     if (!merchant?.email) return res.status(404).json({ error: "Merchant not found" });
 
-    await Message.create({
+    const newMsg = await Message.create({
       senderName: senderName.trim(),
       senderEmail: normalizedSenderEmail,
       message: message.trim(),
@@ -46,6 +47,8 @@ router.post("/merchant", async (req, res) => {
       itemTitle,
       customerId: customerId || null,
     });
+
+    emitMessageCreated(newMsg);
 
     sendContactMessage({
       senderName: senderName.trim(),
@@ -109,8 +112,11 @@ router.post("/:id/reply", verifyToken, async (req, res) => {
     const msg = await Message.findOne({ _id: req.params.id, merchant: req.user._id });
     if (!msg) return res.status(404).json({ error: "Message not found" });
 
-    msg.replies.push({ from: "merchant", text: text.trim() });
+    const newReply = { from: "merchant", text: text.trim(), createdAt: new Date() };
+    msg.replies.push(newReply);
     await msg.save();
+
+    emitMessageReplied(msg, newReply);
 
     const merchant = await User.findById(req.user._id).select("name email");
     sendContactMessage({
@@ -150,8 +156,11 @@ router.post("/:id/customer-reply", verifyToken, async (req, res) => {
     }).populate("merchant", "name email");
     if (!msg) return res.status(404).json({ error: "Message not found" });
 
-    msg.replies.push({ from: "customer", text: text.trim() });
+    const newReply = { from: "customer", text: text.trim(), createdAt: new Date() };
+    msg.replies.push(newReply);
     await msg.save();
+
+    emitMessageReplied(msg, newReply);
 
     const merchantEmail = msg.merchant ? msg.merchant.email : "unknown@domain.com";
     const merchantName = msg.merchant ? msg.merchant.name : "Organiser";

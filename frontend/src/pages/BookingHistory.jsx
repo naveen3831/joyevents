@@ -115,13 +115,6 @@ const BookingHistory = () => {
         <div className="container mx-auto">
           {/* Header */}
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
-            <div className="flex items-center gap-3 mb-6">
-              <Link to="/customer-dashboard">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2"/> Back
-                </Button>
-              </Link>
-            </div>
             <div className="flex items-center gap-3 mb-6 sm:mb-8">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground shrink-0">
                 <HistoryIcon className="h-5 w-5"/>

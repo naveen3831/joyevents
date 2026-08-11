@@ -1,10 +1,9 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
-import { Heart, User, Store, Shield, ChevronDown, X, ShoppingBag } from "lucide-react";
+import { Heart, User, Store, Shield, ChevronDown, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import { clearSession } from "@/lib/session";
@@ -31,10 +30,8 @@ const roleLabels = {
     admin: "Admin",
 };
 
-const Navbar = ({ hideDashboardLinks = false, onSidebarToggle = null, sidebarOpen = false }) => {
+const Navbar = ({ hideDashboardLinks = false }) => {
     const [scrolled, setScrolled] = useState(false);
-    const [mobileOpen, setMobileOpen] = useState(false);
-    const [expandedMobileMenu, setExpandedMobileMenu] = useState(null);
     const { isLoggedIn, role, setIsLoggedIn, setToken, setUser } = useAuth();
     const isCustomer = isLoggedIn && role === "customer";
     const location = useLocation();
@@ -75,7 +72,6 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle = null, sidebarOpe
         localStorage.removeItem("authReturnTo");
         clearSession();
         sessionStorage.removeItem("bookingReturnTo");
-        setMobileOpen(false);
         navigate("/login", { replace: true });
     };
 
@@ -116,18 +112,18 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle = null, sidebarOpe
 
     const logoElement = hideDashboardLinks ? (
       <div className="flex items-center gap-3 cursor-default shrink-0">
-        <Logo className="h-12 w-12 sm:h-14 sm:w-14 shrink-0"/>
-        <span className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">{platformName}</span>
+        <Logo className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 shrink-0"/>
+        <span className="font-display text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-foreground">{platformName}</span>
       </div>
     ) : isCustomer ? (
       <Link to="/customer-dashboard" className="flex items-center gap-3 group">
-        <Logo className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 transition-transform duration-300 group-hover:scale-105"/>
-        <span className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground group-hover:text-primary transition-colors">{platformName}</span>
+        <Logo className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 shrink-0 transition-transform duration-300 group-hover:scale-105"/>
+        <span className="font-display text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-foreground group-hover:text-primary transition-colors">{platformName}</span>
       </Link>
     ) : (
       <Link to="/" className="flex items-center gap-3 group">
-        <Logo className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 transition-transform duration-300 group-hover:scale-105"/>
-        <span className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground group-hover:text-primary transition-colors">{platformName}</span>
+        <Logo className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 shrink-0 transition-transform duration-300 group-hover:scale-105"/>
+        <span className="font-display text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-foreground group-hover:text-primary transition-colors">{platformName}</span>
       </Link>
     );
 
@@ -135,49 +131,37 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle = null, sidebarOpe
     const RoleIcon = roleIcons[role] || User;
 
     return (
-      <>
       <motion.nav initial={{ y: -100 }} animate={{ y: 0 }} className={`fixed left-0 right-0 top-0 z-50 w-full bg-background/85 backdrop-blur-xl border-b border-border/80 transition-all duration-300 ${scrolled ? "shadow-md py-3" : "py-4 sm:py-5"}`}>
         <div className="flex items-center justify-between px-4 sm:px-8 lg:px-12 xl:px-20 w-full transition-all duration-300">
           
-          {/* MOBILE BAR: Logo Left, Brand Name Middle, Hamburger Right */}
-          <div className="flex lg:hidden items-center justify-between w-full relative min-h-[44px]">
-            {/* Logo on Left */}
-            <Link to={isCustomer ? "/customer-dashboard" : "/"} className="flex items-center shrink-0">
-              <Logo className="h-11 w-11 shrink-0"/>
-            </Link>
-
-            {/* Brand Name centered in Middle */}
-            <Link to={isCustomer ? "/customer-dashboard" : "/"} className="absolute left-1/2 -translate-x-1/2 font-display text-xl font-bold tracking-tight text-foreground text-center pointer-events-auto">
-              {platformName}
-            </Link>
-
-            {/* Right side controls: Notification Bell & Hamburger */}
-            <div className="flex items-center gap-2.5 shrink-0">
+          {/* MOBILE BAR */}
+          <div className="flex lg:hidden items-center justify-between w-full min-h-[44px]">
+            {logoElement}
+            <div className="flex items-center gap-2 shrink-0">
+              {isLoggedIn && role === "customer" && (() => {
+                const isFavoritesActive = location.pathname === "/customer-dashboard/favorites";
+                const isCartActive = location.pathname === "/customer-dashboard/cart";
+                return (
+                  <>
+                    <Link to="/customer-dashboard/favorites" className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all relative shrink-0 shadow-sm ${isFavoritesActive ? "bg-rose-500 text-white border-transparent shadow-glow" : "bg-rose-500/15 border-rose-500/30 text-rose-500 hover:bg-rose-500/25"}`} title="Wishlist">
+                      <Heart className={`h-4.5 w-4.5 ${isFavoritesActive ? "fill-current" : "fill-rose-500/20 text-rose-500"}`}/>
+                    </Link>
+                    <Link to="/customer-dashboard/cart" className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all relative shrink-0 shadow-sm ${isCartActive ? "bg-gradient-primary text-primary-foreground border-transparent shadow-glow" : "bg-primary/15 border-primary/30 text-primary hover:bg-primary/25"}`} title="Cart">
+                      <ShoppingBag className={`h-4.5 w-4.5 ${isCartActive ? "fill-current" : "fill-primary/20 text-primary"}`}/>
+                      {cartCount > 0 && (
+                        <span className="absolute -top-1 -right-1 flex h-4.5 min-w-[1.125rem] px-1 items-center justify-center rounded-full text-[9px] font-black bg-gradient-primary text-white shadow-glow border border-background">
+                          {cartCount}
+                        </span>
+                      )}
+                    </Link>
+                  </>
+                );
+              })()}
               {isLoggedIn && (<NotificationBell />)}
-              <button 
-                className={`flex items-center justify-center w-11 h-11 rounded-xl text-foreground bg-secondary/50 border border-border/60 hover:bg-secondary transition-colors shrink-0 ${hideDashboardLinks && !onSidebarToggle ? "hidden" : ""}`} 
-                onClick={() => {
-                  if (onSidebarToggle) {
-                      onSidebarToggle();
-                  }
-                  else {
-                      setMobileOpen(!mobileOpen);
-                      if (mobileOpen)
-                          setExpandedMobileMenu(null);
-                  }
-                }} 
-                aria-label="Toggle menu"
-              >
-                <motion.div animate={(onSidebarToggle ? sidebarOpen : mobileOpen) ? "open" : "closed"} className="flex flex-col gap-1.5 w-5">
-                  <motion.span variants={{ open: { rotate: 45, y: 8 }, closed: { rotate: 0, y: 0 } }} className="block h-0.5 w-5 bg-foreground rounded-full origin-center transition-all"/>
-                  <motion.span variants={{ open: { opacity: 0, x: -8 }, closed: { opacity: 1, x: 0 } }} className="block h-0.5 w-5 bg-foreground rounded-full transition-all"/>
-                  <motion.span variants={{ open: { rotate: -45, y: -8 }, closed: { rotate: 0, y: 0 } }} className="block h-0.5 w-5 bg-foreground rounded-full origin-center transition-all"/>
-                </motion.div>
-              </button>
             </div>
           </div>
 
-          {/* DESKTOP BAR: hidden on mobile */}
+          {/* DESKTOP BAR */}
           <div className="hidden lg:flex items-center gap-4">
             {logoElement}
           </div>
@@ -284,135 +268,9 @@ const Navbar = ({ hideDashboardLinks = false, onSidebarToggle = null, sidebarOpe
                 </Button>
               </Link>
             ))}
-            {isLoginPage && !isLoggedIn && (
-              <Link to="/login" className="shrink-0">
-                <Button className="h-11 px-7 rounded-xl text-base font-bold bg-gradient-primary text-primary-foreground hover:opacity-95 shadow-glow hover:scale-105 transition-all whitespace-nowrap">
-                  {t("sign_in")}
-                </Button>
-              </Link>
-            )}
-            {isRegisterPage && !isLoggedIn && (
-              <Link to="/login" className="shrink-0">
-                <Button className="h-11 px-7 rounded-xl text-base font-bold bg-gradient-primary text-primary-foreground hover:opacity-95 shadow-glow hover:scale-105 transition-all whitespace-nowrap">
-                  {t("sign_in")}
-                </Button>
-              </Link>
-            )}
           </div>
         </div>
       </motion.nav>
-
-      {/* Mobile Drawer — Sliding from LEFT */}
-      {!hideDashboardLinks && createPortal(
-        <AnimatePresence>
-          {mobileOpen && (
-            <>
-              {/* Overlay */}
-              <motion.div key="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 backdrop-blur-sm" style={{ zIndex: 9998 }} onClick={() => setMobileOpen(false)}/>
-
-              {/* Drawer sliding in from LEFT */}
-              <motion.div 
-                key="drawer" 
-                initial={{ x: "-100%" }} 
-                animate={{ x: 0 }} 
-                exit={{ x: "-100%" }} 
-                transition={{ type: "spring", damping: 28, stiffness: 220 }} 
-                className="fixed top-0 left-0 bottom-0 w-[310px] bg-card border-r border-border flex flex-col shadow-2xl" 
-                style={{ zIndex: 9999 }}
-              >
-                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                  <div className="flex items-center gap-3">
-                    <Logo className="h-10 w-10 shrink-0"/>
-                    <span className="font-display text-lg font-extrabold">{platformName}</span>
-                  </div>
-                  <button onClick={() => setMobileOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-secondary hover:bg-secondary/80 transition-colors">
-                    <X className="h-5 w-5"/>
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto px-4 py-5 space-y-2">
-                  {navLinks.map((link) => {
-                    const isActive = location.pathname === link.to;
-                    if (link.label === "Events") {
-                        const isExpanded = expandedMobileMenu === "Events";
-                        return (
-                          <div key={link.to} className="space-y-1">
-                            <button
-                              onClick={() => setExpandedMobileMenu(isExpanded ? null : "Events")}
-                              className={`w-full flex items-center justify-between py-3 px-4 rounded-xl text-base font-semibold transition-all ${isActive || isExpanded ? "bg-primary/15 text-primary font-bold shadow-sm" : "text-foreground/80 hover:bg-secondary"}`}
-                            >
-                              <span>Events</span>
-                              <ChevronDown className={`h-5 w-5 transition-transform duration-200 ${isExpanded ? "rotate-180 text-primary" : ""}`}/>
-                            </button>
-                            {isExpanded && (
-                              <div className="ml-3 pl-3 border-l-2 border-primary/30 space-y-1 py-1">
-                                <Link to="/events" onClick={() => setMobileOpen(false)} className="block py-2 px-3 rounded-lg text-sm font-bold text-primary hover:bg-primary/10 transition-colors">
-                                  All Events
-                                </Link>
-                                {eventCategories.map((cat) => (
-                                  <Link key={cat._id} to={`/events?category=${encodeURIComponent(cat.name)}`} onClick={() => setMobileOpen(false)} className="block py-2 px-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                                    {cat.name}
-                                  </Link>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                    }
-                    if (link.label === "Services") {
-                        const isExpanded = expandedMobileMenu === "Services";
-                        return (
-                          <div key={link.to} className="space-y-1">
-                            <button
-                              onClick={() => setExpandedMobileMenu(isExpanded ? null : "Services")}
-                              className={`w-full flex items-center justify-between py-3 px-4 rounded-xl text-base font-semibold transition-all ${isActive || isExpanded ? "bg-primary/15 text-primary font-bold shadow-sm" : "text-foreground/80 hover:bg-secondary"}`}
-                            >
-                              <span>Services</span>
-                              <ChevronDown className={`h-5 w-5 transition-transform duration-200 ${isExpanded ? "rotate-180 text-primary" : ""}`}/>
-                            </button>
-                            {isExpanded && (
-                              <div className="ml-3 pl-3 border-l-2 border-primary/30 space-y-1 py-1">
-                                <Link to="/services" onClick={() => setMobileOpen(false)} className="block py-2 px-3 rounded-lg text-sm font-bold text-primary hover:bg-primary/10 transition-colors">
-                                  All Services
-                                </Link>
-                                {serviceCategories.map((cat) => (
-                                  <Link key={cat._id} to={`/services?category=${encodeURIComponent(cat.name)}`} onClick={() => setMobileOpen(false)} className="block py-2 px-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                                    {cat.name}
-                                  </Link>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                    }
-                    return (
-                      <Link key={link.to} to={link.to} onClick={() => setMobileOpen(false)} className={`block py-3 px-4 rounded-xl text-base font-semibold transition-all ${isActive ? "bg-primary/15 text-primary font-bold shadow-sm" : "text-foreground/80 hover:bg-secondary"}`}>
-                        {link.label}
-                      </Link>
-                    );
-                  })}
-                </div>
-
-                <div className="p-5 border-t border-border space-y-3">
-                  {isLoggedIn ? (
-                    <Button variant="outline" onClick={handleLogout} className="w-full h-11 rounded-xl text-sm font-bold">
-                      {t("logout")}
-                    </Button>
-                  ) : (
-                    <Link to="/login" onClick={() => setMobileOpen(false)} className="block w-full">
-                      <Button className="w-full h-11 rounded-xl bg-gradient-primary text-primary-foreground font-bold shadow-glow text-base">
-                        {t("sign_in")}
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
-      </>
     );
 };
 

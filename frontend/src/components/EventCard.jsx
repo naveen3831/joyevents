@@ -69,7 +69,7 @@ const EventCard = ({ event, index = 0, onBookNow, onViewDetails, onImageClick, i
         <div ref={hoverRef} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-all h-full shadow-card will-change-transform w-full">
 
           {/* Image — Top Full Width on both mobile and desktop */}
-          <div className="relative overflow-hidden bg-secondary shrink-0 w-full h-48 sm:h-52">
+          <div onClick={handleTitleClick} className="relative overflow-hidden bg-secondary shrink-0 w-full h-48 sm:h-52 cursor-pointer">
             {event.image ? (
               <img src={event.image} alt={event.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>
             ) : (

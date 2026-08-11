@@ -20,6 +20,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 
 // Color-coded KPI tile accents — calibrated palette
 const TILE_ACCENTS = {
@@ -161,6 +162,20 @@ const AdminOverview = () => {
     };
 
     useEffect(() => { loadData(); }, [token]);
+    useRealtimeRefresh([
+        "analytics",
+        "auth",
+        "bookings",
+        "categories",
+        "earnings",
+        "events",
+        "marketing",
+        "merchant",
+        "notifications",
+        "referrals",
+        "services",
+        "settings"
+    ], loadData);
 
     // Real-time polling - refresh data every 5 seconds
     useEffect(() => {

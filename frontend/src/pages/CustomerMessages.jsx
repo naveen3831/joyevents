@@ -7,6 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiGetCustomerInbox, apiCustomerReply } from "@/lib/api";
 import { toast } from "sonner";
 import { useGsapStagger } from "@/lib/gsapAnimations";
+import { useRealtimeEvent } from "@/hooks/useRealtimeEvent";
+
 const CustomerMessages = () => {
     const { token, user } = useAuth();
     const [messages, setMessages] = useState([]);
@@ -14,6 +16,7 @@ const CustomerMessages = () => {
     const [expanded, setExpanded] = useState(null);
     const [replyText, setReplyText] = useState({});
     const [sending, setSending] = useState(null);
+
     const load = () => {
         if (!token)
             return;
@@ -22,7 +25,12 @@ const CustomerMessages = () => {
             .catch(() => toast.error("Failed to load messages"))
             .finally(() => setLoading(false));
     };
+
     useEffect(() => { load(); }, [token]);
+
+    useRealtimeEvent("realtime:chat-message", () => {
+        load();
+    });
     const handleReply = async (msgId) => {
         const text = replyText[msgId]?.trim();
         if (!text) {

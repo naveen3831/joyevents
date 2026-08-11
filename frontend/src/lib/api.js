@@ -1411,3 +1411,79 @@ export async function apiAddWalletFunds(amount, paymentMethod, paymentDetails, t
     }
     return res.json();
 }
+
+// Custom Service Enquiry APIs
+export async function apiCreateCustomServiceRequest(payload, token) {
+    const res = await fetch(`${API_URL}/api/custom-service-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to submit custom service enquiry");
+    }
+    return res.json();
+}
+
+export async function apiGetMyCustomServiceRequests(token) {
+    const res = await fetch(`${API_URL}/api/custom-service-requests/my`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to fetch custom service enquiries");
+    }
+    return res.json();
+}
+
+export async function apiGetAdminCustomServiceRequests(token) {
+    const res = await fetch(`${API_URL}/api/custom-service-requests/admin`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to fetch admin custom service enquiries");
+    }
+    return res.json();
+}
+
+export async function apiSendCustomServiceQuote(id, payload, token) {
+    const res = await fetch(`${API_URL}/api/custom-service-requests/${id}/quote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to send quotation");
+    }
+    return res.json();
+}
+
+export async function apiRejectCustomServiceRequest(id, payload, token) {
+    const res = await fetch(`${API_URL}/api/custom-service-requests/${id}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to reject custom service request");
+    }
+    return res.json();
+}
+
+export async function apiPayCustomServiceQuote(id, payload, token) {
+    const res = await fetch(`${API_URL}/api/custom-service-requests/${id}/pay`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to process custom service payment");
+    }
+    return res.json();
+}
+

@@ -13,13 +13,6 @@ export default {
                 xl: "7rem",
                 "2xl": "9rem",
             },
-            screens: {
-                sm: "100%",
-                md: "100%",
-                lg: "100%",
-                xl: "100%",
-                "2xl": "100%",
-            },
         },
         extend: {
             fontFamily: {

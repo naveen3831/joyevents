@@ -7,6 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiGetInbox, apiMarkMessageRead, apiDeleteMessage, apiReplyToMessage } from "@/lib/api";
 import { toast } from "sonner";
 import { useGsapStagger } from "@/lib/gsapAnimations";
+import { useRealtimeEvent } from "@/hooks/useRealtimeEvent";
+
 const MerchantInbox = () => {
     const { token } = useAuth();
     const [messages, setMessages] = useState([]);
@@ -14,6 +16,7 @@ const MerchantInbox = () => {
     const [expanded, setExpanded] = useState(null);
     const [replyText, setReplyText] = useState({});
     const [sending, setSending] = useState(null);
+
     const load = () => {
         if (!token)
             return;
@@ -23,7 +26,12 @@ const MerchantInbox = () => {
             .catch(() => toast.error("Failed to load inbox"))
             .finally(() => setLoading(false));
     };
+
     useEffect(() => { load(); }, [token]);
+
+    useRealtimeEvent("realtime:chat-message", () => {
+        load();
+    });
     const handleExpand = async (msg) => {
         if (expanded === msg._id) {
             setExpanded(null);

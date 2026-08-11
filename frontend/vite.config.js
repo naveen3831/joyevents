@@ -47,6 +47,19 @@ export default defineConfig({
             '/api': {
                 target: 'http://localhost:5000',
                 changeOrigin: true,
+            },
+            '/ws': {
+                target: 'ws://localhost:5000',
+                ws: true,
+                changeOrigin: true,
+                configure: (proxy) => {
+                    proxy.on('error', (err) => {
+                        if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED' || err.message?.includes('socket hang up')) {
+                            return;
+                        }
+                        console.warn('[vite] ws proxy error:', err.message);
+                    });
+                }
             }
         }
     },

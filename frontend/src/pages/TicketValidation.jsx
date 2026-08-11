@@ -11,6 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiMarkTicketAsUsed } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { useGsapStagger } from "@/lib/gsapAnimations";
+import { useRealtimeEvent } from "@/hooks/useRealtimeEvent";
+
 const TicketValidation = () => {
     const { token } = useAuth();
     const [ticketId, setTicketId] = useState("");
@@ -22,6 +24,7 @@ const TicketValidation = () => {
     const [markUsedDialogOpen, setMarkUsedDialogOpen] = useState(false);
     const [showAllValidations, setShowAllValidations] = useState(false);
     const historyRef = useGsapStagger([searchHistory, showAllValidations], { y: 10, stagger: 0.03 });
+
     const loadRecentValidations = async () => {
         if (!token)
             return;
@@ -42,9 +45,14 @@ const TicketValidation = () => {
             setHistoryLoading(false);
         }
     };
+
     useEffect(() => {
         loadRecentValidations();
     }, [token]);
+
+    useRealtimeEvent("realtime:ticket-scanned", () => {
+        loadRecentValidations();
+    });
     const validateTicket = async () => {
         const cleanTicketId = ticketId.trim();
         if (!cleanTicketId) {

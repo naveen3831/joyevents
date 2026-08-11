@@ -6,6 +6,7 @@ import Transaction from "../models/Transaction.js";
 import { verifyToken, requireRole } from "../middleware/auth.js";
 import { formatCurrency } from "../utils/formatCurrency.js";
 import { awardReferralBonusForBooking, getReferralSettings } from "../utils/referrals.js";
+import { emitNotificationCreated, emitBookingCreated, emitBookingUpdated, emitWalletUpdated } from "../realtime.js";
 
 const router = Router();
 
@@ -39,6 +40,7 @@ async function createNotification(userId, title, message, type, relatedId, actio
     const notification = await Notification.create({
       userId, title, message, type, relatedId, actionUrl, status: "unread"
     });
+    emitNotificationCreated(userId, notification);
     return notification;
   } catch {
     return null;
@@ -1179,7 +1181,10 @@ router.patch("/:id/pay", verifyToken, async (req, res) => {
     const { paymentType = "full" } = req.body; // "full", "advance", or "remaining"
 
     // Check if valid status for payment
-    const allowedStatuses = ["awaiting_payment", "awaiting_final_payment", "processing", "accepted", "completed"];
+    if (booking.paymentStatus === "paid" && booking.status === "confirmed") {
+      return res.status(400).json({ error: "Booking is already paid and confirmed" });
+    }
+    const allowedStatuses = ["pending", "pending_approval", "awaiting_payment", "awaiting_final_payment", "processing", "accepted", "confirmed", "completed"];
     if (!allowedStatuses.includes(booking.status)) {
       return res.status(400).json({ error: "Booking is not in a payable status" });
     }
@@ -1263,10 +1268,13 @@ router.patch("/:id/pay", verifyToken, async (req, res) => {
       updateFields.paymentId = payId; 
     } else {
       // Full payment
-      updateFields.status = "paid";
+      updateFields.status = "confirmed";
       updateFields.paymentStatus = "paid";
       updateFields.paymentId = payId;
       updateFields.confirmedAt = new Date();
+      if (!booking.ticketId) {
+        updateFields.ticketId = `TKT-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      }
     }
 
     // Update booking status and payment status
@@ -2093,6 +2101,9 @@ router.post("/:id/process-refund", verifyToken, async (req, res) => {
     if (customer) {
       customer.walletBalance = (customer.walletBalance || 0) + refundAmount;
       await customer.save();
+      try {
+        emitWalletUpdated(customer._id, customer.walletBalance);
+      } catch (e) {}
     }
 
     // Create a Transaction record for customer's refund earning

@@ -1,18 +1,19 @@
 import { useState, useEffect, useMemo } from "react";
 import { formatCurrency } from "@/lib/utils";
-import { motion } from "framer-motion";
-import { Search, Loader2, Briefcase, ArrowLeft, Mail, Star, ShoppingBag, Percent } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Loader2, Briefcase, ArrowLeft, Mail, Star, ShoppingBag, Percent, Sparkles, Tag, Ticket, ChevronLeft, ChevronRight, Calendar, MapPin, ArrowRight, SlidersHorizontal, Filter, RotateCcw, X } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
-import { apiListServices, apiGetAllPromoCodes, apiValidatePromoCode } from "@/lib/api";
+import { apiListServices, apiListEvents, apiGetAllPromoCodes, apiValidatePromoCode } from "@/lib/api";
+import EventCard from "@/components/EventCard";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import ContactMerchantModal from "@/components/ContactMerchantModal";
-import { Tag, Ticket } from "lucide-react";
+import RequestCustomServiceModal from "@/components/RequestCustomServiceModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useGsapStagger } from "@/lib/gsapAnimations";
 const SORT_OPTIONS = [
@@ -27,9 +28,54 @@ const CustomerBrowseServices = () => {
     const navigate = useNavigate();
     const { addToCart } = useCart();
     const [services, setServices] = useState([]);
+    const [events, setEvents] = useState([]);
+    const [eventsLoading, setEventsLoading] = useState(true);
+    const [viewMode, setViewMode] = useState("all"); // "all", "services", "events"
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [contactService, setContactService] = useState(null);
+    const [showCustomModal, setShowCustomModal] = useState(false);
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const [isCarouselHovered, setIsCarouselHovered] = useState(false);
+
+    const carouselItems = useMemo(() => {
+        const evList = events.map(e => ({
+            _id: e._id,
+            title: e.title,
+            type: "event",
+            category: e.category,
+            image: e.image,
+            location: e.location,
+            date: e.date,
+            price: e.price || e.ticketTypes?.[0]?.price || 0,
+            link: `/customer-dashboard/events/${e._id}`
+        }));
+        const svList = services.map(s => ({
+            _id: s._id,
+            title: s.name,
+            type: "service",
+            category: s.category,
+            image: s.image,
+            location: s.location || "On Demand",
+            price: s.price || 0,
+            link: `/customer-dashboard/services/${s._id}`
+        }));
+        const combined = [];
+        const maxLen = Math.max(evList.length, svList.length);
+        for (let i = 0; i < maxLen; i++) {
+            if (evList[i]) combined.push(evList[i]);
+            if (svList[i]) combined.push(svList[i]);
+        }
+        return combined.slice(0, 10);
+    }, [events, services]);
+
+    useEffect(() => {
+        if (!carouselItems.length || isCarouselHovered) return;
+        const interval = setInterval(() => {
+            setCurrentSlide((prev) => (prev + 1) % carouselItems.length);
+        }, 4500);
+        return () => clearInterval(interval);
+    }, [carouselItems.length, isCarouselHovered]);
     // Quick Add to Cart State
     const [selectedServiceForCart, setSelectedServiceForCart] = useState(null);
     const [cartDate, setCartDate] = useState("");
@@ -88,20 +134,60 @@ const CustomerBrowseServices = () => {
     }, []);
     useEffect(() => {
         fetchServices(true);
-        const interval = setInterval(() => fetchServices(false), 5000);
+        const fetchEvents = async () => {
+            try {
+                const res = await apiListEvents();
+                setEvents(res.events || []);
+            } catch {
+            } finally {
+                setEventsLoading(false);
+            }
+        };
+        fetchEvents();
+        const interval = setInterval(() => {
+            fetchServices(false);
+            fetchEvents();
+        }, 5000);
         return () => clearInterval(interval);
     }, []);
-    const categories = useMemo(() => {
-        const cats = Array.from(new Set(services.map(s => s.category).filter(Boolean)));
-        return ["All", ...cats.sort()];
-    }, [services]);
+
+    const filteredEvents = useMemo(() => {
+        return events.filter(e => {
+            const q = search.toLowerCase();
+            const matchSearch = !q ||
+                e.title?.toLowerCase().includes(q) ||
+                e.category?.toLowerCase().includes(q) ||
+                e.location?.toLowerCase().includes(q);
+            const matchCat = selectedCategory === "All" || e.category === selectedCategory;
+            return matchSearch && matchCat;
+        });
+    }, [events, search, selectedCategory]);
+    const availableCategories = useMemo(() => {
+        if (viewMode === "services") {
+            const serviceCats = Array.from(new Set(services.map(s => s.category).filter(Boolean)));
+            return ["All", ...serviceCats.sort()];
+        } else if (viewMode === "events") {
+            const eventCats = Array.from(new Set(events.map(e => e.category).filter(Boolean)));
+            return ["All", ...eventCats.sort()];
+        } else {
+            const allCats = Array.from(new Set([...services.map(s => s.category), ...events.map(e => e.category)].filter(Boolean)));
+            return ["All", ...allCats.sort()];
+        }
+    }, [services, events, viewMode]);
+
+    const handleViewModeChange = (mode) => {
+        setViewMode(mode);
+        setSelectedCategory("All");
+    };
     const activeFilterCount = [
+        viewMode !== "all",
         selectedCategory !== "All",
         sortBy !== "default",
         !!priceMin,
         !!priceMax,
     ].filter(Boolean).length;
     const clearFilters = () => {
+        setViewMode("all");
         setSelectedCategory("All");
         setSortBy("default");
         setPriceMin("");
@@ -283,113 +369,467 @@ const CustomerBrowseServices = () => {
         navigate(dashboardUrl);
     };
     const gridRef = useGsapStagger([filtered.length, loading]);
-    return (<CustomerLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <div className="container mx-auto">
+    return (
+    <CustomerLayout>
+      <section className="py-4 sm:py-8 lg:py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
-            <div className="flex items-center gap-3 mb-6">
-              <Link to="/customer-dashboard">
-                <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-2"/> Back</Button>
-              </Link>
-            </div>
-            <div className="flex items-center gap-3 mb-6 sm:mb-8">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground shrink-0">
-                <Briefcase className="h-5 w-5"/>
-              </div>
+            {/* Header Copy / Matter */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/60">
               <div>
-                <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Browse <span className="text-gradient">Services</span></h1>
-                <p className="text-sm text-muted-foreground">Explore and book available services</p>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary/15 text-primary border border-primary/20 flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5" /> Curated Marketplace
+                  </span>
+                </div>
+                <h1 className="font-display text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+                  Explore & Book <span className="text-gradient">Extraordinary Experiences</span>
+                </h1>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 max-w-2xl leading-relaxed">
+                  Discover live music, DJ nights, wedding decor, photography, catering, and ticketed events across your region. Filter by real-time categories or request a custom event service instantly.
+                </p>
               </div>
+
+              <Button onClick={() => setShowCustomModal(true)} className="bg-gradient-primary text-white font-bold h-11 px-5 rounded-2xl shadow-glow hover:scale-105 transition-all shrink-0">
+                <Sparkles className="h-4 w-4 mr-2" /> Request Custom Service
+              </Button>
             </div>
 
-            {/* Search */}
-            <div className="mb-4">
-              <div className="relative w-full max-w-3xl">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
-                <Input placeholder="Search services by name or category..." value={search} maxLength={30} onChange={e => setSearch(e.target.value)} className="pl-10 bg-card border-border w-full"/>
+            {/* Featured Experiences Carousel (Events + Services) */}
+            {carouselItems.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative w-full mb-8 rounded-3xl overflow-hidden border border-border/80 bg-card shadow-card"
+                onMouseEnter={() => setIsCarouselHovered(true)}
+                onMouseLeave={() => setIsCarouselHovered(false)}
+              >
+                <div className="relative h-64 sm:h-80 lg:h-96 w-full overflow-hidden">
+                  <AnimatePresence mode="wait">
+                    {carouselItems[currentSlide] && (
+                      <motion.div
+                        key={carouselItems[currentSlide]._id || currentSlide}
+                        initial={{ opacity: 0, scale: 1.04 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="absolute inset-0 w-full h-full"
+                      >
+                        {/* Background Image */}
+                        {carouselItems[currentSlide].image ? (
+                          <img
+                            src={carouselItems[currentSlide].image.startsWith("http") ? carouselItems[currentSlide].image : `${API_URL}${carouselItems[currentSlide].image}`}
+                            alt={carouselItems[currentSlide].title}
+                            className="w-full h-full object-cover object-center"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-mesh flex items-center justify-center">
+                            <Ticket className="h-20 w-20 text-white/20" />
+                          </div>
+                        )}
+
+                        {/* Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-black/20" />
+
+                        {/* Content Overlay */}
+                        <div className="absolute inset-0 p-5 sm:p-8 lg:p-10 flex flex-col justify-between z-10 text-white">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-glow ${
+                              carouselItems[currentSlide].type === "event"
+                                ? "bg-gradient-primary text-white"
+                                : "bg-purple-600 text-white"
+                            }`}>
+                              {carouselItems[currentSlide].type === "event" ? <Ticket className="h-3.5 w-3.5"/> : <Briefcase className="h-3.5 w-3.5"/>}
+                              {carouselItems[currentSlide].type === "event" ? "Featured Ticketed Event" : "Top Curated Service"}
+                            </span>
+
+                            {carouselItems[currentSlide].category && (
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/20 backdrop-blur-md text-white border border-white/20">
+                                {carouselItems[currentSlide].category}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="space-y-2 sm:space-y-3 max-w-2xl">
+                            <h2 className="font-display text-xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight drop-shadow-md line-clamp-2">
+                              {carouselItems[currentSlide].title}
+                            </h2>
+                            <div className="flex items-center gap-3 text-xs sm:text-sm text-white/90 flex-wrap font-medium">
+                              {carouselItems[currentSlide].date && (
+                                <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg backdrop-blur-sm">
+                                  <Calendar className="h-4 w-4 text-primary" />
+                                  {new Date(carouselItems[currentSlide].date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                </span>
+                              )}
+                              {carouselItems[currentSlide].location && (
+                                <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg backdrop-blur-sm">
+                                  <MapPin className="h-4 w-4 text-rose-400" />
+                                  {carouselItems[currentSlide].location}
+                                </span>
+                              )}
+                              {carouselItems[currentSlide].price > 0 && (
+                                <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg backdrop-blur-sm text-emerald-400 font-bold">
+                                  From {formatCurrency(carouselItems[currentSlide].price)}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="pt-2">
+                              <Button
+                                onClick={() => navigate(carouselItems[currentSlide].link)}
+                                className="bg-gradient-primary text-white font-bold h-10 sm:h-11 px-6 rounded-xl shadow-glow hover:scale-105 transition-all flex items-center gap-2 text-xs sm:text-sm"
+                              >
+                                {carouselItems[currentSlide].type === "event" ? <Ticket className="h-4 w-4" /> : <Briefcase className="h-4 w-4" />}
+                                {carouselItems[currentSlide].type === "event" ? "Book Tickets Now" : "View Service & Get Quote"}
+                                <ArrowRight className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Arrow controls */}
+                  {carouselItems.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setCurrentSlide((prev) => (prev - 1 + carouselItems.length) % carouselItems.length)}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/40 hover:bg-primary backdrop-blur-md border border-white/20 text-white flex items-center justify-center transition-all shadow-md active:scale-95"
+                        aria-label="Previous slide"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => setCurrentSlide((prev) => (prev + 1) % carouselItems.length)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/40 hover:bg-primary backdrop-blur-md border border-white/20 text-white flex items-center justify-center transition-all shadow-md active:scale-95"
+                        aria-label="Next slide"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+
+                      {/* Dots */}
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                        {carouselItems.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setCurrentSlide(idx)}
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                              currentSlide === idx ? "w-6 bg-gradient-primary" : "w-2 bg-white/40 hover:bg-white/70"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Search & Filter Bar */}
+            <div className="flex items-center gap-2 mb-4 flex-wrap sm:flex-nowrap">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
+                <Input
+                  placeholder="Search events or services by title, category, location..."
+                  value={search}
+                  maxLength={50}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pl-10 bg-card border-border rounded-xl h-11 text-sm w-full shadow-sm"
+                />
+                {search && (
+                  <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
+
+              {/* Filter Button */}
+              <Button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`h-11 px-5 rounded-xl font-bold transition-all flex items-center gap-2 shadow-sm shrink-0 ${
+                  showFilters
+                    ? "bg-gradient-primary text-white shadow-glow"
+                    : activeFilterCount > 0
+                    ? "bg-primary/15 border border-primary/40 text-primary hover:bg-primary/20"
+                    : "bg-card border border-border hover:bg-secondary text-foreground"
+                }`}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-primary text-white shadow-sm">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
             </div>
 
-            {/* Category pills */}
-            {categories.length > 1 && (<div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-                {categories.map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`shrink-0 rounded-full px-4 py-2 min-h-[36px] text-xs font-medium transition-colors ${selectedCategory === cat
-                    ? "bg-gradient-primary text-primary-foreground"
-                    : "bg-secondary text-foreground hover:bg-secondary/70"}`}>
-                    {cat}
-                  </button>))}
-              </div>)}
+            {/* Expandable Filter Drawer Panel (Only visible when showFilters is TRUE) */}
+            <AnimatePresence>
+              {showFilters && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-hidden mb-6"
+                >
+                  <div className="p-5 sm:p-6 rounded-3xl border border-border bg-card shadow-card space-y-5">
+                    <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                      <div className="flex items-center gap-2">
+                        <Filter className="h-4.5 w-4.5 text-primary" />
+                        <h3 className="font-display text-base font-bold text-foreground">Filter & Sort Options</h3>
+                      </div>
+                      {activeFilterCount > 0 && (
+                        <button
+                          onClick={clearFilters}
+                          className="text-xs font-bold text-rose-500 hover:underline flex items-center gap-1"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" /> Reset Filters
+                        </button>
+                      )}
+                    </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                      {/* Filter 1: Type Selection (All Experiences, Services, Events) */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
+                          Experience Type
+                        </label>
+                        <div className="grid grid-cols-3 gap-1.5 p-1 bg-secondary/50 rounded-2xl border border-border/60">
+                          <button
+                            onClick={() => handleViewModeChange("all")}
+                            className={`py-2 px-2 text-xs font-bold rounded-xl transition-all ${
+                              viewMode === "all"
+                                ? "bg-gradient-primary text-white shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            All ({events.length + services.length})
+                          </button>
+                          <button
+                            onClick={() => handleViewModeChange("services")}
+                            className={`py-2 px-2 text-xs font-bold rounded-xl transition-all ${
+                              viewMode === "services"
+                                ? "bg-gradient-primary text-white shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            Services ({services.length})
+                          </button>
+                          <button
+                            onClick={() => handleViewModeChange("events")}
+                            className={`py-2 px-2 text-xs font-bold rounded-xl transition-all ${
+                              viewMode === "events"
+                                ? "bg-gradient-primary text-white shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            Events ({events.length})
+                          </button>
+                        </div>
+                      </div>
 
+                      {/* Filter 2: Price Range */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
+                          Price Range (₹)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            placeholder="Min ₹"
+                            value={priceMin}
+                            onChange={(e) => setPriceMin(e.target.value)}
+                            className="h-10 text-xs rounded-xl bg-secondary/50 border-border"
+                          />
+                          <span className="text-muted-foreground text-xs font-bold">–</span>
+                          <Input
+                            type="number"
+                            placeholder="Max ₹"
+                            value={priceMax}
+                            onChange={(e) => setPriceMax(e.target.value)}
+                            className="h-10 text-xs rounded-xl bg-secondary/50 border-border"
+                          />
+                        </div>
+                      </div>
 
-            {/* Filters removed */}
+                      {/* Filter 3: Sort By */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
+                          Sort Order
+                        </label>
+                        <select
+                          value={sortBy}
+                          onChange={(e) => setSortBy(e.target.value)}
+                          className="w-full h-10 px-3 text-xs font-semibold rounded-xl bg-secondary/50 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        >
+                          {SORT_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Filter 4: Category Pills inside Filter Panel */}
+                    {availableCategories.length > 1 && (
+                      <div className="pt-2 border-t border-border/60">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">
+                          Category
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {availableCategories.map((cat) => (
+                            <button
+                              key={cat}
+                              onClick={() => setSelectedCategory(cat)}
+                              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                                selectedCategory === cat
+                                  ? "bg-gradient-primary text-white font-bold shadow-sm"
+                                  : "bg-secondary text-foreground hover:bg-secondary/70"
+                              }`}
+                            >
+                              {cat}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
 
-          {/* Results count */}
-          {!loading && (<p className="text-xs text-muted-foreground mb-4">
-              {filtered.length} service{filtered.length !== 1 ? "s" : ""} found
-            </p>)}
+          {/* Events Section (shown when viewMode is 'all' or 'events') */}
+          {(viewMode === "all" || viewMode === "events") && (
+            <div className="mb-10">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-display text-lg sm:text-xl font-bold flex items-center gap-2">
+                  <Ticket className="h-5 w-5 text-primary" /> Upcoming Events
+                </h2>
+                {viewMode === "all" && (
+                  <button onClick={() => setViewMode("events")} className="text-xs text-primary font-bold hover:underline">
+                    View All Events ({filteredEvents.length}) →
+                  </button>
+                )}
+              </div>
 
-          {loading ? (<div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
-              <Loader2 className="h-5 w-5 animate-spin"/> Loading services…
-            </div>) : filtered.length === 0 ? (<div className="rounded-xl border border-border bg-card p-10 text-center">
-              <Briefcase className="mx-auto mb-4 h-12 w-12 opacity-30 text-muted-foreground"/>
-              <p className="font-medium text-lg text-foreground">No services found</p>
-              <p className="text-sm mt-1 text-muted-foreground">Try adjusting your search or filters</p>
-              {activeFilterCount > 0 && (<Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>Clear Filters</Button>)}
-            </div>) : (<div ref={gridRef} className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filtered.map((svc, i) => (<motion.div key={svc._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: i * 0.04 }} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors w-full h-full">
-                  {/* Image */}
-                  <div className="relative overflow-hidden bg-secondary shrink-0 w-full h-48 sm:h-52 cursor-pointer" onClick={() => goToDetail(svc)}>
-                    {imgSrc(svc.image) ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full w-full items-center justify-center"><Briefcase className="h-10 w-10 opacity-20"/></div>)}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/>
-                    <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                      From {formatCurrency(svc.price)}
-                    </span>
-                  </div>
+              {eventsLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" /> Loading events...
+                </div>
+              ) : filteredEvents.length === 0 ? (
+                <div className="p-6 rounded-2xl border border-border bg-card text-center text-muted-foreground">
+                  No events found matching your criteria.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {(viewMode === "all" ? filteredEvents.slice(0, 4) : filteredEvents).map((event, idx) => (
+                    <EventCard
+                      key={event._id}
+                      event={event}
+                      index={idx}
+                      onViewDetails={(e) => navigate(`/customer-dashboard/events/${e._id}`)}
+                      onBookNow={(e) => navigate(`/customer-dashboard/events/${e._id}`)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-                  {/* Content */}
-                  <div className="p-4 sm:p-5 flex flex-col flex-1 min-w-0 justify-between">
-                    <div>
-                      <Link to={`/customer-dashboard/services/${svc._id}`}>
-                        <h3 className="font-display text-base sm:text-lg font-bold line-clamp-2 leading-snug group-hover:text-primary transition-colors cursor-pointer">
-                          {svc.name}
-                        </h3>
-                      </Link>
+          {/* Services Section (shown when viewMode is 'all' or 'services') */}
+          {(viewMode === "all" || viewMode === "services") && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-display text-lg sm:text-xl font-bold flex items-center gap-2">
+                  <Briefcase className="h-5 w-5 text-orange-500" /> Featured Services
+                </h2>
+                {viewMode === "all" && (
+                  <button onClick={() => setViewMode("services")} className="text-xs text-orange-500 font-bold hover:underline">
+                    View All Services ({filtered.length}) →
+                  </button>
+                )}
+              </div>
 
-                      {/* Rating display */}
-                      {svc.averageRating && svc.averageRating > 0 ? (<div className="flex items-center gap-1 mt-1">
-                          <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0"/>
-                          <span className="text-xs font-semibold">
-                            {svc.averageRating.toFixed(1)}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            ({svc.ratingCount || 0})
-                          </span>
-                        </div>) : null}
-                      {svc.highlights?.length > 0 && (<ul className="mt-2 space-y-1">
-                          {svc.highlights.slice(0, 2).map((h, hi) => (<li key={hi} className="flex items-center gap-1.5 text-[11px] sm:text-xs text-muted-foreground">
-                              <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0"/>
-                              <span className="line-clamp-1">{h}</span>
-                            </li>))}
-                        </ul>)}
-                    </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" /> Loading services...
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="rounded-xl border border-border bg-card p-10 text-center">
+                  <Briefcase className="mx-auto mb-4 h-12 w-12 opacity-30 text-muted-foreground" />
+                  <p className="font-medium text-lg text-foreground">No services found</p>
+                  <p className="text-sm mt-1 text-muted-foreground">Try adjusting your search or filters</p>
+                  {activeFilterCount > 0 && (
+                    <Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>
+                      Clear Filters
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div ref={gridRef} className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {(viewMode === "all" ? filtered.slice(0, 4) : filtered).map((svc, i) => (
+                    <motion.div key={svc._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: i * 0.04 }} onClick={() => goToDetail(svc)} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors w-full h-full cursor-pointer">
+                      {/* Image */}
+                      <div className="relative overflow-hidden bg-secondary shrink-0 w-full h-48 sm:h-52 cursor-pointer" onClick={() => goToDetail(svc)}>
+                        {imgSrc(svc.image) ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full w-full items-center justify-center"><Briefcase className="h-10 w-10 opacity-20"/></div>)}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/>
+                        <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                          From {formatCurrency(svc.price)}
+                        </span>
+                      </div>
 
-                    <div className="flex-1"/>
+                      {/* Content */}
+                      <div className="p-4 sm:p-5 flex flex-col flex-1 min-w-0 justify-between">
+                        <div>
+                          <Link to={`/customer-dashboard/services/${svc._id}`}>
+                            <h3 className="font-display text-base sm:text-lg font-bold line-clamp-2 leading-snug group-hover:text-primary transition-colors cursor-pointer">
+                              {svc.name}
+                            </h3>
+                          </Link>
 
-                    <div className="mt-2 sm:mt-5 flex flex-col gap-1.5 sm:gap-2">
-                      <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10" onClick={() => goToDetail(svc)}>
-                        View Details
-                      </Button>
-                      <Button className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 flex items-center justify-center gap-1.5" onClick={() => setSelectedServiceForCart(svc)}>
-                        <ShoppingBag className="h-4 w-4"/> Add to Cart
-                      </Button>
-                      {svc.createdBy && (<button onClick={() => setContactService(svc)} className="w-full rounded-lg py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium border border-border hover:bg-secondary transition-all text-muted-foreground flex items-center justify-center gap-1">
-                          <Mail className="h-3.5 w-3.5"/> Contact Organiser
-                        </button>)}
-                    </div>
-                  </div>
-                </motion.div>))}
-            </div>)}
+                          {/* Rating display */}
+                          {svc.averageRating && svc.averageRating > 0 ? (<div className="flex items-center gap-1 mt-1">
+                              <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0"/>
+                              <span className="text-xs font-semibold">
+                                {svc.averageRating.toFixed(1)}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                ({svc.ratingCount || 0})
+                              </span>
+                            </div>) : null}
+                          {svc.highlights?.length > 0 && (<ul className="mt-2 space-y-1">
+                              {svc.highlights.slice(0, 2).map((h, hi) => (<li key={hi} className="flex items-center gap-1.5 text-[11px] sm:text-xs text-muted-foreground">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0"/>
+                                  <span className="line-clamp-1">{h}</span>
+                                </li>))}
+                            </ul>)}
+                        </div>
+
+                        <div className="flex-1"/>
+
+                        <div className="mt-2 sm:mt-5 flex flex-col gap-1.5 sm:gap-2">
+                          <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10" onClick={() => goToDetail(svc)}>
+                            View Details
+                          </Button>
+                          <Button className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 flex items-center justify-center gap-1.5" onClick={() => setSelectedServiceForCart(svc)}>
+                            <ShoppingBag className="h-4 w-4"/> Add to Cart
+                          </Button>
+                          {svc.createdBy && (<button onClick={() => setContactService(svc)} className="w-full rounded-lg py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium border border-border hover:bg-secondary transition-all text-muted-foreground flex items-center justify-center gap-1">
+                              <Mail className="h-3.5 w-3.5"/> Contact Organiser
+                            </button>)}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
       {contactService && (<ContactMerchantModal itemTitle={contactService.name} serviceId={contactService._id} onClose={() => setContactService(null)}/>)}
@@ -525,6 +965,11 @@ const CustomerBrowseServices = () => {
             </div>)}
         </DialogContent>
       </Dialog>
+
+      <RequestCustomServiceModal
+        open={showCustomModal}
+        onOpenChange={setShowCustomModal}
+      />
     </CustomerLayout>);
 };
 export default CustomerBrowseServices;

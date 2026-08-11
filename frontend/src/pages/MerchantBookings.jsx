@@ -12,6 +12,7 @@ import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from "@/components/ui/dropdown-menu";
 import { useGsapStagger } from "@/lib/gsapAnimations";
+import { useRealtimeEvent } from "@/hooks/useRealtimeEvent";
 const STATUS_BADGE = {
     assigned: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
     pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
@@ -65,6 +66,10 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
     useEffect(() => {
         load();
     }, [token]);
+
+    useRealtimeEvent("realtime:booking-update", () => {
+        load();
+    });
     const sortLatestBookingsFirst = (list) => {
         return [...list].sort((a, b) => new Date(b.createdAt || b.datetime || 0).getTime() - new Date(a.createdAt || a.datetime || 0).getTime());
     };

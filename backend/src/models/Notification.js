@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { emitNotificationCreated } from "../realtime.js";
 
 const notificationSchema = new mongoose.Schema(
   {
@@ -22,5 +23,11 @@ const notificationSchema = new mongoose.Schema(
 );
 
 notificationSchema.index({ userId: 1, createdAt: -1 });
+
+notificationSchema.post("save", function notifyRealtime(notification) {
+  if (notification.status === "unread") {
+    emitNotificationCreated(notification.toObject());
+  }
+});
 
 export default mongoose.models.Notification || mongoose.model("Notification", notificationSchema);

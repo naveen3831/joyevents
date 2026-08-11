@@ -58,6 +58,9 @@ export const CartProvider = ({ children }) => {
     };
     const clearCart = () => {
         setCartItems([]);
+        try {
+            localStorage.removeItem("cart");
+        } catch (e) {}
     };
     return (<CartContext.Provider value={{
             cartItems,

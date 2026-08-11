@@ -195,6 +195,14 @@ export const listUsers = async (req, res) => {
 
 export const updateUser = async (req, res) => {
   try {
+    const targetUser = await User.findById(req.params.id);
+    if (!targetUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    if (targetUser.role === "admin") {
+      return res.status(403).json({ error: "System Admin account cannot be modified here." });
+    }
+
     const { name, email, role, status } = req.body || {};
     const updates = {};
     if (name) updates.name = name;
@@ -207,9 +215,6 @@ export const updateUser = async (req, res) => {
     if (status) updates.status = status;
 
     const user = await User.findByIdAndUpdate(req.params.id, updates, { new: true }).select("-passwordHash");
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
     res.json({ user: toSafeUser(user) });
   } catch (err) {
     res.status(500).json({ error: "Failed to update user" });
@@ -243,10 +248,15 @@ export const updateProfile = async (req, res) => {
 
 export const deleteUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
-    if (!user) {
+    const targetUser = await User.findById(req.params.id);
+    if (!targetUser) {
       return res.status(404).json({ error: "User not found" });
     }
+    if (targetUser.role === "admin") {
+      return res.status(403).json({ error: "System Admin account cannot be deleted." });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
     res.json({ message: "User deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete user" });
@@ -298,7 +308,10 @@ export const adminResetPassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    
+    if (user.role === "admin") {
+      return res.status(403).json({ error: "System Admin password cannot be reset from user management." });
+    }
+
     const passwordHash = await bcrypt.hash(newPassword, 10);
     user.passwordHash = passwordHash;
     await user.save();
