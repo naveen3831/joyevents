@@ -49,12 +49,12 @@ const UserDashboard = () => {
   const [isCarouselHovered, setIsCarouselHovered] = useState(false);
 
   useEffect(() => {
-    if (!liveEvents.length || isCarouselHovered) return;
+    if (!bookings.length || isCarouselHovered) return;
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % liveEvents.length);
+      setCurrentSlide((prev) => (prev + 1) % bookings.length);
     }, 4500);
     return () => clearInterval(interval);
-  }, [liveEvents.length, isCarouselHovered]);
+  }, [bookings.length, isCarouselHovered]);
   const [services, setServices] = useState([]);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -283,16 +283,16 @@ const UserDashboard = () => {
       <section className="py-2 sm:py-8 lg:py-10">
         <div className="w-full">
           {/* Header */}
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="flex flex-col gap-4 mb-4 sm:mb-6">
-            <div className="flex items-center justify-between gap-3 pt-2 pb-1">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="flex flex-col gap-5 sm:gap-6 mb-6 sm:mb-8">
+            <div className="flex items-center justify-between gap-3 pt-3 sm:pt-2 pb-2 sm:pb-1">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 sm:gap-4">
                   <span className="text-muted-foreground text-base sm:text-xl font-medium">{t("welcome_back")},</span>
-                  <span className="font-display text-xl sm:text-3xl font-extrabold text-gradient">
+                  <span className="font-display text-2xl sm:text-3xl font-extrabold text-gradient">
                     {user?.name || 'Customer'} 👋
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1 font-medium">{t("track_bookings")}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-1.5 font-medium">{t("track_bookings")}</p>
               </div>
 
               {/* Desktop Only: Header Action Icons */}
@@ -321,16 +321,16 @@ const UserDashboard = () => {
             </div>
 
             {/* Search Bar */}
-            <div className="flex items-center gap-2">
-              <div className="relative hidden sm:block sm:w-[180px]">
-                <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
-                <Input type="text" placeholder={t("location_placeholder")} value={locationQuery} maxLength={100} onChange={(e) => setLocationQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(e); } }} className="border-border bg-secondary pl-10 w-full rounded-xl h-10 text-sm"/>
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="relative hidden sm:block sm:w-[200px]">
+                <MapPin className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
+                <Input type="text" placeholder={t("location_placeholder")} value={locationQuery} maxLength={100} onChange={(e) => setLocationQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(e); } }} className="border-border bg-secondary pl-10 w-full rounded-2xl h-12 text-sm"/>
               </div>
               
               <form onSubmit={handleSearch} className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
-                <Input type="text" placeholder={t("search_events_services")} value={searchQuery} maxLength={100} onChange={(e) => setSearchQuery(e.target.value)} className="border-border bg-secondary pl-10 w-full pr-16 h-10 text-sm rounded-xl"/>
-                <Button type="submit" size="sm" variant="ghost" className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 px-2.5 text-xs font-bold hover:bg-primary hover:text-primary-foreground rounded-lg">
+                <Search className="absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground"/>
+                <Input type="text" placeholder={t("search_events_services")} value={searchQuery} maxLength={100} onChange={(e) => setSearchQuery(e.target.value)} className="border-border bg-secondary pl-11 w-full pr-20 h-12 text-sm sm:text-base rounded-2xl shadow-sm focus-visible:ring-primary/50"/>
+                <Button type="submit" size="sm" variant="ghost" className="absolute right-2 top-1/2 -translate-y-1/2 h-8.5 px-3.5 text-xs sm:text-sm font-bold bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground rounded-xl transition-all">
                   {t("search")}
                 </Button>
               </form>
@@ -339,9 +339,9 @@ const UserDashboard = () => {
 
           {/* Search Results */}
           {showSearchResults && (
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-8 sm:mt-10">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-display text-xl font-bold flex items-center gap-2">
+                <h2 className="font-display text-xl sm:text-2xl font-bold flex items-center gap-2">
                   <Search className="h-5 w-5 text-primary"/> {t("search_results")}
                 </h2>
                 <Button onClick={clearSearch} variant="outline" size="sm">
@@ -354,7 +354,7 @@ const UserDashboard = () => {
                 <div className="space-y-6">
                   {filteredEvents.length > 0 && (
                     <div>
-                      <h3 className="font-bold text-sm text-muted-foreground mb-3">Events ({filteredEvents.length})</h3>
+                      <h3 className="font-bold text-sm sm:text-base text-muted-foreground mb-3">Events ({filteredEvents.length})</h3>
                       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                         {filteredEvents.map((event, idx) => (
                           <EventCard 
@@ -371,7 +371,7 @@ const UserDashboard = () => {
 
                   {filteredServices.length > 0 && (
                     <div>
-                      <h3 className="font-bold text-sm text-muted-foreground mb-3">Services ({filteredServices.length})</h3>
+                      <h3 className="font-bold text-sm sm:text-base text-muted-foreground mb-3">Services ({filteredServices.length})</h3>
                       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                         {filteredServices.map((svc, idx) => (
                           <motion.div 
@@ -417,114 +417,120 @@ const UserDashboard = () => {
             </motion.div>
           )}
 
-          {/* Recent Events Hero Carousel */}
-          {liveEvents.length > 0 && (
+          {/* Recent Bookings Hero Carousel */}
+          {bookings.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="relative w-full my-4 sm:my-6 rounded-3xl overflow-hidden border border-border/80 bg-card shadow-card"
+              className="relative w-full my-6 sm:my-8 rounded-3xl overflow-hidden border border-border/80 bg-card shadow-card"
               onMouseEnter={() => setIsCarouselHovered(true)}
               onMouseLeave={() => setIsCarouselHovered(false)}
             >
-              <div className="relative h-64 sm:h-80 lg:h-96 w-full overflow-hidden">
+              <div className="relative h-72 sm:h-84 lg:h-96 w-full overflow-hidden">
                 <AnimatePresence mode="wait">
-                  {liveEvents[currentSlide] && (
-                    <motion.div
-                      key={liveEvents[currentSlide]._id || currentSlide}
-                      initial={{ opacity: 0, scale: 1.04 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.4 }}
-                      className="absolute inset-0 w-full h-full"
-                    >
-                      {/* Background Image */}
-                      {liveEvents[currentSlide].image ? (
-                        <img
-                          src={liveEvents[currentSlide].image.startsWith("http") ? liveEvents[currentSlide].image : `${API_URL}${liveEvents[currentSlide].image}`}
-                          alt={liveEvents[currentSlide].title}
-                          className="w-full h-full object-cover object-center"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-mesh flex items-center justify-center">
-                          <Ticket className="h-20 w-20 text-white/20" />
-                        </div>
-                      )}
+                  {bookings[currentSlide] && (() => {
+                    const b = bookings[currentSlide];
+                    const title = b.event?.title || b.serviceName || b.service?.name || "Booking Experience";
+                    const img = b.event?.image || b.serviceImage || b.service?.image;
+                    const loc = b.event?.location || b.customerLocation?.address || b.location || "On Location";
+                    const dateStr = b.datetime ? new Date(b.datetime).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
 
-                      {/* Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
+                    return (
+                      <motion.div
+                        key={b._id || currentSlide}
+                        initial={{ opacity: 0, scale: 1.04 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="absolute inset-0 w-full h-full"
+                      >
+                        {/* Background Image */}
+                        {img ? (
+                          <img
+                            src={img.startsWith("http") ? img : `${API_URL}${img}`}
+                            alt={title}
+                            className="w-full h-full object-cover object-center"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-mesh flex items-center justify-center">
+                            <Ticket className="h-20 w-20 text-white/20" />
+                          </div>
+                        )}
 
-                      {/* Slide Content Overlay */}
-                      <div className="absolute inset-0 p-5 sm:p-8 lg:p-10 flex flex-col justify-between z-10 text-white">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-primary text-white shadow-glow">
-                            <Sparkles className="h-3.5 w-3.5" /> Recent Featured Event
-                          </span>
-                          {liveEvents[currentSlide].category && (
-                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/20 backdrop-blur-md text-white border border-white/20">
-                              {liveEvents[currentSlide].category}
+                        {/* Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/30" />
+
+                        {/* Slide Content Overlay */}
+                        <div className="absolute inset-0 p-6 sm:p-8 lg:p-10 flex flex-col justify-between z-10 text-white">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-gradient-primary text-white shadow-glow">
+                              <Clock className="h-3.5 w-3.5" /> Recent Booking
                             </span>
-                          )}
-                        </div>
-
-                        <div className="space-y-2 sm:space-y-3 max-w-2xl">
-                          <h2 className="font-display text-xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight drop-shadow-md line-clamp-2">
-                            {liveEvents[currentSlide].title}
-                          </h2>
-                          <div className="flex items-center gap-3 text-xs sm:text-sm text-white/90 flex-wrap font-medium">
-                            {liveEvents[currentSlide].date && (
-                              <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg backdrop-blur-sm">
-                                <Calendar className="h-4 w-4 text-primary" />
-                                {new Date(liveEvents[currentSlide].date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                              </span>
-                            )}
-                            {liveEvents[currentSlide].location && (
-                              <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg backdrop-blur-sm">
-                                <MapPin className="h-4 w-4 text-rose-400" />
-                                {liveEvents[currentSlide].location}
-                              </span>
-                            )}
-                            {(liveEvents[currentSlide].price || liveEvents[currentSlide].ticketTypes?.[0]?.price) && (
-                              <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg backdrop-blur-sm text-emerald-400 font-bold">
-                                From {formatCurrency(liveEvents[currentSlide].price || liveEvents[currentSlide].ticketTypes?.[0]?.price || 0)}
-                              </span>
-                            )}
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold capitalize border backdrop-blur-md ${STATUS_BADGE[b.status] || "bg-white/20 text-white border-white/20"}`}>
+                              {b.status}
+                            </span>
                           </div>
 
-                          <div className="pt-2">
-                            <Button
-                              onClick={() => navigate(`/customer-dashboard/events/${liveEvents[currentSlide]._id}`)}
-                              className="bg-gradient-primary text-white font-bold h-10 sm:h-11 px-6 rounded-xl shadow-glow hover:scale-105 transition-all flex items-center gap-2 text-xs sm:text-sm"
-                            >
-                              <Ticket className="h-4 w-4" /> Book Tickets Now <ArrowRight className="h-4 w-4" />
-                            </Button>
+                          <div className="space-y-2.5 sm:space-y-3 max-w-2xl">
+                            <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight drop-shadow-md line-clamp-2">
+                              {title}
+                            </h2>
+                            <div className="flex items-center gap-3 text-xs sm:text-sm text-white/90 flex-wrap font-medium">
+                              {dateStr && (
+                                <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg backdrop-blur-sm">
+                                  <Calendar className="h-4 w-4 text-primary" />
+                                  {dateStr}
+                                </span>
+                              )}
+                              {loc && (
+                                <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg backdrop-blur-sm">
+                                  <MapPin className="h-4 w-4 text-rose-400" />
+                                  {loc}
+                                </span>
+                              )}
+                              {b.price > 0 && (
+                                <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg backdrop-blur-sm text-emerald-400 font-bold">
+                                  {formatCurrency(b.price)}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="pt-2">
+                              <Button
+                                onClick={() => navigate(`/my-requests`)}
+                                className="bg-gradient-primary text-white font-bold h-11 sm:h-12 px-6 rounded-2xl shadow-glow hover:scale-105 transition-all flex items-center gap-2 text-xs sm:text-sm"
+                              >
+                                <FileText className="h-4 w-4" /> View My Bookings <ArrowRight className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  )}
+                      </motion.div>
+                    );
+                  })()}
                 </AnimatePresence>
 
                 {/* Left & Right Navigation Arrows */}
-                {liveEvents.length > 1 && (
+                {bookings.length > 1 && (
                   <>
                     <button
-                      onClick={() => setCurrentSlide((prev) => (prev - 1 + liveEvents.length) % liveEvents.length)}
+                      onClick={() => setCurrentSlide((prev) => (prev - 1 + bookings.length) % bookings.length)}
                       className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/40 hover:bg-primary backdrop-blur-md border border-white/20 text-white flex items-center justify-center transition-all shadow-md active:scale-95"
-                      aria-label="Previous event"
+                      aria-label="Previous booking"
                     >
                       <ChevronLeft className="h-5 w-5" />
                     </button>
                     <button
-                      onClick={() => setCurrentSlide((prev) => (prev + 1) % liveEvents.length)}
+                      onClick={() => setCurrentSlide((prev) => (prev + 1) % bookings.length)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/40 hover:bg-primary backdrop-blur-md border border-white/20 text-white flex items-center justify-center transition-all shadow-md active:scale-95"
-                      aria-label="Next event"
+                      aria-label="Next booking"
                     >
                       <ChevronRight className="h-5 w-5" />
                     </button>
 
                     {/* Bottom Dot Indicators */}
                     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-                      {liveEvents.map((_, idx) => (
+                      {bookings.map((_, idx) => (
                         <button
                           key={idx}
                           onClick={() => setCurrentSlide(idx)}
@@ -541,7 +547,7 @@ const UserDashboard = () => {
           )}
 
           {/* Overview Dashboard Stats */}
-          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
+          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 mt-6 sm:mt-8">
             <StatCard
               title="Total Bookings"
               value={bookings.length}
@@ -610,26 +616,6 @@ const UserDashboard = () => {
               </div>
             </motion.div>
           )}
-
-          {/* Custom Service Enquiry Callout Banner */}
-          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 p-4 sm:p-5 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-purple-500/10 to-orange-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-            <div className="flex items-center gap-3.5">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-primary text-white shadow-md">
-                <Sparkles className="h-6 w-6 animate-pulse" />
-              </div>
-              <div>
-                <h4 className="font-display font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
-                  Can't find the service you need?
-                </h4>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Request a custom service tailored to your event requirements and get a custom quotation from our team!
-                </p>
-              </div>
-            </div>
-            <Button onClick={() => setShowCustomServiceModal(true)} className="bg-gradient-primary text-white font-semibold whitespace-nowrap shrink-0 shadow-sm hover:opacity-90">
-              <Sparkles className="h-4 w-4 mr-1.5" /> Request Custom Service
-            </Button>
-          </motion.div>
 
           {/* Categories & Catalog Preview */}
           <div className="mt-6 sm:mt-8 space-y-6 sm:space-y-10">
