@@ -85,7 +85,7 @@ const AccordionGroup = ({ group, isOpen, onToggle, onClose }) => {
         const item = group.items[0];
         const active = isLinkActive(item.to, location);
         return (
-            <Link to={item.to} onClick={onClose} className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${active ? "bg-gradient-primary text-primary-foreground shadow-glow" : "text-foreground/75 hover:bg-secondary hover:text-foreground"}`}>
+            <Link to={item.to} onClick={onClose} className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold transition-all ${active ? "bg-gradient-primary text-primary-foreground shadow-sm font-bold" : "text-foreground/80 hover:bg-secondary/70 hover:text-foreground"}`}>
                 <item.icon className="h-4 w-4 shrink-0" />{item.label}
             </Link>
         );
@@ -93,19 +93,19 @@ const AccordionGroup = ({ group, isOpen, onToggle, onClose }) => {
 
     return (
         <div className="space-y-1">
-            <button onClick={onToggle} aria-expanded={isOpen} className={`w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${isActive || isOpen ? "bg-secondary text-foreground font-bold" : "text-foreground/75 hover:bg-secondary/70 hover:text-foreground"}`}>
-                <div className="flex items-center gap-3">
+            <button onClick={onToggle} aria-expanded={isOpen} className={`w-full flex items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold transition-all ${isActive || isOpen ? "bg-secondary text-foreground font-bold" : "text-foreground/80 hover:bg-secondary/60 hover:text-foreground"}`}>
+                <div className="flex items-center gap-2.5">
                     {group.icon && <group.icon className="h-4 w-4 text-primary" />}
                     {group.label}
                 </div>
-                <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isOpen ? "rotate-180 text-primary" : "opacity-60"}`} />
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${isOpen ? "rotate-180 text-primary" : "opacity-60"}`} />
             </button>
             <div ref={panelRef} className="overflow-hidden" style={{ height: 0, opacity: 0 }}>
-                <div className="ml-3.5 mt-1 border-l-2 border-primary/20 pl-3 space-y-1 pb-1">
+                <div className="ml-3 mt-1 border-l-2 border-primary/20 pl-2.5 space-y-1 pb-1">
                     {group.items.map((sub) => {
                         const subActive = isLinkActive(sub.to, location);
                         return (
-                            <Link key={sub.to} to={sub.to} onClick={onClose} className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${subActive ? "bg-gradient-primary text-primary-foreground shadow-glow font-bold" : "text-foreground/70 hover:bg-secondary hover:text-foreground"}`}>
+                            <Link key={sub.to} to={sub.to} onClick={onClose} className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm font-medium transition-all ${subActive ? "bg-gradient-primary text-primary-foreground shadow-sm font-bold" : "text-foreground/75 hover:bg-secondary/80 hover:text-foreground"}`}>
                                 <sub.icon className="h-3.5 w-3.5" />{sub.label}
                             </Link>
                         );
@@ -126,7 +126,7 @@ const NavLinks = ({ onClose }) => {
     }, [location.pathname]);
 
     return (
-        <nav className="space-y-1.5 p-3.5">
+        <nav className="space-y-1 p-2.5">
             {groups.map((group) => (
                 <AccordionGroup key={group.label} group={group} isOpen={openGroup === group.label} onToggle={() => setOpenGroup((g) => (g === group.label ? null : group.label))} onClose={onClose} />
             ))}
@@ -155,16 +155,16 @@ const AdminSidebar = ({ open, onClose, onToggle }) => {
 
     return (<>
     {/* Permanent Desktop Sidebar */}
-    <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card/95 backdrop-blur-xl shrink-0 sticky top-24 h-[calc(100vh-6rem)] shadow-sm font-sans rounded-2xl my-2 ml-4">
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border/80">
-        <Shield className="h-5 w-5 text-primary"/>
-        <span className="font-display text-base font-bold tracking-tight text-foreground">Admin Portal</span>
+    <aside className="hidden lg:flex flex-col w-[260px] border-r border-border/70 bg-card/95 backdrop-blur-xl shrink-0 sticky top-16 h-[calc(100vh-4rem)] font-sans ml-0 my-0">
+      <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-border/70">
+        <Shield className="h-4 w-4 text-primary"/>
+        <span className="font-display text-sm font-bold tracking-tight text-foreground">Admin Portal</span>
       </div>
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 overflow-y-auto no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <NavLinks onClose={() => {}} />
       </div>
-      <div className="border-t border-border/80 p-3.5">
-        <button onClick={handleLogout} className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-500/10 transition-colors">
+      <div className="border-t border-border/70 p-3">
+        <button onClick={handleLogout} className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold text-red-500 hover:bg-red-500/10 transition-colors">
           <LogOut className="h-4 w-4 shrink-0"/> Logout
         </button>
       </div>
@@ -177,13 +177,13 @@ const AdminSidebar = ({ open, onClose, onToggle }) => {
 
     {/* Mobile Drawer */}
     <AnimatePresence>
-      {open && (<motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 28, stiffness: 220 }} className="fixed top-20 left-0 bottom-0 w-64 bg-card border-r border-border z-50 flex flex-col shadow-2xl lg:hidden">
+      {open && (<motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 28, stiffness: 220 }} className="fixed top-14 left-0 bottom-0 w-64 bg-card border-r border-border z-50 flex flex-col shadow-2xl lg:hidden">
           <div className="flex items-center justify-between px-4 py-4 border-b border-border">
             <span className="font-display text-base font-bold text-primary flex items-center gap-2">
               <Shield className="h-4 w-4"/> Admin Menu
             </span>
           </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <NavLinks onClose={onClose}/>
           </div>
           <div className="border-t border-border p-3.5">

@@ -7,12 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiGetCommissionRate, apiListBookings, apiSaveCommissionRate } from "@/lib/api";
 import { toast } from "sonner";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import { TableSkeleton } from "@/components/common/table/TableSkeleton";
+import { TableEmptyState } from "@/components/common/table/TableEmptyState";
 const getCommissionDetails = (booking) => {
     const isAdminBooking = booking.assignedTo?.role === "admin" || booking.commissionSummary?.adminDirect;
     if (booking.commissionSummary) {
@@ -259,80 +262,76 @@ const AdminCommissions = () => {
           </div>
 
           {/* Breakdown Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Commission Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (<div className="flex items-center justify-center py-16 text-muted-foreground">
-                  Loading commission data...
-                </div>) : bookings.length === 0 ? (<div className="py-16 text-center text-muted-foreground">
-                  <Calculator className="h-12 w-12 mx-auto mb-4 opacity-30"/>
-                  <p>No paid bookings to show commissions.</p>
-                </div>) : (<div className="overflow-x-auto w-full">
-                  <Table className="text-xs min-w-[900px]">
-                    <TableHeader className="bg-secondary">
-                      <TableRow>
-                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Booking ID</TableHead>
-                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Service / Event</TableHead>
-                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Customer</TableHead>
-                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Merchant</TableHead>
-                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Price</TableHead>
-                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Commission Rate</TableHead>
-                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Admin Earnings</TableHead>
-                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Merchant Payout</TableHead>
-                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Date</TableHead>
-                        <TableHead className="py-3 px-4 text-muted-foreground text-xs uppercase tracking-wide">Status</TableHead>
+          <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+            <div className="p-4 sm:p-6 border-b border-border/80">
+              <h2 className="font-display text-lg sm:text-xl font-bold">Commission Breakdown</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Detailed breakdown of platform commission and net merchant payout per booking.</p>
+            </div>
+            {loading ? (
+              <TableSkeleton columns={10} rows={5} minWidth="100%" />
+            ) : bookings.length === 0 ? (
+              <TableEmptyState title="No paid bookings found" description="There are no paid or completed bookings available for commission calculation." colSpan={10} />
+            ) : (
+              <DataTable minWidth="100%">
+                <TableHeader>
+                  <TableHeaderCell className="w-[8%]">Booking ID</TableHeaderCell>
+                  <TableHeaderCell className="w-[18%]">Service / Event</TableHeaderCell>
+                  <TableHeaderCell className="w-[14%]">Customer</TableHeaderCell>
+                  <TableHeaderCell className="w-[14%]">Merchant</TableHeaderCell>
+                  <TableHeaderCell className="w-[8%] whitespace-nowrap">Price</TableHeaderCell>
+                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Commission Rate</TableHeaderCell>
+                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Admin Earnings</TableHeaderCell>
+                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Merchant Payout</TableHeaderCell>
+                  <TableHeaderCell className="w-[8%] whitespace-nowrap">Date</TableHeaderCell>
+                  <TableHeaderCell className="w-[10%]">Status</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                  {commissionRows.map(({ booking, adminEarning, payout, rateLabel, isSaved, isAdminBooking }) => {
+                    return (
+                      <TableRow key={booking._id}>
+                        <TableCell className="font-mono text-xs text-muted-foreground">{booking._id.slice(-8)}</TableCell>
+                        <TableCell>
+                          <p className="font-semibold text-xs text-foreground truncate max-w-[170px]">
+                            {booking.service?.name || booking.serviceName || booking.event?.title || "—"}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-medium text-xs text-foreground">{booking.customer?.name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate max-w-[130px]">{booking.customer?.email}</p>
+                        </TableCell>
+                        <TableCell>
+                          {booking.assignedTo ? (
+                            <>
+                              <p className="font-medium text-xs text-foreground">{booking.assignedTo.name}</p>
+                              <p className="text-[10px] text-muted-foreground truncate max-w-[130px]">{booking.assignedTo.email}</p>
+                            </>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-bold text-xs text-foreground">{formatCurrency(booking.price)}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={isAdminBooking ? "admin" : isSaved ? "active" : "pending"} label={rateLabel} />
+                        </TableCell>
+                        <TableCell className="text-emerald-600 font-bold text-xs">
+                          {formatCurrency(adminEarning)}
+                        </TableCell>
+                        <TableCell className="text-purple-600 font-bold text-xs">
+                          {formatCurrency(payout)}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {new Date(booking.datetime).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={booking.status} />
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {commissionRows.map(({ booking, adminEarning, payout, rateLabel, isSaved, isAdminBooking }) => {
-                  return (<TableRow key={booking._id} className="hover:bg-secondary/50">
-                              <TableCell className="font-mono text-xs py-3 px-4">{booking._id.slice(-8)}</TableCell>
-                              <TableCell className="py-3 px-4">
-                                <p className="font-medium text-xs">
-                                  {booking.service?.name || booking.serviceName || booking.event?.title || "—"}
-                                </p>
-                              </TableCell>
-                              <TableCell className="py-3 px-4">
-                                <p className="font-medium text-xs">{booking.customer?.name}</p>
-                                <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{booking.customer?.email}</p>
-                              </TableCell>
-                              <TableCell className="py-3 px-4">
-                                {booking.assignedTo ? (<>
-                                    <p className="font-medium text-xs">{booking.assignedTo.name}</p>
-                                    <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{booking.assignedTo.email}</p>
-                                  </>) : <span className="text-[10px] text-muted-foreground">Unassigned</span>}
-                              </TableCell>
-                              <TableCell className="font-semibold text-xs py-3 px-4">{formatCurrency(booking.price)}</TableCell>
-                              <TableCell className="py-3 px-4">
-                                <Badge variant="outline" className={`px-1.5 py-0.5 text-[9px] border-0 ${isAdminBooking ? "bg-tint-blue text-tint-blue-fg" : isSaved ? "bg-tint-mint text-tint-mint-fg" : "bg-tint-orange text-tint-orange-fg"}`}>
-                                  {rateLabel}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-tint-mint-fg font-semibold text-xs py-3 px-4">
-                                {formatCurrency(adminEarning)}
-                              </TableCell>
-                              <TableCell className="text-tint-violet-fg font-semibold text-xs py-3 px-4">
-                                {formatCurrency(payout)}
-                              </TableCell>
-                              <TableCell className="text-muted-foreground text-[10px] py-3 px-4">
-                                {new Date(booking.datetime).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell className="py-3 px-4">
-                                <Badge variant="outline" className={`px-1.5 py-0.5 text-[9px] border-0 ${booking.status === "completed"
-                          ? "bg-tint-mint text-tint-mint-fg"
-                          : "bg-tint-blue text-tint-blue-fg"}`}>
-                                  {booking.status}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>);
-              })}
-                      </TableBody>
-                    </Table>
-                  </div>)}
-            </CardContent>
-          </Card>
+                    );
+                  })}
+                </TableBody>
+              </DataTable>
+            )}
+          </div>
         </motion.div>
       </section>
 

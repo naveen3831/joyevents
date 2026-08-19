@@ -17,11 +17,11 @@ const MerchantLayout = ({ children }) => {
     if (user && !isMerchantActive && !allowedPaths.includes(location.pathname)) {
         return <Navigate to="/merchant-dashboard" replace/>;
     }
-    return (<div className="min-h-screen w-full flex flex-col pb-16 md:pb-0">
+    return (<div className="h-screen w-full flex flex-col overflow-hidden pb-16 md:pb-0">
       <Navbar hideDashboardLinks={true} onSidebarToggle={() => setSidebarOpen(o => !o)} sidebarOpen={sidebarOpen}/>
-      <div className="flex flex-1 w-full pt-20">
+      <div className="flex flex-1 w-full pt-18 sm:pt-20 overflow-hidden">
         <MerchantSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onToggle={() => setSidebarOpen(o => !o)}/>
-        <main className="flex-1 w-full overflow-auto min-w-0 px-2 sm:px-8 lg:px-14 xl:px-20 pb-20 md:pb-8">{children}</main>
+        <main className="flex-1 w-full overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 pb-20 md:pb-8">{children}</main>
       </div>
       <MobileBottomNav />
     </div>);

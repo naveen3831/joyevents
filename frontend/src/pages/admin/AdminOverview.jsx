@@ -21,6 +21,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
 
 // Color-coded KPI tile accents — calibrated palette
 const TILE_ACCENTS = {
@@ -530,62 +532,51 @@ const AdminOverview = () => {
               </Link>
             </div>
 
-            <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-border bg-secondary/50">
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Service / Event</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Merchant</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Amount</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
-                      <th className="text-right px-4 py-3 font-medium text-muted-foreground">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allBookings.slice(0, 5).map((b) => (
-                      <tr key={b._id} className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
-                        <td className="px-4 py-3 font-medium">
-                          <div className="truncate max-w-[180px] text-foreground font-semibold">
-                            {b.service?.name || b.event?.title || b.serviceName || "Booking"}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          <div>{b.customer?.name || "—"}</div>
-                          <div className="text-[10px] opacity-75">{b.customer?.email}</div>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          <div>{b.assignedTo?.name || "Unassigned"}</div>
-                        </td>
-                        <td className="px-4 py-3 font-bold text-foreground">
-                          {formatCurrency(b.price || 0)}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {new Date(b.datetime || b.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold capitalize border ${
-                            b.status === "completed" || b.status === "confirmed" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
-                            b.status === "pending" ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
-                            b.status === "cancelled" ? "bg-red-500/10 text-red-600 border-red-500/20" :
-                            "bg-secondary text-muted-foreground border-border"
-                          }`}>
-                            {b.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {allBookings.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                          No recent bookings found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+            <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs w-full">
+              <DataTable minWidth="100%">
+                <TableHeader>
+                  <TableHeaderCell className="w-[28%]">Service / Event</TableHeaderCell>
+                  <TableHeaderCell className="w-[22%]">Customer</TableHeaderCell>
+                  <TableHeaderCell className="w-[20%]">Merchant</TableHeaderCell>
+                  <TableHeaderCell className="w-[12%] whitespace-nowrap">Amount</TableHeaderCell>
+                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Date</TableHeaderCell>
+                  <TableHeaderCell align="right" className="w-[8%]">Status</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                  {allBookings.slice(0, 5).map((b) => (
+                    <TableRow key={b._id}>
+                      <TableCell>
+                        <div className="truncate max-w-[200px] text-foreground font-semibold text-xs" title={b.service?.name || b.event?.title || b.serviceName || "Booking"}>
+                          {b.service?.name || b.event?.title || b.serviceName || "Booking"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <div className="font-medium text-foreground">{b.customer?.name || "—"}</div>
+                        <div className="text-[10px] text-muted-foreground truncate max-w-[140px]">{b.customer?.email}</div>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <div className="font-medium text-foreground">{b.assignedTo?.name || "Unassigned"}</div>
+                      </TableCell>
+                      <TableCell className="font-bold text-xs text-foreground whitespace-nowrap">
+                        {formatCurrency(b.price || 0)}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(b.datetime || b.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell align="right">
+                        <StatusBadge status={b.status} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {allBookings.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                        No recent bookings found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </DataTable>
             </div>
           </motion.div>
 

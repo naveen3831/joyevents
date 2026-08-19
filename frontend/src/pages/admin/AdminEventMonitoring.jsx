@@ -7,6 +7,8 @@ import { Loader2, AlertCircle, Calendar, PowerOff, Ban, Star, PlayCircle, CheckC
 import { motion } from "framer-motion";
 import StatCard from "@/components/StatCard";
 import { useGsapReveal } from "@/lib/gsapAnimations";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
 const AdminEventMonitoring = () => {
     const { token } = useAuth();
     const [events, setEvents] = useState([]);
@@ -100,68 +102,63 @@ const AdminEventMonitoring = () => {
                     </div>) : filteredEvents.length === 0 ? (<div className="rounded-xl border border-border bg-card p-10 text-center text-muted-foreground">
                         <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-40"/>
                         No events found for this filter.
-                    </div>) : (<div ref={tableRef} className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left min-w-[720px]">
-                                <thead className="bg-secondary text-muted-foreground text-xs uppercase tracking-wide">
-                                    <tr>
-                                        <th className="px-4 py-3 font-medium">Event</th>
-                                        <th className="px-4 py-3 font-medium">Date & Time</th>
-                                        <th className="px-4 py-3 font-medium">Status</th>
-                                        <th className="px-4 py-3 font-medium">Flags</th>
-                                        <th className="px-4 py-3 font-medium text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border">
-                                    {filteredEvents.map(ev => {
-                const isProcessing = processingId === ev._id;
-                return (<motion.tr initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} key={ev._id} className="hover:bg-secondary/50 transition-colors">
-                                                <td className="px-4 py-3">
-                                                    <div className="font-semibold text-foreground">{ev.title}</div>
-                                                    <div className="text-xs text-muted-foreground mt-0.5">{ev.category}</div>
-                                                </td>
-                                                <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                                                    {new Date(ev.datetime).toLocaleDateString()} at {new Date(ev.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${ev.status === "upcoming" ? "bg-tint-blue text-tint-blue-fg" :
-                        ev.status === "ongoing" ? "bg-tint-mint text-tint-mint-fg" :
-                            ev.status === "cancelled" ? "bg-destructive/15 text-destructive" :
-                                "bg-secondary text-muted-foreground"}`}>
-                                                        {ev.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {ev.isFeatured && <span className="flex items-center gap-1 text-xs text-tint-orange-fg bg-tint-orange px-2 py-1 rounded-full"><Star className="h-3 w-3"/> Featured</span>}
-                                                        {ev.isSuspended && <span className="flex items-center gap-1 text-xs text-tint-orange-fg bg-tint-orange px-2 py-1 rounded-full"><PowerOff className="h-3 w-3"/> Suspended</span>}
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <button disabled={isProcessing} onClick={() => handleAction(ev._id, ev.isFeatured ? "unfeature" : "feature")} className={`h-11 w-11 flex items-center justify-center rounded-md transition-colors ${ev.isFeatured ? "text-tint-orange-fg bg-tint-orange" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`} title={ev.isFeatured ? "Unfeature Event" : "Feature Event"}>
-                                                            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin"/> : <Star className="h-4 w-4"/>}
-                                                        </button>
-
-                                                        <button disabled={isProcessing} onClick={() => handleAction(ev._id, ev.isSuspended ? "unsuspend" : "suspend")} className={`h-11 w-11 flex items-center justify-center rounded-md transition-colors ${ev.isSuspended ? "text-tint-orange-fg bg-tint-orange" : "text-muted-foreground hover:bg-secondary hover:text-tint-orange-fg"}`} title={ev.isSuspended ? "Unsuspend Event" : "Suspend Event"}>
-                                                            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin"/> : <PowerOff className="h-4 w-4"/>}
-                                                        </button>
-
-                                                        <button disabled={isProcessing || ev.status === "cancelled"} onClick={() => {
-                        if (confirm("Are you sure you want to cancel this event? This action cannot be fully undone through the UI.")) {
-                            handleAction(ev._id, "cancel");
-                        }
-                    }} className={`h-11 w-11 flex items-center justify-center rounded-md transition-colors ${ev.status === "cancelled" ? "opacity-50 cursor-not-allowed" : "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"}`} title="Cancel Event">
-                                                            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin"/> : <Ban className="h-4 w-4"/>}
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </motion.tr>);
-            })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>)}
+                    </div>) : (
+                      <div ref={tableRef} className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs w-full">
+                        <DataTable minWidth="100%">
+                          <TableHeader>
+                            <TableHeaderCell className="w-[30%]">Event</TableHeaderCell>
+                            <TableHeaderCell className="w-[22%] whitespace-nowrap">Date & Time</TableHeaderCell>
+                            <TableHeaderCell className="w-[15%]">Status</TableHeaderCell>
+                            <TableHeaderCell className="w-[18%]">Flags</TableHeaderCell>
+                            <TableHeaderCell align="right" className="w-[15%]">Actions</TableHeaderCell>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredEvents.map(ev => {
+                              const isProcessing = processingId === ev._id;
+                              return (
+                                <TableRow key={ev._id}>
+                                  <TableCell>
+                                    <div className="font-semibold text-xs text-foreground truncate max-w-[220px]" title={ev.title}>{ev.title}</div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5">{ev.category}</div>
+                                  </TableCell>
+                                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                                    {new Date(ev.datetime).toLocaleDateString()} at {new Date(ev.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </TableCell>
+                                  <TableCell>
+                                    <StatusBadge status={ev.status} />
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex flex-wrap gap-1">
+                                      {ev.isFeatured && <span className="flex items-center gap-1 text-[10px] text-amber-500 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20"><Star className="h-3 w-3"/> Featured</span>}
+                                      {ev.isSuspended && <span className="flex items-center gap-1 text-[10px] text-rose-500 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20"><PowerOff className="h-3 w-3"/> Suspended</span>}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      <button disabled={isProcessing} onClick={() => handleAction(ev._id, ev.isFeatured ? "unfeature" : "feature")} className={`p-1.5 rounded-lg border text-xs transition-colors ${ev.isFeatured ? "bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500/20" : "hover:bg-secondary text-muted-foreground"}`} title={ev.isFeatured ? "Unfeature Event" : "Feature Event"}>
+                                        {isProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin"/> : <Star className="h-3.5 w-3.5"/>}
+                                      </button>
+                                      <button disabled={isProcessing} onClick={() => handleAction(ev._id, ev.isSuspended ? "unsuspend" : "suspend")} className={`p-1.5 rounded-lg border text-xs transition-colors ${ev.isSuspended ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20" : "bg-rose-500/10 text-rose-500 border-rose-500/30 hover:bg-rose-500/20"}`} title={ev.isSuspended ? "Unsuspend Event" : "Suspend Event"}>
+                                        {isProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin"/> : <PowerOff className="h-3.5 w-3.5"/>}
+                                      </button>
+                                      {ev.status !== "cancelled" && (
+                                        <button disabled={isProcessing} onClick={() => {
+                                          if (confirm("Are you sure you want to cancel this event?")) {
+                                            handleAction(ev._id, "cancel");
+                                          }
+                                        }} className="p-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 text-xs transition-colors" title="Cancel Event">
+                                          {isProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin"/> : <Ban className="h-3.5 w-3.5"/>}
+                                        </button>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </DataTable>
+                      </div>
+                    )}
             </section>
         </AdminLayout>);
 };

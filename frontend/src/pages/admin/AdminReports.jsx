@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiListBookings, apiListEvents, apiListUsers } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
 const AdminReports = () => {
     const { token } = useAuth();
     const [loading, setLoading] = useState(true);
@@ -366,41 +367,41 @@ const AdminReports = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!Array.isArray(analyticsData.locationStats) || analyticsData.locationStats.length === 0 ? (<p className="text-muted-foreground text-sm">No location data yet</p>) : (<div className="overflow-x-auto w-full">
-                  <table className="w-full text-xs min-w-[500px]">
-                    <thead>
-                      <tr className="border-b border-border bg-secondary/50">
-                        <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Location</th>
-                        <th className="text-center px-2 py-2.5 font-medium text-muted-foreground">Total Bookings</th>
-                        <th className="text-right px-2 py-2.5 font-medium text-muted-foreground">Revenue</th>
-                        <th className="text-right px-2 py-2.5 font-medium text-muted-foreground">Performance</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {analyticsData.locationStats.map((loc, idx) => {
-                const maxRevenue = analyticsData.locationStats[0]?.revenue || 1;
-                const percentage = Math.round((loc.revenue / maxRevenue) * 100);
-                return (<tr key={idx} className="border-b border-border last:border-0 hover:bg-secondary/20">
-                            <td className="px-2 py-2.5 font-medium text-xs">{loc.location}</td>
-                            <td className="text-center px-2 py-2.5">
-                              <Badge variant="outline" className="px-1 py-0 text-[10px]">{loc.count}</Badge>
-                            </td>
-                            <td className="text-right px-2 py-2.5 font-semibold text-xs">
-                              {formatCurrency(loc.revenue)}
-                            </td>
-                            <td className="text-right px-2 py-2.5">
-                              <div className="flex items-center justify-end gap-2">
-                                <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
-                                  <div className="h-full bg-gradient-primary rounded-full" style={{ width: `${percentage}%` }}/>
-                                </div>
-                                <span className="text-[10px] font-medium text-muted-foreground">{percentage}%</span>
+              {!Array.isArray(analyticsData.locationStats) || analyticsData.locationStats.length === 0 ? (<p className="text-muted-foreground text-sm">No location data yet</p>) : (
+                <DataTable minWidth="100%">
+                  <TableHeader>
+                    <TableHeaderCell className="w-[40%]">Location</TableHeaderCell>
+                    <TableHeaderCell align="center" className="w-[20%]">Total Bookings</TableHeaderCell>
+                    <TableHeaderCell align="right" className="w-[20%]">Revenue</TableHeaderCell>
+                    <TableHeaderCell align="right" className="w-[20%]">Performance</TableHeaderCell>
+                  </TableHeader>
+                  <TableBody>
+                    {analyticsData.locationStats.map((loc, idx) => {
+                      const maxRevenue = analyticsData.locationStats[0]?.revenue || 1;
+                      const percentage = Math.round((loc.revenue / maxRevenue) * 100);
+                      return (
+                        <TableRow key={idx}>
+                          <TableCell className="font-medium text-xs truncate max-w-[200px]">{loc.location}</TableCell>
+                          <TableCell align="center">
+                            <Badge variant="outline" className="px-1.5 py-0.5 text-[10px]">{loc.count}</Badge>
+                          </TableCell>
+                          <TableCell align="right" className="font-semibold text-xs whitespace-nowrap">
+                            {formatCurrency(loc.revenue)}
+                          </TableCell>
+                          <TableCell align="right">
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-primary rounded-full" style={{ width: `${percentage}%` }}/>
                               </div>
-                            </td>
-                          </tr>);
-            })}
-                    </tbody>
-                  </table>
-                </div>)}
+                              <span className="text-[10px] text-muted-foreground font-mono w-8">{percentage}%</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </DataTable>
+              )}
             </CardContent>
           </Card>
         </motion.div>

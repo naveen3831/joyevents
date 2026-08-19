@@ -13,6 +13,10 @@ import { toast } from "sonner";
 import { apiGetEarningsDashboard, apiRequestWithdrawal, apiGetWithdrawals, apiGetTransactions } from "@/lib/api";
 import StatCard from "@/components/StatCard";
 import { useGsapStagger } from "@/lib/gsapAnimations";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import { TableSkeleton } from "@/components/common/table/TableSkeleton";
+import { TableEmptyState } from "@/components/common/table/TableEmptyState";
 const EarningsDashboard = () => {
     const { token } = useAuth();
     const [loading, setLoading] = useState(true);
@@ -257,111 +261,98 @@ const EarningsDashboard = () => {
 
         {/* Withdrawal History */}
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.4 }} className="mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Withdrawal Requests</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {withdrawals.length === 0 ? (<div className="text-center py-8 text-muted-foreground">
-                  <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-40"/>
-                  <p>No withdrawal requests yet</p>
-                </div>) : (<div className="space-y-3">
-                  {(showAllWithdrawals ? withdrawals : withdrawals.slice(0, 10)).map((withdrawal) => (<div key={withdrawal._id} className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
-                      <div className="flex-1">
-                        <p className="font-medium">{formatCurrency(withdrawal.amount)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {withdrawal.bankDetails?.bankName} - {withdrawal.bankDetails?.accountNumber?.slice(-4)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(withdrawal.requestedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {withdrawal.status === "pending" && (<div className="flex items-center gap-1 text-orange-600 font-semibold text-sm">
-                              <Clock className="h-4 w-4"/>
-                              Pending
-                            </div>)}
-                          {withdrawal.status === "approved" && (<div className="flex items-center gap-1 text-blue-600 font-semibold text-sm">
-                              <CheckCircle2 className="h-4 w-4"/>
-                              Approved
-                            </div>)}
-                          {withdrawal.status === "completed" && (<div className="flex items-center gap-1 text-green-600 font-semibold text-sm">
-                              <CheckCircle2 className="h-4 w-4"/>
-                              Completed
-                            </div>)}
-                          {withdrawal.status === "rejected" && (<div className="flex items-center gap-1 text-red-600 font-semibold text-sm">
-                              <XCircle className="h-4 w-4"/>
-                              Rejected
-                            </div>)}
-                        </div>
-                      </div>
-                    </div>))}
-                  {withdrawals.length > 10 && (<div className="text-center pt-2">
-                      <Button variant="ghost" size="sm" onClick={() => setShowAllWithdrawals(!showAllWithdrawals)} className="text-primary hover:text-primary/80 font-semibold">
-                        {showAllWithdrawals ? "Show Less" : `View All (${withdrawals.length})`}
-                      </Button>
-                    </div>)}
-                </div>)}
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+            <div className="p-4 sm:p-6 border-b border-border/80">
+              <h2 className="font-display text-lg sm:text-xl font-bold">Withdrawal Requests</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Track your submitted withdrawal requests and payout progress.</p>
+            </div>
+            {withdrawals.length === 0 ? (
+              <TableEmptyState title="No withdrawal requests yet" description="Your requested withdrawals will appear here." colSpan={4} />
+            ) : (
+              <DataTable minWidth="600px">
+                <TableHeader>
+                  <TableHeaderCell width="140px">Amount</TableHeaderCell>
+                  <TableHeaderCell width="200px">Bank Details</TableHeaderCell>
+                  <TableHeaderCell width="140px">Requested Date</TableHeaderCell>
+                  <TableHeaderCell align="right" width="120px">Status</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                  {(showAllWithdrawals ? withdrawals : withdrawals.slice(0, 10)).map((w) => (
+                    <TableRow key={w._id}>
+                      <TableCell className="font-bold text-xs text-foreground">{formatCurrency(w.amount)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {w.bankDetails?.bankName} — •••• {w.bankDetails?.accountNumber?.slice(-4)}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(w.requestedAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell align="right">
+                        <StatusBadge status={w.status} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </DataTable>
+            )}
+            {withdrawals.length > 10 && (
+              <div className="p-3 text-center border-t border-border/80">
+                <Button variant="ghost" size="sm" onClick={() => setShowAllWithdrawals(!showAllWithdrawals)} className="text-primary hover:text-primary/80 font-semibold text-xs">
+                  {showAllWithdrawals ? "Show Less" : `View All (${withdrawals.length})`}
+                </Button>
+              </div>
+            )}
+          </div>
         </motion.div>
 
         {/* Transaction History */}
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.5 }}>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-5 w-5"/>
-                Transaction History
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {transactions.length === 0 ? (<div className="text-center py-8 text-muted-foreground">
-                  <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-40"/>
-                  <p>No transactions yet</p>
-                </div>) : (<div className="space-y-3">
-                  {(showAllTransactions ? transactions : transactions.slice(0, 10)).map((transaction) => (<div key={transaction._id} className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
-                      <div className="flex-1">
-                        <p className="font-medium capitalize">{transaction.type.replace("_", " ")}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{transaction.description}</p>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          {(() => {
-                    const isPositive = Number(transaction.amount) >= 0 && transaction.type !== "commission_deduction";
-                    const displayAmount = Math.abs(transaction.amount);
-                    return (<p className={`font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}>
-                                {isPositive ? "+" : "-"}{formatCurrency(displayAmount)}
-                              </p>);
-                })()}
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(transaction.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div>
-                          {transaction.status === "completed" && (<div className="flex items-center gap-1 text-green-600 font-semibold text-sm">
-                              <CheckCircle2 className="h-4 w-4"/>
-                            </div>)}
-                          {transaction.status === "pending" && (<div className="flex items-center gap-1 text-orange-600 font-semibold text-sm">
-                              <Clock className="h-4 w-4"/>
-                            </div>)}
-                          {transaction.status === "failed" && (<div className="flex items-center gap-1 text-red-600 font-semibold text-sm">
-                              <XCircle className="h-4 w-4"/>
-                            </div>)}
-                        </div>
-                      </div>
-                    </div>))}
-                  {transactions.length > 10 && (<div className="text-center pt-2">
-                      <Button variant="ghost" size="sm" onClick={() => setShowAllTransactions(!showAllTransactions)} className="text-primary hover:text-primary/80 font-semibold">
-                        {showAllTransactions ? "Show Less" : `View All (${transactions.length})`}
-                      </Button>
-                    </div>)}
-                </div>)}
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+            <div className="p-4 sm:p-6 border-b border-border/80">
+              <h2 className="font-display text-lg sm:text-xl font-bold flex items-center gap-2">
+                <History className="h-5 w-5 text-primary"/> Transaction History
+              </h2>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Full audit trail of earnings, deductions, and payouts.</p>
+            </div>
+            {transactions.length === 0 ? (
+              <TableEmptyState title="No transactions yet" description="Recent financial transactions will be recorded here." colSpan={4} />
+            ) : (
+              <DataTable minWidth="600px">
+                <TableHeader>
+                  <TableHeaderCell width="150px">Type</TableHeaderCell>
+                  <TableHeaderCell width="250px">Description</TableHeaderCell>
+                  <TableHeaderCell width="130px">Date</TableHeaderCell>
+                  <TableHeaderCell align="right" width="130px">Amount</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                  {(showAllTransactions ? transactions : transactions.slice(0, 10)).map((t) => {
+                    const isPositive = Number(t.amount) >= 0 && t.type !== "commission_deduction";
+                    const displayAmount = Math.abs(t.amount);
+                    return (
+                      <TableRow key={t._id}>
+                        <TableCell className="font-semibold text-xs text-foreground capitalize">
+                          {t.type.replace("_", " ")}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{t.description}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(t.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell align="right" className={`font-bold text-xs ${isPositive ? "text-emerald-600" : "text-rose-600"}`}>
+                          {isPositive ? "+" : "-"}{formatCurrency(displayAmount)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </DataTable>
+            )}
+            {transactions.length > 10 && (
+              <div className="p-3 text-center border-t border-border/80">
+                <Button variant="ghost" size="sm" onClick={() => setShowAllTransactions(!showAllTransactions)} className="text-primary hover:text-primary/80 font-semibold text-xs">
+                  {showAllTransactions ? "Show Less" : `View All (${transactions.length})`}
+                </Button>
+              </div>
+            )}
+          </div>
         </motion.div>
 
         <Dialog open={withdrawalDialogOpen} onOpenChange={setWithdrawalDialogOpen}>

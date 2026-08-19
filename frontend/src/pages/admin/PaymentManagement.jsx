@@ -16,6 +16,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { apiListBookings, apiUpdateBookingStatus, apiProcessMerchantPayout, apiGetAllWithdrawals, apiApproveWithdrawal, apiCompleteWithdrawal, apiRejectWithdrawal } from "@/lib/api";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import { TableSkeleton } from "@/components/common/table/TableSkeleton";
+import { TableEmptyState } from "@/components/common/table/TableEmptyState";
 const COMMISSION_RATE = 0.05; // 5% commission
 // Force rebuild - Admin Manages section added
 const PaymentManagement = () => {
@@ -446,186 +450,173 @@ const PaymentManagement = () => {
                   </Select>
                 </div>
 
-                {loading ? (<div className="text-center py-8 text-muted-foreground">Loading transactions...</div>) : filteredBookings.length === 0 ? (<div className="text-center py-8 text-muted-foreground">No transactions found</div>) : (<div className="overflow-x-auto">
-                  <Table className="min-w-[800px]">
+                {loading ? (
+                  <TableSkeleton columns={8} rows={5} minWidth="100%" />
+                ) : filteredBookings.length === 0 ? (
+                  <TableEmptyState title="No transactions found" description="No transactions match your current filters." colSpan={8} />
+                ) : (
+                  <DataTable minWidth="100%">
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Transaction ID</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Event/Service</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Payment Status</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
+                      <TableHeaderCell className="w-[10%] font-mono">Transaction ID</TableHeaderCell>
+                      <TableHeaderCell className="w-[18%]">Customer</TableHeaderCell>
+                      <TableHeaderCell className="w-[20%]">Event/Service</TableHeaderCell>
+                      <TableHeaderCell className="w-[10%] whitespace-nowrap">Amount</TableHeaderCell>
+                      <TableHeaderCell className="w-[12%]">Payment Status</TableHeaderCell>
+                      <TableHeaderCell className="w-[10%]">Status</TableHeaderCell>
+                      <TableHeaderCell className="w-[10%] whitespace-nowrap">Date</TableHeaderCell>
+                      <TableHeaderCell align="right" className="w-[10%]">Actions</TableHeaderCell>
                     </TableHeader>
                     <TableBody>
-                      {filteredBookings.map((booking) => (<TableRow key={booking._id}>
-                          <TableCell className="font-mono text-xs">
+                      {filteredBookings.map((booking) => (
+                        <TableRow key={booking._id}>
+                          <TableCell className="font-mono text-xs text-muted-foreground">
                             {booking._id.slice(-8)}
                           </TableCell>
                           <TableCell>
                             <div>
-                              <div className="font-medium">
+                              <div className="font-semibold text-xs text-foreground">
                                 {booking.customer?.name || "Unknown"}
                               </div>
-                              <div className="text-xs text-muted-foreground">
+                              <div className="text-[10px] text-muted-foreground truncate max-w-[140px]">
                                 {booking.customer?.email || ""}
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div>
-                              <div>{booking.service?.name || booking.event?.title || booking.serviceName || "-"}</div>
-                              {booking.service && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400">Service</span>}
-                              {booking.event && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400">Event</span>}
+                              <div className="font-semibold text-xs text-foreground truncate max-w-[180px]">{booking.service?.name || booking.event?.title || booking.serviceName || "-"}</div>
+                              <div className="mt-1">
+                                {booking.service && <StatusBadge status="service" label="Service" />}
+                                {booking.event && <StatusBadge status="event" label="Event" className="bg-purple-500/15 text-purple-600 border-purple-500/30" />}
+                              </div>
                             </div>
                           </TableCell>
-                          <TableCell className="font-semibold">
+                          <TableCell className="font-bold text-xs text-foreground">
                             {formatCurrency(booking.price)}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={booking.paymentStatus === "paid"
-                    ? "default"
-                    : booking.paymentStatus === "refunded"
-                        ? "secondary"
-                        : "outline"}>
-                              {booking.paymentStatus}
-                            </Badge>
+                            <StatusBadge status={booking.paymentStatus} />
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{booking.status}</Badge>
+                            <StatusBadge status={booking.status} />
                           </TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                             {new Date(booking.datetime).toLocaleDateString()}
                           </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              {booking.paymentStatus === "paid" && (<Button variant="outline" size="sm" onClick={() => openRefundDialog(booking)} className="text-red-600 hover:text-red-700">
-                                  Refund
-                                </Button>)}
-                            </div>
+                          <TableCell align="right">
+                            {booking.paymentStatus === "paid" && (
+                              <Button variant="outline" size="sm" onClick={() => openRefundDialog(booking)} className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs h-8 px-2.5 rounded-lg border-red-500/30">
+                                Refund
+                              </Button>
+                            )}
                           </TableCell>
-                        </TableRow>))}
+                        </TableRow>
+                      ))}
                     </TableBody>
-                  </Table>
-                  </div>)}
+                  </DataTable>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Commissions Tab */}
           <TabsContent value="commissions" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Commission Breakdown (5% per transaction)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                <Table className="min-w-[700px]">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Transaction ID</TableHead>
-                      <TableHead>Event/Service</TableHead>
-                      <TableHead>Total Amount</TableHead>
-                      <TableHead>Admin Commission (5%)</TableHead>
-                      <TableHead>Merchant Share (95%)</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {bookings
-            .filter((b) => b.paymentStatus === "paid")
-            .map((booking) => (<TableRow key={booking._id}>
-                          <TableCell className="font-mono text-xs">
-                            {booking._id.slice(-8)}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div>{booking.service?.name || booking.event?.title || booking.serviceName || "-"}</div>
-                              {booking.service && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400">Service</span>}
-                              {booking.event && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400">Event</span>}
+            <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+              <div className="p-4 sm:p-6 border-b border-border/80">
+                <h2 className="font-display text-lg sm:text-xl font-bold">Commission Breakdown (5% per transaction)</h2>
+              </div>
+              <DataTable minWidth="100%">
+                <TableHeader>
+                  <TableHeaderCell className="w-[12%] font-mono">Transaction ID</TableHeaderCell>
+                  <TableHeaderCell className="w-[28%]">Event/Service</TableHeaderCell>
+                  <TableHeaderCell className="w-[15%] whitespace-nowrap">Total Amount</TableHeaderCell>
+                  <TableHeaderCell className="w-[18%] whitespace-nowrap">Admin Commission (5%)</TableHeaderCell>
+                  <TableHeaderCell className="w-[18%] whitespace-nowrap">Merchant Share (95%)</TableHeaderCell>
+                  <TableHeaderCell className="w-[9%] whitespace-nowrap">Date</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                  {bookings
+                    .filter((b) => b.paymentStatus === "paid")
+                    .map((booking) => (
+                      <TableRow key={booking._id}>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {booking._id.slice(-8)}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-semibold text-xs text-foreground truncate max-w-[220px]">{booking.service?.name || booking.event?.title || booking.serviceName || "-"}</div>
+                            <div className="mt-1">
+                              {booking.service && <StatusBadge status="service" label="Service" />}
+                              {booking.event && <StatusBadge status="event" label="Event" className="bg-purple-500/15 text-purple-600 border-purple-500/30" />}
                             </div>
-                          </TableCell>
-                          <TableCell>{formatCurrency(booking.price)}</TableCell>
-                          <TableCell className="text-green-600 font-semibold">
-                            {formatCurrency((booking.price * COMMISSION_RATE))}
-                          </TableCell>
-                          <TableCell className="text-blue-600 font-semibold">
-                            {formatCurrency((booking.price * (1 - COMMISSION_RATE)))}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {new Date(booking.datetime).toLocaleDateString()}
-                          </TableCell>
-                        </TableRow>))}
-                  </TableBody>
-                </Table>
-                </div>
-              </CardContent>
-            </Card>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-bold text-xs text-foreground">{formatCurrency(booking.price)}</TableCell>
+                        <TableCell className="text-emerald-600 font-bold text-xs">
+                          {formatCurrency((booking.price * COMMISSION_RATE))}
+                        </TableCell>
+                        <TableCell className="text-blue-600 font-bold text-xs">
+                          {formatCurrency((booking.price * (1 - COMMISSION_RATE)))}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {new Date(booking.datetime).toLocaleDateString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </DataTable>
+            </div>
           </TabsContent>
 
           {/* Refunds Tab */}
           <TabsContent value="refunds" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Refunded Transactions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {refundedTransactions === 0 ? (<div className="text-center py-8 text-muted-foreground">
-                    No refunds processed yet
-                  </div>) : (<div className="overflow-x-auto">
-                  <Table className="min-w-[700px]">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Transaction ID</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Event/Service</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {bookings
-                .filter((b) => b.paymentStatus === "refunded")
-                .map((booking) => (<TableRow key={booking._id}>
-                            <TableCell className="font-mono text-xs">
-                              {booking._id.slice(-8)}
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">
-                                  {booking.customer?.name || "Unknown"}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {booking.customer?.email || ""}
-                                </div>
+            <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+              <div className="p-4 sm:p-6 border-b border-border/80">
+                <h2 className="font-display text-lg sm:text-xl font-bold">Refunded Transactions</h2>
+              </div>
+              {refundedTransactions === 0 ? (
+                <TableEmptyState title="No refunds processed yet" description="All completed customer transactions remain in active state." colSpan={6} />
+              ) : (
+                <DataTable minWidth="100%">
+                  <TableHeader>
+                    <TableHeaderCell className="w-[12%] font-mono">Transaction ID</TableHeaderCell>
+                    <TableHeaderCell className="w-[22%]">Customer</TableHeaderCell>
+                    <TableHeaderCell className="w-[24%]">Event/Service</TableHeaderCell>
+                    <TableHeaderCell className="w-[14%] whitespace-nowrap">Amount</TableHeaderCell>
+                    <TableHeaderCell width="120px">Status</TableHeaderCell>
+                    <TableHeaderCell width="120px">Date</TableHeaderCell>
+                  </TableHeader>
+                  <TableBody>
+                    {bookings
+                      .filter((b) => b.paymentStatus === "refunded")
+                      .map((booking) => (
+                        <TableRow key={booking._id}>
+                          <TableCell className="font-mono text-xs text-muted-foreground">
+                            {booking._id.slice(-8)}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-semibold text-xs text-foreground">
+                                {booking.customer?.name || "Unknown"}
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <div>{booking.service?.name || booking.event?.title || booking.serviceName || "-"}</div>
-                                {booking.service && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400">Service</span>}
-                                {booking.event && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400">Event</span>}
-                              </div>
-                            </TableCell>
-                            <TableCell className="font-semibold text-red-600">
-                              -{formatCurrency(booking.price)}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary">Refunded</Badge>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {new Date(booking.datetime).toLocaleDateString()}
-                            </TableCell>
-                          </TableRow>))}
-                    </TableBody>
-                  </Table>
-                  </div>)}
-              </CardContent>
-            </Card>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-semibold text-xs text-foreground">{booking.service?.name || booking.event?.title || booking.serviceName || "-"}</div>
+                          </TableCell>
+                          <TableCell className="font-bold text-xs text-foreground">{formatCurrency(booking.price)}</TableCell>
+                          <TableCell>
+                            <StatusBadge status="refunded" />
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs">
+                            {new Date(booking.datetime).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </DataTable>
+              )}
+            </div>
           </TabsContent>
 
           {/* Merchant Payouts Tab */}

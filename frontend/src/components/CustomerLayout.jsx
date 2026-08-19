@@ -7,11 +7,11 @@ import { Link } from "react-router-dom";
 
 const CustomerLayout = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    return (<div className="min-h-screen w-full flex flex-col pb-20 md:pb-0 relative">
+    return (<div className="h-screen w-full flex flex-col overflow-hidden pb-20 md:pb-0 relative">
       <Navbar hideDashboardLinks={true} onSidebarToggle={() => setSidebarOpen(o => !o)} sidebarOpen={sidebarOpen}/>
-      <div className="flex flex-1 w-full pt-20">
+      <div className="flex flex-1 w-full pt-18 sm:pt-20 overflow-hidden">
         <CustomerSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onToggle={() => setSidebarOpen(o => !o)}/>
-        <main className="flex-1 w-full overflow-auto min-w-0 px-2 sm:px-8 lg:px-14 xl:px-20 pb-24 md:pb-8">{children}</main>
+        <main className="flex-1 w-full overflow-y-auto min-w-0 px-4 sm:px-8 lg:px-12 xl:px-16 pb-24 md:pb-8">{children}</main>
       </div>
 
       {/* Floating AI Picks Button — Bottom Right on Mobile */}

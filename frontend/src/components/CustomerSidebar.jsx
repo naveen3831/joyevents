@@ -135,12 +135,12 @@ const CustomerSidebar = ({ open, onClose, onToggle }) => {
 
     return (<>
       {/* Permanent Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card/95 backdrop-blur-xl shrink-0 sticky top-24 h-[calc(100vh-6rem)] shadow-sm font-sans rounded-2xl my-2 ml-4">
+      <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card/95 backdrop-blur-xl shrink-0 sticky top-16 h-[calc(100vh-4.5rem)] shadow-sm font-sans rounded-2xl my-2 ml-4">
         <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border/80">
           <User className="h-5 w-5 text-primary"/>
           <span className="font-display text-base font-bold tracking-tight text-foreground">{t("dashboard")}</span>
         </div>
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <NavLinks onClose={() => {}} />
         </div>
         <div className="border-t border-border/80 p-3.5">
@@ -157,13 +157,13 @@ const CustomerSidebar = ({ open, onClose, onToggle }) => {
 
       {/* Mobile Drawer */}
       <AnimatePresence>
-        {open && (<motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 28, stiffness: 220 }} className="fixed top-20 left-0 bottom-0 w-64 bg-card border-r border-border z-50 flex flex-col shadow-2xl lg:hidden">
+        {open && (<motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 28, stiffness: 220 }} className="fixed top-14 left-0 bottom-0 w-64 bg-card border-r border-border z-50 flex flex-col shadow-2xl lg:hidden">
             <div className="flex items-center justify-between px-4 py-4 border-b border-border">
               <span className="font-display text-base font-bold text-primary flex items-center gap-2">
                 <User className="h-4 w-4"/> {t("dashboard")}
               </span>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <NavLinks onClose={onClose}/>
             </div>
             <div className="border-t border-border p-3.5">

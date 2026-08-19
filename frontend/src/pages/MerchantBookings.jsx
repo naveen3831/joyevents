@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
-import { ArrowLeft, Calendar, AlertCircle, MapPin, ExternalLink, Check, X, Loader2, CreditCard, Star } from "lucide-react";
+import { ArrowLeft, Calendar, AlertCircle, MapPin, ExternalLink, Check, X, Loader2, CreditCard, Star, Search } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +14,10 @@ import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from "@/components/ui/dropdown-menu";
 import { useGsapStagger } from "@/lib/gsapAnimations";
 import { useRealtimeEvent } from "@/hooks/useRealtimeEvent";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import { TableSkeleton } from "@/components/common/table/TableSkeleton";
+import { TableEmptyState } from "@/components/common/table/TableEmptyState";
 const STATUS_BADGE = {
     assigned: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
     pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
@@ -41,13 +46,14 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
     const [approvalOptions, setApprovalOptions] = useState({ id: "", show: false });
     const [customAdvance, setCustomAdvance] = useState("");
     const [showCustomInput, setShowCustomInput] = useState(false);
-    // Cancellation and Refund handling states
     const [cancellationModal, setCancellationModal] = useState(false);
     const [selectedCancelBooking, setSelectedCancelBooking] = useState(null);
     const [cancelFeeOption, setCancelFeeOption] = useState("preset");
     const [customCancelFee, setCustomCancelFee] = useState("");
     const [submittingCancelAction, setSubmittingCancelAction] = useState(false);
-    const rowsRef = useGsapStagger([items, tab], { y: 12, stagger: 0.03 });
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const rowsRef = useGsapStagger([items, tab, searchTerm, statusFilter], { y: 12, stagger: 0.03 });
     const load = async () => {
         if (!token)
             return;
@@ -76,6 +82,18 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
     const activeItems = sortLatestBookingsFirst(items.filter(b => !["completed", "cancelled", "rejected"].includes(b.status)));
     const historyItems = sortLatestBookingsFirst(items.filter(b => ["completed", "cancelled"].includes(b.status)));
     const displayItems = tab === "active" ? activeItems : historyItems;
+
+    const filteredDisplayItems = displayItems.filter(b => {
+        const matchesSearch = !searchTerm ||
+            (b.service?.name || b.event?.title || b.serviceName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (b.customer?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (b.customer?.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (b.customerLocation?.address || b.event?.location || "").toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesStatus = statusFilter === "all" || b.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
+
     const handleUpdateStatus = async (id, status) => {
         try {
             await apiUpdateBookingStatus(id, status, token);
@@ -117,7 +135,7 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
     };
     const handleReject = async (id) => {
         try {
-            await apiRejectBooking(id, "Rejected by merchant", token);
+            await apiRejectBooking(id, token);
             toast.success("Booking rejected");
             load();
         }
@@ -125,21 +143,23 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
             toast.error(e.message || "Failed to reject booking");
         }
     };
-    const handleApproveCancelSubmit = async (e) => {
-        e.preventDefault();
+    const handleApproveCancel = async (feeOption) => {
         if (!selectedCancelBooking)
             return;
         let fee = 0;
-        if (cancelFeeOption === "preset") {
-            fee = Math.round((selectedCancelBooking.price || 0) * 0.3);
-        }
-        else {
-            const parsed = Number(customCancelFee);
-            if (isNaN(parsed) || parsed < 0 || parsed > (selectedCancelBooking.price || 0)) {
-                toast.error("Please enter a valid cancellation fee (cannot exceed booking price)");
+        if (feeOption === "custom") {
+            fee = parseFloat(customCancelFee);
+            if (isNaN(fee) || fee < 0) {
+                toast.error("Please enter a valid cancellation fee amount");
                 return;
             }
-            fee = parsed;
+            if (fee > selectedCancelBooking.price) {
+                toast.error("Cancellation fee cannot exceed total booking price");
+                return;
+            }
+        }
+        else if (feeOption === "preset") {
+            fee = selectedCancelBooking.price * 0.2;
         }
         setSubmittingCancelAction(true);
         try {
@@ -191,171 +211,223 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
         }
     };
     return (<PageLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <div className="container mx-auto">
-          {/* Header with Back Button */}
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
-            <div className="flex items-center gap-3 mb-6">
+      <section className="py-2 sm:py-6 lg:py-8 w-full">
+        <div className="w-full space-y-6">
+          <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
+            <div className="flex items-center gap-3 mb-4">
               <Link to="/merchant-dashboard">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2"/> Back
+                <Button variant="ghost" size="sm" className="h-8 text-xs">
+                  <ArrowLeft className="h-3.5 w-3.5 mr-1.5"/> Back to Dashboard
                 </Button>
               </Link>
             </div>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shrink-0 shadow-xs">
                   <Calendar className="h-5 w-5"/>
                 </div>
                 <div>
                   <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
                     Assigned <span className="text-gradient">Bookings</span>
                   </h1>
-                  <p className="text-sm text-muted-foreground">Manage your assigned bookings and track performance history</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Manage your assigned bookings and track performance history</p>
                 </div>
               </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex items-center gap-3">
-              <button onClick={() => setTab("active")} className={`min-h-[44px] px-6 py-2 rounded-full text-sm font-medium transition-all ${tab === "active" ? "bg-gradient-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
-                Active ({activeItems.length})
-              </button>
-              <button onClick={() => setTab("history")} className={`min-h-[44px] px-6 py-2 rounded-full text-sm font-medium transition-all ${tab === "history" ? "bg-gradient-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
-                History ({historyItems.length})
-              </button>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full border-b border-border/80 pb-5">
+              <div className="flex items-center gap-1.5 p-1 bg-secondary/60 rounded-xl border border-border/80 w-fit">
+                <button onClick={() => setTab("active")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${tab === "active" ? "bg-card text-foreground shadow-xs border border-border/60" : "text-muted-foreground hover:text-foreground"}`}>
+                  Active ({activeItems.length})
+                </button>
+                <button onClick={() => setTab("history")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${tab === "history" ? "bg-card text-foreground shadow-xs border border-border/60" : "text-muted-foreground hover:text-foreground"}`}>
+                  History ({historyItems.length})
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"/>
+                  <Input
+                    placeholder="Search booking or customer..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8 h-9 text-xs bg-card border-border/80 rounded-xl focus-visible:ring-1"
+                  />
+                  {searchTerm && (
+                    <button onClick={() => setSearchTerm("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="h-9 px-3 text-xs bg-card border border-border/80 rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 shrink-0 font-medium"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="pending_approval">Pending Approval</option>
+                  <option value="approved">Approved</option>
+                  <option value="awaiting_payment">Awaiting Payment</option>
+                  <option value="paid">Paid</option>
+                  <option value="processing">Processing</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
             </div>
           </motion.div>
 
-          {/* Content */}
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }} className="mt-4">
-            {loading ? (<div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-primary"/>
-              </div>) : displayItems.length === 0 ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
-                <AlertCircle className="mx-auto mb-4 h-12 w-12 opacity-30 text-muted-foreground"/>
-                <p className="font-medium text-lg text-foreground">No {tab} bookings</p>
-                <p className="text-sm mt-2 text-muted-foreground">Your {tab} bookings will appear here</p>
-              </div>) : (<div className="rounded-xl border border-border bg-card overflow-x-auto w-full">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-border bg-secondary/50">
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Service / Event</th>
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Customer</th>
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Location</th>
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Date/Time</th>
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Status</th>
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Rating</th>
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody ref={rowsRef}>
-                    {displayItems.map((b) => (<tr key={b._id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
-                        <td className="px-2 py-2.5 font-medium">
-                          <div>
-                            <div className="text-xs font-medium">{b.service?.name || b.event?.title || b.serviceName}</div>
-                            <div className="mt-0.5">
-                              {b.service ? (<span className="text-[9px] font-semibold px-1 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">Service</span>) : b.event ? (<span className="text-[9px] font-semibold px-1 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30">Event</span>) : null}
+          <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.15 }} className="w-full">
+            {loading ? (
+              <TableSkeleton columns={7} rows={6} minWidth="100%" />
+            ) : filteredDisplayItems.length === 0 ? (
+              <TableEmptyState title={`No ${tab} bookings found`} description={searchTerm ? "No bookings match your current search and filters." : `Your ${tab} bookings will appear here.`} colSpan={7} />
+            ) : (
+              <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs w-full">
+                <DataTable minWidth="100%">
+                  <TableHeader>
+                    <TableHeaderCell className="w-[22%]">Service / Event</TableHeaderCell>
+                    <TableHeaderCell className="w-[18%]">Customer</TableHeaderCell>
+                    <TableHeaderCell className="w-[22%]">Location</TableHeaderCell>
+                    <TableHeaderCell className="w-[14%] whitespace-nowrap">Date / Time</TableHeaderCell>
+                    <TableHeaderCell className="w-[10%]">Status</TableHeaderCell>
+                    <TableHeaderCell className="w-[6%]">Rating</TableHeaderCell>
+                    <TableHeaderCell align="right" className="w-[8%]">Action</TableHeaderCell>
+                  </TableHeader>
+                  <TableBody ref={rowsRef}>
+                    {filteredDisplayItems.map((b) => (
+                      <TableRow key={b._id}>
+                        <TableCell>
+                          <div className="max-w-[200px]">
+                            <div className="text-xs font-semibold text-foreground line-clamp-1 truncate" title={b.service?.name || b.event?.title || b.serviceName}>
+                              {b.service?.name || b.event?.title || b.serviceName}
                             </div>
-                            {b.service?.category && (<div className="text-[10px] text-muted-foreground mt-0.5">{b.service.category}</div>)}
+                            <div className="mt-1 flex items-center gap-1">
+                              {b.service ? (
+                                <StatusBadge status="service" label="Service" />
+                              ) : b.event ? (
+                                <StatusBadge status="event" label="Event" className="bg-purple-500/15 text-purple-600 border-purple-500/30" />
+                              ) : null}
+                            </div>
+                            {b.service?.category && (<div className="text-[10px] text-muted-foreground mt-0.5 font-medium truncate">{b.service.category}</div>)}
                           </div>
-                        </td>
-                        <td className="px-2 py-2.5">
-                          <div>
-                            <div className="font-medium text-xs">{b.customer?.name}</div>
-                            <div className="text-[10px] text-muted-foreground truncate max-w-[120px]">{b.customer?.email}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="max-w-[150px]">
+                            <div className="font-semibold text-xs text-foreground truncate" title={b.customer?.name}>{b.customer?.name || "—"}</div>
+                            <div className="text-[10px] text-muted-foreground truncate" title={b.customer?.email}>{b.customer?.email}</div>
                           </div>
-                        </td>
-                        <td className="px-2 py-2.5 max-w-[200px]">
-                          {b.customerLocation && b.customerLocation.address ? (<div className="space-y-1">
+                        </TableCell>
+                        <TableCell>
+                          {b.customerLocation && b.customerLocation.address ? (
+                            <div className="space-y-0.5 max-w-[200px]">
                               <div className="flex items-start gap-1">
                                 <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0"/>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-[10px] font-medium leading-relaxed line-clamp-2">{b.customerLocation.address}</p>
+                                  <p className="text-xs leading-relaxed line-clamp-1 text-foreground/90" title={b.customerLocation.address}>{b.customerLocation.address}</p>
                                   <div className="flex items-center gap-2 mt-0.5">
-                                    <a href={`https://www.google.com/maps?q=${b.customerLocation.latitude},${b.customerLocation.longitude}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-primary hover:underline inline-flex items-center gap-0.5 whitespace-nowrap">
-                                      Maps <ExternalLink className="h-2 w-2"/>
+                                    <a href={`https://www.google.com/maps?q=${b.customerLocation.latitude},${b.customerLocation.longitude}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline inline-flex items-center gap-0.5 font-medium">
+                                      Maps <ExternalLink className="h-2.5 w-2.5"/>
                                     </a>
                                   </div>
                                 </div>
                               </div>
-                            </div>) : b.event?.location ? (<div className="flex items-start gap-1">
+                            </div>
+                          ) : b.event?.location ? (
+                            <div className="flex items-start gap-1 max-w-[200px]">
                               <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0"/>
                               <div className="flex-1 min-w-0">
-                                <p className="text-[10px] font-medium leading-relaxed line-clamp-2">{b.event.location}</p>
-                                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.event.location)}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-primary hover:underline inline-flex items-center gap-0.5 whitespace-nowrap mt-0.5">
-                                  Maps <ExternalLink className="h-2 w-2"/>
+                                <p className="text-xs leading-relaxed line-clamp-1 text-foreground/90" title={b.event.location}>{b.event.location}</p>
+                                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.event.location)}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline inline-flex items-center gap-0.5 mt-0.5 font-medium">
+                                  Maps <ExternalLink className="h-2.5 w-2.5"/>
                                 </a>
                               </div>
-                            </div>) : (<span className="text-[10px] text-muted-foreground">No location</span>)}
-                        </td>
-                        <td className="px-2 py-2.5 text-muted-foreground text-[10px]">
-                          <div>{new Date(b.datetime).toLocaleDateString()}</div>
-                          <div>{new Date(b.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                        </td>
-                        <td className="px-2 py-2.5">
-                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold capitalize ${STATUS_BADGE[b.status] || "bg-secondary text-muted-foreground"}`}>
-                            {b.status}
-                          </span>
-                        </td>
-                        <td className="px-2 py-2.5">
-                          {b.rating?.score ? (<div className="flex items-center gap-1.5">
-                              <div className="flex gap-0.5">
-                                {[1, 2, 3, 4, 5].map((star) => (<Star key={star} className={`h-3 w-3 ${star <= b.rating.score
-                            ? "fill-yellow-500 text-yellow-500"
-                            : "text-muted-foreground/30 fill-none"}`}/>))}
-                              </div>
-                              <span className="text-[10px] font-semibold">{b.rating.score}/5</span>
-                            </div>) : (<span className="text-[10px] text-muted-foreground">No rating</span>)}
-                          {b.rating?.comment && (<p className="text-[9px] text-muted-foreground mt-0.5 italic line-clamp-1">"{b.rating.comment}"</p>)}
-                        </td>
-                        <td className="px-2 py-2.5">
-                          {b.status === "cancellation_requested" ? (<div className="flex items-center gap-2">
-                              <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700 h-8 px-3 text-xs font-semibold" onClick={() => {
-                        setSelectedCancelBooking(b);
-                        setCancellationModal(true);
-                    }}>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          <div className="font-semibold text-foreground">{new Date(b.datetime).toLocaleDateString()}</div>
+                          <div className="text-[10px] text-muted-foreground">{new Date(b.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={b.status} />
+                        </TableCell>
+                        <TableCell>
+                          {b.rating?.score ? (
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400"/>
+                              <span className="text-xs font-bold text-foreground">{b.rating.score}/5</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell align="right">
+                          {b.status === "cancellation_requested" ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700 h-8 px-2 text-xs font-semibold" onClick={() => { setSelectedCancelBooking(b); setCancellationModal(true); }}>
                                 Approve Cancel
                               </Button>
-                              <Button size="sm" variant="outline" className="text-red-500 border-red-500/30 hover:bg-red-500/10 h-8 px-3 text-xs font-semibold" onClick={() => handleRejectCancel(b._id)}>
+                              <Button size="sm" variant="outline" className="text-rose-500 border-rose-500/30 hover:bg-rose-500/10 h-8 px-2 text-xs font-semibold" onClick={() => handleRejectCancel(b._id)}>
                                 Reject Cancel
                               </Button>
-                            </div>) : b.status === "refund_pending" ? (<Button size="sm" className="bg-purple-600 text-white hover:bg-purple-700 h-8 px-3 text-xs font-semibold" onClick={() => handleProcessRefund(b._id)}>
-                              Process Refund ({formatCurrency(b.price - (b.cancellationFee || 0))})
-                            </Button>) : b.status === "cancellation_fee_proposed" ? (<span className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20 italic">
+                            </div>
+                          ) : b.status === "refund_pending" ? (
+                            <Button size="sm" className="bg-purple-600 text-white hover:bg-purple-700 h-8 px-2 text-xs font-semibold" onClick={() => handleProcessRefund(b._id)}>
+                              Refund ({formatCurrency(b.price - (b.cancellationFee || 0))})
+                            </Button>
+                          ) : b.status === "cancellation_fee_proposed" ? (
+                            <span className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20 italic">
                               Fee proposed, awaiting customer...
-                            </span>) : b.status === "refunded" ? (<span className="text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded border border-red-500/20 italic">
+                            </span>
+                          ) : b.status === "refunded" ? (
+                            <span className="text-xs text-rose-400 bg-rose-500/10 px-2 py-1 rounded border border-rose-500/20 italic">
                               Refunded {formatCurrency(b.refundAmount || 0)}
-                            </span>) : b.service && b.status === "pending_approval" ? (<div className="flex items-center gap-2">
-                              <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700 h-8 px-3" onClick={() => setApprovalOptions({ id: b._id, show: true })} disabled={approving === b._id}>
-                                <Check className="h-4 w-4 mr-1"/> Approve
+                            </span>
+                          ) : b.service && b.status === "pending_approval" ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button size="sm" variant="default" className="bg-emerald-600 hover:bg-emerald-700 h-8 px-2 text-xs font-semibold" onClick={() => setApprovalOptions({ id: b._id, show: true })} disabled={approving === b._id}>
+                                <Check className="h-3.5 w-3.5 mr-1"/> Approve
                               </Button>
-                              <Button size="sm" variant="destructive" className="h-8 px-3" onClick={() => handleReject(b._id)}>
-                                <X className="h-4 w-4 mr-1"/> Reject
+                              <Button size="sm" variant="destructive" className="h-8 px-2 text-xs font-semibold" onClick={() => handleReject(b._id)}>
+                                <X className="h-3.5 w-3.5 mr-1"/> Reject
                               </Button>
-                            </div>) : b.status !== "completed" && b.status !== "cancelled" && b.service ? (<DropdownMenu>
+                            </div>
+                          ) : b.status !== "completed" && b.status !== "cancelled" && b.service ? (
+                            <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button size="sm" variant="outline" className="h-8">Update Status</Button>
+                                <Button size="sm" variant="outline" className="h-8 text-xs font-medium px-2.5">Update Status</Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 {(() => {
-                        const options = [];
-                        // If not paid, show pre-payment options
-                        if (b.status !== "paid" && b.status !== "processing" && b.status !== "completed") {
-                            options.push({ status: "pending_approval", label: "Pending Approval", color: "text-orange-500" }, { status: "approved", label: "Approved", color: "text-blue-500" }, { status: "awaiting_payment", label: "Awaiting Payment", color: "text-indigo-500" });
-                        }
-                        // Always show post-payment/general options if not completed
-                        options.push({ status: "paid", label: "Paid", color: "text-emerald-500" }, { status: "accepted", label: "Accepted", color: "text-cyan-500" }, { status: "processing", label: "Processing", color: "text-orange-500" }, { status: "completed", label: "Completed", color: "text-green-500" }, { status: "cancelled", label: "Cancelled", color: "text-red-500" });
-                        return options.map(({ status, label, color }) => (<DropdownMenuItem key={status} className={`${color} cursor-pointer font-medium`} onClick={() => handleUpdateStatus(b._id, status)} disabled={b.status === status}>
+                                  const options = [];
+                                  if (b.status !== "paid" && b.status !== "processing" && b.status !== "completed") {
+                                    options.push({ status: "pending_approval", label: "Pending Approval", color: "text-orange-500" }, { status: "approved", label: "Approved", color: "text-blue-500" }, { status: "awaiting_payment", label: "Awaiting Payment", color: "text-indigo-500" });
+                                  }
+                                  options.push({ status: "paid", label: "Paid", color: "text-emerald-500" }, { status: "accepted", label: "Accepted", color: "text-cyan-500" }, { status: "processing", label: "Processing", color: "text-orange-500" }, { status: "completed", label: "Completed", color: "text-green-500" }, { status: "cancelled", label: "Cancelled", color: "text-rose-500" });
+                                  return options.map(({ status, label, color }) => (
+                                    <DropdownMenuItem key={status} className={`${color} cursor-pointer font-medium text-xs`} onClick={() => handleUpdateStatus(b._id, status)} disabled={b.status === status}>
                                       {label}
-                                    </DropdownMenuItem>));
-                    })()}
+                                    </DropdownMenuItem>
+                                  ));
+                                })()}
                               </DropdownMenuContent>
-                            </DropdownMenu>) : (<span className="text-xs text-muted-foreground italic capitalize">{b.status}</span>)}
-                        </td>
-                      </tr>))}
-                  </tbody>
-                </table>
-              </div>)}
+                            </DropdownMenu>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic capitalize">{b.status}</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </DataTable>
+              </div>
+            )}
           </motion.div>
         </div>
       </section>
