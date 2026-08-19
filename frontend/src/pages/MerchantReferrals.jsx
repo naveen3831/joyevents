@@ -12,6 +12,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiGetMerchantReferrals, apiSaveMerchantReferrals } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import { TableSkeleton } from "@/components/common/table/TableSkeleton";
+import { TableEmptyState } from "@/components/common/table/TableEmptyState";
 
 const statusClass = (status) => {
     if (status === "completed" || status === "paid" || status === "confirmed")
@@ -129,40 +133,54 @@ const MerchantReferrals = () => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader><CardTitle>Referral Booking Activity</CardTitle></CardHeader>
-              <CardContent>
-                {!bookings.length ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
-                  <Gift className="h-12 w-12 mx-auto mb-4 opacity-30 text-muted-foreground"/>
-                  <p className="text-muted-foreground">No referral activity yet.</p>
-                </div>) : (<div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm min-w-[700px]">
-                    <thead className="border-b border-border text-xs uppercase text-muted-foreground">
-                      <tr>
-                        <th className="py-3 pr-4">Referrer</th>
-                        <th className="py-3 pr-4">Customer</th>
-                        <th className="py-3 pr-4">Event / Service</th>
-                        <th className="py-3 pr-4">Booking Status</th>
-                        <th className="py-3 pr-4">Payment</th>
-                        <th className="py-3 pr-4">Bonus Status</th>
-                        <th className="py-3 pr-4">Bonus</th>
-                      </tr>
-                    </thead>
-                    <tbody ref={listRef} className="divide-y divide-border">
-                      {bookings.map((booking) => (<tr key={booking._id}>
-                        <td className="py-3 pr-4"><p className="font-medium">{booking.referral?.referrer?.name || "User"}</p><p className="text-xs text-muted-foreground">{booking.referral?.code}</p></td>
-                        <td className="py-3 pr-4">{booking.customer?.name || "Customer"}</td>
-                        <td className="py-3 pr-4"><p className="font-medium">{booking.serviceName || booking.eventName || "Booking"}</p><p className="text-xs text-muted-foreground">{booking.serviceName ? "Service booking" : "Event booking"}</p></td>
-                        <td className="py-3 pr-4"><span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${statusClass(booking.status)}`}>{booking.status || "pending"}</span></td>
-                        <td className="py-3 pr-4"><span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${statusClass(booking.paymentStatus)}`}>{booking.paymentStatus || "pending"}</span></td>
-                        <td className="py-3 pr-4 capitalize">{booking.referral?.bonusCredited ? "credited" : "waiting for completion"}</td>
-                        <td className="py-3 pr-4">{formatCurrency(booking.referral?.bonusAmount || 0)}</td>
-                      </tr>))}
-                    </tbody>
-                  </table>
-                </div>)}
-              </CardContent>
-            </Card>
+            <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+              <div className="p-4 sm:p-6 border-b border-border/80">
+                <h2 className="font-display text-lg sm:text-xl font-bold">Referral Booking Activity</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Track referred customers, discount claims, and credited wallet bonuses.</p>
+              </div>
+              {!bookings.length ? (
+                <TableEmptyState title="No referral activity yet" description="Referral bookings from customers will appear here." colSpan={7} />
+              ) : (
+                <DataTable minWidth="700px">
+                  <TableHeader>
+                    <TableHeaderCell width="160px">Referrer</TableHeaderCell>
+                    <TableHeaderCell width="160px">Customer</TableHeaderCell>
+                    <TableHeaderCell width="180px">Event / Service</TableHeaderCell>
+                    <TableHeaderCell width="120px">Booking Status</TableHeaderCell>
+                    <TableHeaderCell width="110px">Payment</TableHeaderCell>
+                    <TableHeaderCell width="140px">Bonus Status</TableHeaderCell>
+                    <TableHeaderCell align="right" width="100px">Bonus</TableHeaderCell>
+                  </TableHeader>
+                  <TableBody ref={listRef}>
+                    {bookings.map((booking) => (
+                      <TableRow key={booking._id}>
+                        <TableCell>
+                          <p className="font-semibold text-xs text-foreground">{booking.referral?.referrer?.name || "User"}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono mt-0.5">{booking.referral?.code}</p>
+                        </TableCell>
+                        <TableCell className="font-medium text-xs text-foreground">{booking.customer?.name || "Customer"}</TableCell>
+                        <TableCell>
+                          <p className="font-semibold text-xs text-foreground">{booking.serviceName || booking.eventName || "Booking"}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{booking.serviceName ? "Service booking" : "Event booking"}</p>
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={booking.status || "pending"} />
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={booking.paymentStatus || "pending"} />
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={booking.referral?.bonusCredited ? "completed" : "pending"} label={booking.referral?.bonusCredited ? "Credited" : "Pending Completion"} />
+                        </TableCell>
+                        <TableCell align="right" className="font-bold text-xs text-emerald-600">
+                          {formatCurrency(booking.referral?.bonusAmount || 0)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </DataTable>
+              )}
+            </div>
           </>)}
       </section>
     </MerchantLayout>);

@@ -1,49 +1,64 @@
-# Performance Optimization Notes
+# Performance Optimization & Deployment Notes
 
-## Deployment-Safe Configuration
+## SPA Routing Fix (Resolving 404 Error on Refresh)
 
-The vite.config.js has been optimized for deployment with the following fixes:
+### Root Cause
+React applications use client-side routing (`react-router-dom`). When refreshing pages like `/my-requests` or `/admin-dashboard`, the browser sends an HTTP request directly to Nginx for that path. Since `/my-requests` is a client-side route (not a physical file on the server), Nginx returns a `404 Not Found` error.
 
-### Issues Fixed:
-1. ✅ **ES Module Compatibility**: Added `fileURLToPath` import for proper `__dirname` resolution
-2. ✅ **Simplified Chunking**: Changed from static to dynamic chunking function for better compatibility
-3. ✅ **Removed Duplicate Config**: Fixed duplicate `preview` configuration
-4. ✅ **Simplified File Paths**: Changed from `assets/js/` to `assets/` for better server compatibility
-5. ✅ **Added API Proxy**: Development proxy for backend API calls
-6. ✅ **Base Path**: Set explicit base path for deployment
+---
 
-### Build Output:
-- Total build time: ~20 seconds
-- Total chunks: 80+ optimized files
-- Main bundle: 50 KB (gzip: 17 KB)
-- React vendor: 311 KB (gzip: 96 KB)
-- All chunks properly hashed for caching
+### Solution 1: Update Nginx Configuration (Recommended)
+Add `try_files $uri $uri/ /index.html;` to your Nginx site configuration file (located at `/etc/nginx/sites-available/default` or `/etc/nginx/sites-available/joyevents`):
 
-### Deployment Checklist:
-- ✅ Build succeeds without errors
-- ✅ All chunks load correctly
-- ✅ No duplicate configurations
-- ✅ Proper ES module support
-- ✅ Server-compatible file paths
-- ✅ SPA fallback configured
+```nginx
+server {
+    listen 80;
+    server_name joyevents.speshway.site;
 
-### To Deploy:
-```bash
-npm run build
-# Upload dist/ folder to your hosting
+    root /var/www/joyevents/frontend/dist;
+    index index.html;
+
+    # SPA Fallback: Directs all client routes back to index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # API Proxy to Express Backend
+    location /api/ {
+        proxy_pass http://127.0.0.1:5001/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # WebSocket Realtime Updates
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:5001/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+    }
+}
 ```
 
-### Server Configuration (Nginx example):
+After updating Nginx config on the server, reload Nginx:
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+---
+
+### Solution 2: If using PM2 `serve` reverse proxy:
+If Nginx proxies to PM2 serving the frontend on port 8080 (via `ecosystem.config.cjs`), ensure Nginx proxies root requests to port 8080:
+
 ```nginx
 location / {
-  try_files $uri $uri/ /index.html;
-}
-
-location /ws {
-  proxy_pass http://localhost:5000;
-  proxy_http_version 1.1;
-  proxy_set_header Upgrade $http_upgrade;
-  proxy_set_header Connection "upgrade";
-  proxy_set_header Host $host;
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
 }
 ```
+The PM2 script `serve` runs with `-s dist` (Single Page Application mode), which automatically handles fallback to `index.html`.

@@ -7,6 +7,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiGetMerchantRecommendationStats } from "@/lib/api";
 import { toast } from "sonner";
 import { useGsapReveal, useGsapStagger } from "@/lib/gsapAnimations";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import { TableSkeleton } from "@/components/common/table/TableSkeleton";
+import { TableEmptyState } from "@/components/common/table/TableEmptyState";
 const MerchantRecommendations = () => {
     const { token } = useAuth();
     const [stats, setStats] = useState([]);
@@ -45,57 +49,54 @@ const MerchantRecommendations = () => {
           </div>
 
           {/* Events table */}
-          {loading ? (<div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
-              <Loader2 className="h-5 w-5 animate-spin"/> Loading…
-            </div>) : stats.length === 0 ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
-              <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-30 text-muted-foreground"/>
-              <p className="text-muted-foreground">No events found. Create events to appear in recommendations.</p>
-            </div>) : (<div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[600px]">
-                  <thead>
-                    <tr className="border-b border-border bg-secondary/50">
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Event</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Category</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Attendees</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Est. Reach</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.map((event, idx) => (<motion.tr key={event._id} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: idx * 0.04 }} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
-                        <td className="px-4 py-3 font-medium max-w-[200px]">
-                          <div className="truncate">{event.title}</div>
-                          {event.isFeatured && <span className="text-xs text-yellow-400">⭐ Featured</span>}
-                          {event.live && <span className="text-xs text-red-400 ml-1">🔴 Live</span>}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">{event.category || "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                          {event.datetime ? new Date(event.datetime).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">{event.attendeesCount}</span>
-                            {event.maxAttendees > 0 && (<span className="text-xs text-muted-foreground">/ {event.maxAttendees}</span>)}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1.5 text-blue-400 font-semibold">
-                            <TrendingUp className="h-3.5 w-3.5"/>
-                            ~{event.estimatedReach}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${event.status === "upcoming" ? "bg-green-500/15 text-green-400" :
-                    event.status === "ongoing" ? "bg-blue-500/15 text-blue-400" :
-                        "bg-secondary text-muted-foreground"}`}>{event.status}</span>
-                        </td>
-                      </motion.tr>))}
-                  </tbody>
-                </table>
-              </div>
-            </div>)}
+          {loading ? (
+            <TableSkeleton columns={6} rows={5} minWidth="600px" />
+          ) : stats.length === 0 ? (
+            <TableEmptyState title="No events found" description="Create events to appear in recommendations." colSpan={6} />
+          ) : (
+            <DataTable minWidth="600px">
+              <TableHeader>
+                <TableHeaderCell width="200px">Event</TableHeaderCell>
+                <TableHeaderCell width="140px">Category</TableHeaderCell>
+                <TableHeaderCell width="130px">Date</TableHeaderCell>
+                <TableHeaderCell width="120px">Attendees</TableHeaderCell>
+                <TableHeaderCell width="120px">Est. Reach</TableHeaderCell>
+                <TableHeaderCell width="110px">Status</TableHeaderCell>
+              </TableHeader>
+              <TableBody>
+                {stats.map((event) => (
+                  <TableRow key={event._id}>
+                    <TableCell>
+                      <div className="font-semibold text-xs text-foreground truncate max-w-[200px]">{event.title}</div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {event.isFeatured && <span className="text-[10px] text-amber-500 font-semibold">⭐ Featured</span>}
+                        {event.live && <span className="text-[10px] text-red-500 font-semibold">🔴 Live</span>}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{event.category || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                      {event.datetime ? new Date(event.datetime).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span className="font-bold text-foreground">{event.attendeesCount}</span>
+                        {event.maxAttendees > 0 && (<span className="text-[10px] text-muted-foreground">/ {event.maxAttendees}</span>)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-sky-600 dark:text-sky-400 font-bold text-xs">
+                        <TrendingUp className="h-3.5 w-3.5"/>
+                        ~{event.estimatedReach}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={event.status} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </DataTable>
+          )}
 
           <p className="mt-4 text-xs text-muted-foreground">
             * Estimated reach is based on booking history patterns and category popularity. Actual reach may vary.

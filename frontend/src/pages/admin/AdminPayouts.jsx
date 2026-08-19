@@ -8,12 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiListBookings, apiListUsers, apiFetchWithdrawals, apiApproveWithdrawal, apiRejectWithdrawal, apiProcessMerchantPayout, apiGetAdminEarningsSummary, apiWithdrawAdminEarnings } from "@/lib/api";
 import { toast } from "sonner";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import { TableSkeleton } from "@/components/common/table/TableSkeleton";
+import { TableEmptyState } from "@/components/common/table/TableEmptyState";
 const WITHDRAWAL_STATUS_BADGE = {
     pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
     approved: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
@@ -377,168 +380,149 @@ const AdminPayouts = () => {
           </Card>
 
           {/* Withdrawal Requests Section */}
-          <Card className="mb-8 border-yellow-500/30">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="h-6 w-6 text-yellow-500"/>
-                  <div>
-                    <CardTitle>Pending Withdrawal Requests</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Review and approve or reject merchant withdrawal requests
-                    </p>
-                  </div>
-                </div>
-                {withdrawalRequests.length > 0 && (<Badge className="bg-yellow-500/15 text-yellow-400 border border-yellow-500/30">
-                    {withdrawalRequests.length} Pending
-                  </Badge>)}
+          <div className="mb-8 rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+            <div className="p-4 sm:p-6 border-b border-border/80 flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h2 className="font-display text-lg sm:text-xl font-bold flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-yellow-500"/> Pending Withdrawal Requests
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Review and approve or reject merchant withdrawal requests.</p>
               </div>
-            </CardHeader>
-            <CardContent>
-              {loadingWithdrawals ? (<div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin"/> Loading withdrawal requests...
-                </div>) : withdrawalRequests.length === 0 ? (<div className="py-16 text-center text-muted-foreground">
-                  <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-30"/>
-                  <p>No pending withdrawal requests.</p>
-                </div>) : (<div className="overflow-x-auto w-full">
-                  <Table className="text-xs min-w-[900px]">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="py-2.5 px-2">Merchant</TableHead>
-                        <TableHead className="py-2.5 px-2">Email</TableHead>
-                        <TableHead className="py-2.5 px-2">Amount</TableHead>
-                        <TableHead className="py-2.5 px-2">Bank Details</TableHead>
-                        <TableHead className="py-2.5 px-2">Requested At</TableHead>
-                        <TableHead className="py-2.5 px-2">Status</TableHead>
-                        <TableHead className="py-2.5 px-2">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {withdrawalRequests.map((withdrawal) => (<TableRow key={withdrawal._id}>
-                          <TableCell className="py-2.5 px-2 font-medium text-xs">
-                            {withdrawal.merchant.name}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-[10px] py-2.5 px-2 truncate max-w-[120px]">
-                            {withdrawal.merchant.email}
-                          </TableCell>
-                          <TableCell className="font-semibold text-purple-600 text-xs py-2.5 px-2">
-                            {formatCurrency(withdrawal.amount)}
-                          </TableCell>
-                          <TableCell className="py-2.5 px-2">
-                            <div className="text-[10px] space-y-0.5">
-                              {withdrawal.bankDetails?.accountHolder && (<p className="truncate max-w-[150px]">{withdrawal.bankDetails.accountHolder}</p>)}
-                              {withdrawal.bankDetails?.accountNumber && (<p className="text-muted-foreground">****{withdrawal.bankDetails.accountNumber.slice(-4)}</p>)}
-                              {withdrawal.bankDetails?.ifscCode && (<p className="text-muted-foreground">{withdrawal.bankDetails.ifscCode}</p>)}
-                              {withdrawal.bankDetails?.bankName && (<p className="text-muted-foreground truncate max-w-[150px]">{withdrawal.bankDetails.bankName}</p>)}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-[10px] py-2.5 px-2">
-                            {new Date(withdrawal.requestedAt).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="py-2.5 px-2">
-                            <Badge className={`px-1.5 py-0.5 text-[9px] ${WITHDRAWAL_STATUS_BADGE[withdrawal.status] || "bg-secondary text-muted-foreground"}`}>
-                              {withdrawal.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="py-2.5 px-2">
-                            <div className="flex gap-1.5 flex-nowrap whitespace-nowrap">
-                              <Button size="sm" onClick={() => handleApproveWithdrawal(withdrawal)} disabled={actionInProgress === withdrawal._id} className="bg-green-600 hover:bg-green-700 text-white text-[10px] h-7 px-2">
-                                {actionInProgress === withdrawal._id ? (<>
-                                    <Loader2 className="mr-1 h-3 w-3 animate-spin"/>
-                                    Approve
-                                  </>) : (<>
-                                    <CheckCircle className="mr-1 h-3 w-3"/>
-                                    Approve
-                                  </>)}
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => openRejectDialog(withdrawal)} disabled={actionInProgress === withdrawal._id} className="text-red-600 hover:text-red-700 hover:bg-red-50 text-[10px] h-7 px-2">
-                                {actionInProgress === withdrawal._id ? (<>
-                                    <Loader2 className="mr-1 h-3 w-3 animate-spin"/>
-                                    Reject
-                                  </>) : (<>
-                                    <XCircle className="mr-1 h-3 w-3"/>
-                                    Reject
-                                  </>)}
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>))}
-                    </TableBody>
-                  </Table>
-                </div>)}
-            </CardContent>
-          </Card>
+              {withdrawalRequests.length > 0 && (
+                <StatusBadge status="pending" label={`${withdrawalRequests.length} Pending`} />
+              )}
+            </div>
+            {loadingWithdrawals ? (
+              <TableSkeleton columns={7} rows={4} minWidth="100%" />
+            ) : withdrawalRequests.length === 0 ? (
+              <TableEmptyState title="No pending withdrawal requests" description="All merchant withdrawal requests have been processed." colSpan={7} />
+            ) : (
+              <DataTable minWidth="100%">
+                <TableHeader>
+                  <TableHeaderCell className="w-[18%]">Merchant</TableHeaderCell>
+                  <TableHeaderCell className="w-[20%]">Email</TableHeaderCell>
+                  <TableHeaderCell className="w-[12%] whitespace-nowrap">Amount</TableHeaderCell>
+                  <TableHeaderCell className="w-[22%]">Bank Details</TableHeaderCell>
+                  <TableHeaderCell className="w-[12%] whitespace-nowrap">Requested At</TableHeaderCell>
+                  <TableHeaderCell className="w-[8%]">Status</TableHeaderCell>
+                  <TableHeaderCell align="right" className="w-[8%]">Actions</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                  {withdrawalRequests.map((withdrawal) => (
+                    <TableRow key={withdrawal._id}>
+                      <TableCell className="font-semibold text-foreground">
+                        {withdrawal.merchant.name}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground truncate max-w-[160px]">
+                        {withdrawal.merchant.email}
+                      </TableCell>
+                      <TableCell className="font-bold text-purple-600">
+                        {formatCurrency(withdrawal.amount)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs space-y-0.5">
+                          {withdrawal.bankDetails?.accountHolder && (<p className="font-medium text-foreground truncate max-w-[150px]">{withdrawal.bankDetails.accountHolder}</p>)}
+                          {withdrawal.bankDetails?.accountNumber && (<p className="text-muted-foreground">****{withdrawal.bankDetails.accountNumber.slice(-4)}</p>)}
+                          {withdrawal.bankDetails?.ifscCode && (<p className="text-muted-foreground font-mono text-[10px]">{withdrawal.bankDetails.ifscCode}</p>)}
+                          {withdrawal.bankDetails?.bankName && (<p className="text-muted-foreground truncate max-w-[150px]">{withdrawal.bankDetails.bankName}</p>)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {new Date(withdrawal.requestedAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={withdrawal.status} />
+                      </TableCell>
+                      <TableCell align="right">
+                        <div className="flex gap-1.5 justify-end">
+                          <Button size="sm" onClick={() => handleApproveWithdrawal(withdrawal)} disabled={actionInProgress === withdrawal._id} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-2.5 rounded-lg">
+                            {actionInProgress === withdrawal._id ? (
+                              <>
+                                <Loader2 className="mr-1 h-3 w-3 animate-spin"/> Approve
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="mr-1 h-3 w-3"/> Approve
+                              </>
+                            )}
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => openRejectDialog(withdrawal)} disabled={actionInProgress === withdrawal._id} className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs h-8 px-2.5 rounded-lg border-red-500/30">
+                            {actionInProgress === withdrawal._id ? (
+                              <>
+                                <Loader2 className="mr-1 h-3 w-3 animate-spin"/> Reject
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="mr-1 h-3 w-3"/> Reject
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </DataTable>
+            )}
+          </div>
 
           {/* Merchant Payouts Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Merchant Payout Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (<div className="flex items-center justify-center py-16 text-muted-foreground">
-                  Loading payout data...
-                </div>) : merchantPayouts.length === 0 ? (<div className="py-16 text-center text-muted-foreground">
-                  <Wallet className="h-12 w-12 mx-auto mb-4 opacity-30"/>
-                  <p>No merchant payouts to process.</p>
-                </div>) : (<div className="overflow-x-auto w-full">
-                  <Table className="text-xs min-w-[900px]">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="py-2.5 px-2">Merchant</TableHead>
-                        <TableHead className="py-2.5 px-2">Email</TableHead>
-                        <TableHead className="py-2.5 px-2">Completed Bookings</TableHead>
-                        <TableHead className="py-2.5 px-2">Gross Earnings</TableHead>
-                        <TableHead className="py-2.5 px-2">Platform Commission (5%)</TableHead>
-                        <TableHead className="py-2.5 px-2">Net Payout</TableHead>
-                        <TableHead className="py-2.5 px-2">Status</TableHead>
-                        <TableHead className="py-2.5 px-2">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {merchantPayouts.map((payout) => (<TableRow key={payout.merchant._id}>
-                          <TableCell className="py-2.5 px-2 font-medium text-xs">
-                            {payout.merchant.name}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-[10px] py-2.5 px-2 truncate max-w-[120px]">
-                            {payout.merchant.email}
-                          </TableCell>
-                          <TableCell className="py-2.5 px-2">
-                            <Badge variant="outline" className="px-1 py-0 text-[10px]">{payout.completedBookings}</Badge>
-                          </TableCell>
-                          <TableCell className="font-semibold text-xs py-2.5 px-2">
-                            {formatCurrency(payout.totalEarnings)}
-                          </TableCell>
-                          <TableCell className="text-green-600 font-semibold text-xs py-2.5 px-2">
-                            {formatCurrency(payout.commission)}
-                          </TableCell>
-                          <TableCell className="text-purple-600 font-bold text-xs py-2.5 px-2">
-                            {formatCurrency(payout.netPayout)}
-                          </TableCell>
-                          <TableCell className="py-2.5 px-2">
-                            <Badge className={`px-1.5 py-0.5 text-[9px] ${payout.pendingPayout ? "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30" : "bg-green-500/15 text-green-400 border border-green-500/30"}`}>
-                              {payout.pendingPayout ? (<>
-                                  <Clock className="h-3 w-3 mr-1"/>
-                                  Pending
-                                </>) : (<>
-                                  <CheckCircle className="h-3 w-3 mr-1"/>
-                                  Paid
-                                </>)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="py-2.5 px-2">
-                            {payout.pendingPayout ? (<Button size="sm" className="text-[10px] h-7 px-2" onClick={() => openPayoutDialog(payout.merchant)}>
-                                Process Payout
-                                <ArrowRight className="ml-1 h-3 w-3"/>
-                              </Button>) : (<span className="text-[10px] text-green-500 font-semibold flex items-center gap-0.5">
-                                <CheckCircle className="h-3.5 w-3.5"/> Payout Done
-                              </span>)}
-                          </TableCell>
-                        </TableRow>))}
-                    </TableBody>
-                  </Table>
-                </div>)}
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+            <div className="p-4 sm:p-6 border-b border-border/80">
+              <h2 className="font-display text-lg sm:text-xl font-bold">Merchant Payout Breakdown</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Summary of merchant gross earnings, platform commission split, and available payout funds.</p>
+            </div>
+            {loading ? (
+              <TableSkeleton columns={8} rows={5} minWidth="100%" />
+            ) : merchantPayouts.length === 0 ? (
+              <TableEmptyState title="No merchant payouts to process" description="There are currently no completed bookings requiring merchant payouts." colSpan={8} />
+            ) : (
+              <DataTable minWidth="100%">
+                <TableHeader>
+                  <TableHeaderCell className="w-[18%]">Merchant</TableHeaderCell>
+                  <TableHeaderCell className="w-[20%]">Email</TableHeaderCell>
+                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Bookings</TableHeaderCell>
+                  <TableHeaderCell className="w-[14%] whitespace-nowrap">Gross Earnings</TableHeaderCell>
+                  <TableHeaderCell className="w-[14%] whitespace-nowrap">Commission (5%)</TableHeaderCell>
+                  <TableHeaderCell className="w-[12%] whitespace-nowrap">Net Payout</TableHeaderCell>
+                  <TableHeaderCell className="w-[8%]">Status</TableHeaderCell>
+                  <TableHeaderCell align="right" className="w-[4%]">Actions</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                  {merchantPayouts.map((payout) => (
+                    <TableRow key={payout.merchant._id}>
+                      <TableCell className="font-semibold text-foreground">
+                        {payout.merchant.name}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground truncate max-w-[160px]">
+                        {payout.merchant.email}
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-semibold bg-secondary border border-border">{payout.completedBookings}</span>
+                      </TableCell>
+                      <TableCell className="font-bold text-xs text-foreground">
+                        {formatCurrency(payout.totalEarnings)}
+                      </TableCell>
+                      <TableCell className="text-emerald-600 font-bold text-xs">
+                        {formatCurrency(payout.commission)}
+                      </TableCell>
+                      <TableCell className="text-purple-600 font-bold text-xs">
+                        {formatCurrency(payout.netPayout)}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={payout.pendingPayout ? "pending" : "completed"} label={payout.pendingPayout ? "Pending" : "Completed"} />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Button size="sm" variant="outline" className="text-xs h-8 px-2.5 rounded-lg border-primary/30 text-primary hover:bg-primary/10" onClick={() => openPayoutDetailDialog(payout)}>
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </DataTable>
+            )}
+          </div>
         </motion.div>
       </section>
 

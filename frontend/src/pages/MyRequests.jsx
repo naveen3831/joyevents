@@ -15,6 +15,10 @@ import { Textarea } from "@/components/ui/textarea";
 import SimplePayment from "@/components/SimplePayment";
 import RequestCustomServiceModal from "@/components/RequestCustomServiceModal";
 import { useRealtimeEvent } from "@/hooks/useRealtimeEvent";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import { TableSkeleton } from "@/components/common/table/TableSkeleton";
+import { TableEmptyState } from "@/components/common/table/TableEmptyState";
 
 const STATUS_BADGE = {
     pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
@@ -414,43 +418,34 @@ const MyRequests = () => {
                 )}
 
                 {filteredBookings.length === 0 ? (
-                  <div className="bg-card border border-border rounded-xl p-10 text-center">
-                    <AlertCircle className="mx-auto mb-4 h-12 w-12 opacity-30"/>
-                    <p className="font-medium text-lg text-muted-foreground">No {bookingSubFilter} bookings found</p>
-                    <p className="text-sm mt-2 text-muted-foreground">Your booking requests will appear here</p>
-                  </div>
+                  <TableEmptyState title={`No ${bookingSubFilter} bookings found`} description="Your booking requests will appear here." colSpan={5} />
                 ) : (
-                  <div className="rounded-xl border border-border bg-card overflow-x-auto w-full">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b border-border bg-secondary/50">
-                          <th className="text-left px-3 py-3 font-medium text-muted-foreground">Service/Event</th>
-                          <th className="text-left px-3 py-3 font-medium text-muted-foreground">Price</th>
-                          <th className="text-left px-3 py-3 font-medium text-muted-foreground">Date/Time</th>
-                          <th className="text-left px-3 py-3 font-medium text-muted-foreground">Status</th>
-                          <th className="text-left px-3 py-3 font-medium text-muted-foreground">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredBookings.map((b) => (
-                        <tr key={b._id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
-                          <td className="px-3 py-3 font-medium">
-                            <div className="text-xs font-semibold">{b.event?.title || b.serviceName}</div>
-                            {b.event && (<span className="block text-[10px] text-primary mt-0.5">🎫 Event</span>)}
-                          </td>
-                          <td className="px-3 py-3 font-semibold text-primary">
+                  <DataTable minWidth="650px">
+                    <TableHeader>
+                      <TableHeaderCell width="180px">Service / Event</TableHeaderCell>
+                      <TableHeaderCell width="100px">Price</TableHeaderCell>
+                      <TableHeaderCell width="120px">Date / Time</TableHeaderCell>
+                      <TableHeaderCell width="110px">Status</TableHeaderCell>
+                      <TableHeaderCell align="right" width="140px">Actions</TableHeaderCell>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredBookings.map((b) => (
+                        <TableRow key={b._id}>
+                          <TableCell>
+                            <div className="text-xs font-semibold text-foreground">{b.event?.title || b.serviceName}</div>
+                            {b.event && (<span className="block text-[10px] text-primary font-medium mt-0.5">🎫 Event</span>)}
+                          </TableCell>
+                          <TableCell className="font-bold text-xs text-primary">
                             {formatCurrency(b.price)}
-                          </td>
-                          <td className="px-3 py-3 text-muted-foreground text-[11px]">
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                             <div>{new Date(b.datetime).toLocaleDateString()}</div>
-                          </td>
-                          <td className="px-3 py-3">
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${STATUS_BADGE[b.status] || "bg-secondary text-muted-foreground"}`}>
-                              {b.status}
-                            </span>
-                          </td>
-                          <td className="px-3 py-3">
-                            <div className="flex gap-1.5 flex-wrap items-center">
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={b.status} />
+                          </TableCell>
+                          <TableCell align="right">
+                            <div className="flex gap-1.5 flex-wrap items-center justify-end">
                               {(b.status === "confirmed" || b.status === "paid" || b.status === "completed" || b.event || b.ticketId) && (
                                 <Button size="sm" variant="outline" className="gap-1 border-primary/40 text-primary hover:bg-primary/10 font-bold" onClick={() => downloadTicket(b)}>
                                   <Ticket className="h-3.5 w-3.5"/> Ticket
@@ -462,20 +457,19 @@ const MyRequests = () => {
                                 </Button>
                               )}
                               {b.status === "completed" && !b.rating?.score && (
-                                <Button size="sm" variant="outline" className="gap-1 text-yellow-500 border-yellow-500/40" onClick={() => openRatingModal(b)}>
+                                <Button size="sm" variant="outline" className="gap-1 text-amber-500 border-amber-500/40" onClick={() => openRatingModal(b)}>
                                   <Star className="h-3.5 w-3.5"/> Rate
                                 </Button>
                               )}
                             </div>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          ) : (
+                    </TableBody>
+                  </DataTable>
+                )}
+              </div>
+            ) : (
               /* Custom Service Enquiries Tab */
               customRequests.length === 0 ? (
                 <div className="bg-card border border-border rounded-xl p-10 text-center">

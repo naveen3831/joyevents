@@ -10,6 +10,10 @@ import { toast } from "sonner";
 import { apiGetEventAnalytics } from "@/lib/api";
 import StatCard from "@/components/StatCard";
 import { useGsapStagger } from "@/lib/gsapAnimations";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import { TableSkeleton } from "@/components/common/table/TableSkeleton";
+import { TableEmptyState } from "@/components/common/table/TableEmptyState";
 const EventAnalytics = () => {
     const { token } = useAuth();
     const [loading, setLoading] = useState(true);
@@ -91,70 +95,65 @@ const EventAnalytics = () => {
 
         {/* Events Analytics Table */}
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }}>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5"/>
-                Event Performance
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!analytics?.events || analytics.events.length === 0 ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
-                  <AlertCircle className="h-8 w-8 mx-auto mb-3 opacity-30"/>
-                  <p className="text-muted-foreground">No events with analytics data yet</p>
-                </div>) : (<div className="overflow-x-auto">
-                  <table className="w-full min-w-[500px]">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-4 font-semibold text-sm">Event Name</th>
-                        <th className="text-left py-3 px-4 font-semibold text-sm">Type</th>
-                        <th className="text-left py-3 px-4 font-semibold text-sm">Tickets Sold</th>
-                        <th className="text-left py-3 px-4 font-semibold text-sm">Attendees</th>
-                        <th className="text-left py-3 px-4 font-semibold text-sm">Revenue</th>
-                        <th className="text-left py-3 px-4 font-semibold text-sm">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(showAllEvents ? analytics.events : analytics.events.slice(0, 10)).map((event) => (<tr key={event._id} className="border-b border-border hover:bg-secondary/50 transition-colors">
-                          <td className="py-3 px-4 font-medium">{event.title}</td>
-                          <td className="py-3 px-4">
-                            <span className="text-xs bg-blue-500/20 text-blue-600 px-2 py-1 rounded">
-                              {event.eventType === "ticketed" ? "Ticketed" : "Single Ticket"}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-2">
-                              <Ticket className="h-4 w-4 text-purple-600"/>
-                              <span className="font-semibold">{event.ticketsSold}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-2">
-                              <Users className="h-4 w-4 text-orange-600"/>
-                              <span className="font-semibold">{event.attendees}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="font-semibold text-green-600">{formatCurrency(event.revenue)}</span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className={`text-xs px-2 py-1 rounded font-semibold ${event.status === "active"
-                    ? "bg-green-500/20 text-green-600"
-                    : "bg-gray-500/20 text-gray-600"}`}>
-                              {event.status}
-                            </span>
-                          </td>
-                        </tr>))}
-                    </tbody>
-                  </table>
-                  {analytics.events.length > 10 && (<div className="text-center pt-4 border-t border-border">
-                      <Button variant="ghost" size="sm" onClick={() => setShowAllEvents(!showAllEvents)} className="text-primary hover:text-primary/80 font-semibold">
-                        {showAllEvents ? "Show Less" : `View All (${analytics.events.length})`}
-                      </Button>
-                    </div>)}
-                </div>)}
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+            <div className="p-4 sm:p-6 border-b border-border/80 flex items-center justify-between">
+              <div>
+                <h2 className="font-display text-lg sm:text-xl font-bold flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary"/> Event Performance
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Detailed breakdown of event sales, attendee counts, and total revenue.</p>
+              </div>
+            </div>
+            {!analytics?.events || analytics.events.length === 0 ? (
+              <TableEmptyState title="No events with analytics data yet" description="Event analytics will appear here once ticket sales begin." colSpan={6} />
+            ) : (
+              <DataTable minWidth="650px">
+                <TableHeader>
+                  <TableHeaderCell width="200px">Event Name</TableHeaderCell>
+                  <TableHeaderCell width="130px">Type</TableHeaderCell>
+                  <TableHeaderCell width="120px">Tickets Sold</TableHeaderCell>
+                  <TableHeaderCell width="120px">Attendees</TableHeaderCell>
+                  <TableHeaderCell width="120px">Revenue</TableHeaderCell>
+                  <TableHeaderCell width="110px">Status</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                  {(showAllEvents ? analytics.events : analytics.events.slice(0, 10)).map((event) => (
+                    <TableRow key={event._id}>
+                      <TableCell className="font-semibold text-xs text-foreground">{event.title}</TableCell>
+                      <TableCell>
+                        <StatusBadge status="event" label={event.eventType === "ticketed" ? "Ticketed" : "Single Ticket"} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                          <Ticket className="h-3.5 w-3.5 text-purple-500"/>
+                          {event.ticketsSold}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                          <Users className="h-3.5 w-3.5 text-orange-500"/>
+                          {event.attendees}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-bold text-xs text-emerald-600">
+                        {formatCurrency(event.revenue)}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={event.status} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </DataTable>
+            )}
+            {analytics?.events && analytics.events.length > 10 && (
+              <div className="p-4 text-center border-t border-border/80">
+                <Button variant="ghost" size="sm" onClick={() => setShowAllEvents(!showAllEvents)} className="text-primary hover:text-primary/80 font-semibold">
+                  {showAllEvents ? "Show Less" : `View All (${analytics.events.length})`}
+                </Button>
+              </div>
+            )}
+          </div>
         </motion.div>
       </section>
     </MerchantLayout>);

@@ -58,6 +58,7 @@ const TicketValidation = lazy(() => import("./pages/TicketValidation"));
 const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
 const AdminEarnings = lazy(() => import("./pages/admin/AdminEarnings"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminUserDetail = lazy(() => import("./pages/admin/AdminUserDetail"));
 const AdminEvents = lazy(() => import("./pages/admin/AdminEvents"));
 const AdminEventDetail = lazy(() => import("./pages/admin/AdminEventDetail"));
 const AdminMyEvents = lazy(() => import("./pages/admin/AdminMyEvents"));
@@ -227,6 +228,7 @@ const AppRoutes = () => {
         
         {/* Admin Routes */}
         <Route path="/admin-dashboard/users" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUsers /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/users/:id" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUserDetail /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/events" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEvents /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/events/:id" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEventDetail /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/my-events" element={<ProtectedRoute allowedRoles={["admin"]}><AdminMyEvents /></ProtectedRoute>}/>

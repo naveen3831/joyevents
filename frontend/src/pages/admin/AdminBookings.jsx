@@ -9,6 +9,10 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useLocation } from "react-router-dom";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import { TableSkeleton } from "@/components/common/table/TableSkeleton";
+import { TableEmptyState } from "@/components/common/table/TableEmptyState";
 
 const BOOKING_STATUS_OPTIONS = [
     { value: "pending", label: "Pending" },
@@ -217,82 +221,93 @@ const AdminBookings = () => {
             </div>
           </div>
 
-          {loading ? (<div className="py-20 text-center text-muted-foreground">Loading bookings...</div>) : filtered.length === 0 ? (<div className="py-20 text-center border border-border rounded-xl bg-card text-muted-foreground">
-              <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-30"/>
-              <p>No bookings found</p>
-            </div>) : (<div className="rounded-xl border border-border bg-card overflow-x-auto w-full">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-border bg-secondary/50">
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">#</th>
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Service / Event</th>
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Customer</th>
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Merchant</th>
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Location</th>
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Price</th>
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Date</th>
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Status</th>
-                      <th className="text-left px-2 py-2.5 font-medium text-muted-foreground">Payment</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((b, idx) => (<tr key={b._id} onClick={() => setSelectedBooking(b)} className="border-b border-border last:border-0 hover:bg-secondary/40 transition-colors cursor-pointer">
-                        <td className="px-2 py-2.5 text-muted-foreground text-[10px]">{idx + 1}</td>
-                        <td className="px-2 py-2.5 font-medium max-w-[150px]">
-                          <div className="truncate text-xs">{b.service?.name || b.event?.title || b.serviceName || "—"}</div>
-                          <div className="mt-0.5">
-                            {b.service
-                    ? <span className="text-[9px] font-semibold px-1 py-0.5 rounded-full bg-blue-500/15 text-blue-400">Service</span>
-                    : b.event
-                        ? <span className="text-[9px] font-semibold px-1 py-0.5 rounded-full bg-purple-500/15 text-purple-400">Event</span>
-                        : null}
+          {loading ? (
+            <TableSkeleton columns={9} rows={6} minWidth="100%" />
+          ) : filtered.length === 0 ? (
+            <TableEmptyState title="No bookings found" description="No bookings match your current search and filters." colSpan={9} />
+          ) : (
+            <DataTable minWidth="100%">
+              <TableHeader>
+                <TableHeaderCell align="center" className="w-[4%]">#</TableHeaderCell>
+                <TableHeaderCell className="w-[18%]">Service / Event</TableHeaderCell>
+                <TableHeaderCell className="w-[15%]">Customer</TableHeaderCell>
+                <TableHeaderCell className="w-[15%]">Merchant</TableHeaderCell>
+                <TableHeaderCell className="w-[16%]">Location</TableHeaderCell>
+                <TableHeaderCell className="w-[8%] whitespace-nowrap">Price</TableHeaderCell>
+                <TableHeaderCell className="w-[12%] whitespace-nowrap">Date & Time</TableHeaderCell>
+                <TableHeaderCell align="center" className="w-[10%]">Status</TableHeaderCell>
+                <TableHeaderCell align="center" className="w-[8%]">Payment</TableHeaderCell>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((b, idx) => (
+                  <TableRow key={b._id} onClick={() => setSelectedBooking(b)}>
+                    <TableCell align="center" className="text-muted-foreground text-xs font-medium">{idx + 1}</TableCell>
+                    <TableCell>
+                      <div className="font-semibold text-xs text-foreground truncate max-w-[180px]" title={b.service?.name || b.event?.title || b.serviceName}>
+                        {b.service?.name || b.event?.title || b.serviceName || "—"}
+                      </div>
+                      <div className="mt-1">
+                        {b.service ? (
+                          <StatusBadge status="service" label="Service" />
+                        ) : b.event ? (
+                          <StatusBadge status="event" label="Event" className="bg-purple-500/15 text-purple-600 border-purple-500/30" />
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-semibold text-xs text-foreground">{b.customer?.name || "—"}</div>
+                      <div className="text-[11px] text-muted-foreground truncate max-w-[140px]" title={b.customer?.email}>{b.customer?.email}</div>
+                    </TableCell>
+                    <TableCell>
+                      {b.assignedTo ? (
+                        <>
+                          <div className="font-semibold text-xs text-foreground">{b.assignedTo.name}</div>
+                          <div className="text-[11px] text-muted-foreground truncate max-w-[140px]" title={b.assignedTo.email}>{b.assignedTo.email}</div>
+                        </>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {b.customerLocation?.address ? (
+                        <div className="flex items-start gap-1.5 max-w-[140px]">
+                          <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0"/>
+                          <div>
+                            <p className="text-xs leading-snug text-foreground/90 line-clamp-2">{b.customerLocation.address}</p>
+                            {b.customerLocation.latitude && (
+                              <a href={`https://www.google.com/maps?q=${b.customerLocation.latitude},${b.customerLocation.longitude}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[10px] text-primary hover:underline inline-flex items-center gap-0.5 mt-0.5 font-medium">
+                                Maps <ExternalLink className="h-2.5 w-2.5"/>
+                              </a>
+                            )}
                           </div>
-                        </td>
-                        <td className="px-2 py-2.5">
-                          <div className="font-medium text-xs">{b.customer?.name || "—"}</div>
-                          <div className="text-[10px] text-muted-foreground truncate max-w-[120px]">{b.customer?.email}</div>
-                        </td>
-                        <td className="px-2 py-2.5">
-                          {b.assignedTo ? (<>
-                              <div className="font-medium text-xs">{b.assignedTo.name}</div>
-                              <div className="text-[10px] text-muted-foreground truncate max-w-[120px]">{b.assignedTo.email}</div>
-                            </>) : (<span className="text-[10px] text-muted-foreground italic">Unassigned</span>)}
-                        </td>
-                        <td className="px-2 py-2.5 max-w-[140px]">
-                          {b.customerLocation?.address ? (<div className="flex items-start gap-1">
-                              <MapPin className="h-3 w-3 text-primary mt-0.5 shrink-0"/>
-                              <div>
-                                <p className="text-[10px] leading-snug line-clamp-2">{b.customerLocation.address}</p>
-                                {b.customerLocation.latitude && (<a href={`https://www.google.com/maps?q=${b.customerLocation.latitude},${b.customerLocation.longitude}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-primary hover:underline inline-flex items-center gap-0.5 mt-0.5">
-                                    Maps <ExternalLink className="h-2 w-2"/>
-                                  </a>)}
-                              </div>
-                            </div>) : b.event?.location ? (<div className="flex items-start gap-1">
-                              <MapPin className="h-3 w-3 text-primary mt-0.5 shrink-0"/>
-                              <p className="text-[10px] leading-snug line-clamp-2">{b.event.location}</p>
-                            </div>) : (<span className="text-[10px] text-muted-foreground">—</span>)}
-                        </td>
-                        <td className="px-2 py-2.5 font-semibold text-primary text-xs">{formatCurrency(b.price)}</td>
-                        <td className="px-2 py-2.5 text-muted-foreground text-[10px]">
-                          <div>{new Date(b.datetime).toLocaleDateString()}</div>
-                          <div>{new Date(b.datetime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
-                        </td>
-                        <td className="px-2 py-2.5">
-                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold capitalize ${STATUS_COLORS[b.status] || "bg-secondary text-muted-foreground"}`}>
-                            {b.status}
-                          </span>
-                        </td>
-                        <td className="px-2 py-2.5">
-                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold capitalize ${b.paymentStatus === "paid" ? "bg-green-500/15 text-green-400" :
-                    b.paymentStatus === "refunded" ? "bg-orange-500/15 text-orange-400" :
-                        "bg-secondary text-muted-foreground"}`}>
-                            {b.paymentStatus}
-                          </span>
-                        </td>
-                      </tr>))}
-                  </tbody>
-                </table>
-            </div>)}
+                        </div>
+                      ) : b.event?.location ? (
+                        <div className="flex items-start gap-1.5 max-w-[140px]">
+                          <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0"/>
+                          <p className="text-xs leading-snug text-foreground/90 line-clamp-2">{b.event.location}</p>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-bold text-xs text-primary whitespace-nowrap">
+                      {formatCurrency(b.price)}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      <div className="font-medium text-foreground">{new Date(b.datetime).toLocaleDateString()}</div>
+                      <div className="text-[11px] text-muted-foreground">{new Date(b.datetime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+                    </TableCell>
+                    <TableCell align="center">
+                      <StatusBadge status={b.status} />
+                    </TableCell>
+                    <TableCell align="center">
+                      <StatusBadge status={b.paymentStatus || "pending"} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </DataTable>
+          )}
         </motion.div>
 
         {/* Booking Detail Dialog */}

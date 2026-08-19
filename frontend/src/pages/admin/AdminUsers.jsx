@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Users, CheckCircle, AlertTriangle, Search, Filter, UserX, UserCheck, KeyRound, FileText, CheckCircle2, DollarSign, Sparkles, XCircle, Eye } from "lucide-react";
+import { Users, CheckCircle, AlertTriangle, Search, Filter, UserX, UserCheck, KeyRound, FileText, CheckCircle2, DollarSign, Sparkles, XCircle, Eye, Pencil, Trash2 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { useGsapReveal } from "@/lib/gsapAnimations";
 import { Input } from "@/components/ui/input";
@@ -13,163 +13,58 @@ import { Label } from "@/components/ui/label";
 import { apiCreateUser, apiListUsers, apiUpdateUser, apiDeleteUser, apiResetPassword, apiSendMerchantQuotation, apiActivateMerchant, apiGetTickets, apiSendTicketQuotation, apiApproveTicket, apiGetAdminCustomServiceRequests, apiSendCustomServiceQuote, apiRejectCustomServiceRequest } from "@/lib/api";
 import { sanitizeEmailInput, sanitizeNameInput, validateEmail, validateSignupForm, validateNewPasswordForm, EMAIL_HINT, PASSWORD_HINT, EMAIL_MAX_LENGTH, NAME_MAX_LENGTH } from "@/lib/validation";
 import { formatCurrency } from "@/lib/utils";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import { TableEmptyState } from "@/components/common/table/TableEmptyState";
 
-const UsersTableBody = ({ list, emptyMessage, setSelectedMerchantDetails, setIsDetailsModalOpen, setSelectedMerchantForQuote, setQuoteAmount, setIsQuoteDialogOpen, setSelectedMerchantForActivation, setMaxEvents, setMaxServices, setIsActivationDialogOpen, handleOpenResetPassword, handleToggleStatus, isTogglingStatus, handleOpenEdit, handleDelete, isDeleting }) => (
-  <table className="w-full text-xs">
-    <thead>
-      <tr className="bg-secondary">
-        <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Name</th>
-        <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Email</th>
-        <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Mobile</th>
-        <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Role</th>
-        <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Joined</th>
-        <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap hidden md:table-cell">Status</th>
-        <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Onboarding status</th>
-        <th className="text-right px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
+const UsersTableBody = ({ list, emptyMessage, navigate }) => (
+  <DataTable minWidth="100%">
+    <TableHeader>
+      <TableHeaderCell className="w-[24%]">Name</TableHeaderCell>
+      <TableHeaderCell className="w-[28%]">Email</TableHeaderCell>
+      <TableHeaderCell className="w-[18%]">Mobile</TableHeaderCell>
+      <TableHeaderCell className="w-[12%]">Role</TableHeaderCell>
+      <TableHeaderCell className="w-[12%] whitespace-nowrap">Joined</TableHeaderCell>
+      <TableHeaderCell align="right" className="w-[6%]">Actions</TableHeaderCell>
+    </TableHeader>
+    <TableBody>
       {list.map((u) => (
-        <tr key={u._id} className="border-b border-border last:border-0 hover:bg-secondary/50 transition-colors">
-          <td className="px-2 py-2.5 align-middle font-medium text-xs">{u.name}</td>
-          <td className="px-2 py-2.5 align-middle text-muted-foreground text-xs">{u.email}</td>
-          <td className="px-2 py-2.5 align-middle text-muted-foreground text-xs">{u.mobile || "—"}</td>
-          <td className="px-2 py-2.5 align-middle">
-            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-              u.role === 'admin' ? 'bg-primary/20 text-primary' :
-              u.role === 'merchant' ? 'bg-tint-blue text-tint-blue-fg' :
-              'bg-secondary text-foreground'
-            }`}>
-              {u.role}
-            </span>
-          </td>
-          <td className="px-2 py-2.5 align-middle text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</td>
-          <td className="px-2 py-2.5 align-middle hidden md:table-cell">
-            <span className={`flex items-center gap-1.5 text-xs font-medium ${u.status === "deactivated" ? "text-tint-orange-fg" : "text-tint-mint-fg"}`}>
-              {u.status === "deactivated" ? (
-                <>
-                  <AlertTriangle className="h-3.5 w-3.5"/> Deactivated
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="h-3.5 w-3.5"/> Active
-                </>
-              )}
-            </span>
-          </td>
-          <td className="px-2 py-2.5 align-middle">
-            {u.role === "merchant" ? (
-              <div className="flex flex-col gap-1">
-                <span className={`inline-flex items-center w-fit rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                  u.merchantStatus === "active" ? "bg-tint-mint text-tint-mint-fg" :
-                  u.merchantStatus === "paid" ? "bg-tint-violet text-tint-violet-fg" :
-                  u.merchantStatus === "quotation_sent" ? "bg-tint-orange text-tint-orange-fg" :
-                  u.merchantStatus === "details_submitted" ? "bg-tint-orange text-tint-orange-fg" :
-                  "bg-secondary text-muted-foreground"
-                }`}>
-                  {u.merchantStatus === "active" ? "Activated" :
-                   u.merchantStatus === "paid" ? "Paid (Awaiting Activation)" :
-                   u.merchantStatus === "quotation_sent" ? "Quotation Sent" :
-                   u.merchantStatus === "details_submitted" ? "Review Pending" :
-                   "Details Pending"}
-                </span>
-                {u.merchantStatus === "quotation_sent" && (<span className="text-[10px] text-muted-foreground font-semibold">Quote: {formatCurrency(u.quotationAmount || 0)}</span>)}
-                {u.merchantStatus === "active" && (<span className="text-[10px] text-muted-foreground">Limits: {u.maxEvents || 5}E / {u.maxServices || 5}S</span>)}
-              </div>
-            ) : (
-              <span className="text-muted-foreground text-xs">—</span>
-            )}
-          </td>
-          <td className="px-2 py-2.5 align-middle text-right">
-            <div className="flex items-center justify-end gap-1.5 flex-nowrap whitespace-nowrap">
-              {u.role === "merchant" && (
-                <>
-                  {u.merchantDetails?.businessName && (
-                    <Button variant="outline" size="sm" className="text-orange-600 border-orange-500/30 hover:bg-orange-500/10" onClick={() => {
-                      setSelectedMerchantDetails(u);
-                      setIsDetailsModalOpen(true);
-                    }}>
-                      <FileText className="h-3.5 w-3.5 mr-1"/> Details
-                    </Button>
-                  )}
-                  {u.merchantStatus !== "active" && u.merchantStatus !== "paid" && (
-                    <Button variant="outline" size="sm" className="text-yellow-600 border-yellow-500/30 hover:bg-yellow-500/10" onClick={() => {
-                      setSelectedMerchantForQuote(u);
-                      setQuoteAmount(u.quotationAmount?.toString() || "");
-                      setIsQuoteDialogOpen(true);
-                    }}>
-                      <DollarSign className="h-3.5 w-3.5 mr-1"/> Quote
-                    </Button>
-                  )}
-                </>
-              )}
-              {u.role === "merchant" && u.merchantStatus === "paid" && (
-                <Button variant="outline" size="sm" className="text-purple-600 border-purple-500/30 hover:bg-purple-500/10" onClick={() => {
-                  setSelectedMerchantForActivation(u);
-                  setMaxEvents(u.maxEvents?.toString() || "5");
-                  setMaxServices(u.maxServices?.toString() || "5");
-                  setIsActivationDialogOpen(true);
-                }}>
-                  <CheckCircle2 className="h-3.5 w-3.5 mr-1"/> Activate
-                </Button>
-              )}
-              {u.role === "merchant" && u.merchantStatus === "active" && (
-                <Button variant="outline" size="sm" className="text-green-600 border-green-500/30 hover:bg-green-500/10" onClick={() => {
-                  setSelectedMerchantForActivation(u);
-                  setMaxEvents(u.maxEvents?.toString() || "5");
-                  setMaxServices(u.maxServices?.toString() || "5");
-                  setIsActivationDialogOpen(true);
-                }} title="Modify account listing limits">
-                  Limits
-                </Button>
-              )}
-
-              {u.role === "admin" ? (
-                <span className="text-[11px] font-semibold text-purple-600 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-md">
-                  Protected Admin
-                </span>
-              ) : (
-                <>
-                  <Button variant="outline" size="sm" onClick={() => handleOpenResetPassword(u)} title="Reset Password" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                    <KeyRound className="h-4 w-4"/>
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleToggleStatus(u._id, u.status || "active")} disabled={isTogglingStatus === u._id} className={u.status === "deactivated" ? "text-green-600 hover:text-green-700" : "text-orange-600 hover:text-orange-700"}>
-                    {isTogglingStatus === u._id ? ("...") : u.status === "deactivated" ? (
-                      <>
-                        <UserCheck className="h-3.5 w-3.5 mr-1"/> Activate
-                      </>
-                    ) : (
-                      <>
-                        <UserX className="h-3.5 w-3.5 mr-1"/> Deactivate
-                      </>
-                    )}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleOpenEdit(u)}>Edit</Button>
-                  <Button variant="destructive" size="sm" disabled={isDeleting === u._id} onClick={() => handleDelete(u._id)}>
-                    {isDeleting === u._id ? "..." : "Delete"}
-                  </Button>
-                </>
-              )}
+        <TableRow key={u._id}>
+          <TableCell className="font-semibold text-foreground">{u.name}</TableCell>
+          <TableCell className="text-muted-foreground">{u.email}</TableCell>
+          <TableCell className="text-muted-foreground">{u.mobile || "—"}</TableCell>
+          <TableCell>
+            <StatusBadge status={u.role} />
+          </TableCell>
+          <TableCell className="text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</TableCell>
+          <TableCell align="right">
+            <div className="flex items-center justify-end gap-1.5">
+              <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-foreground/80 hover:text-primary hover:bg-primary/10 hover:border-primary/30 transition-all rounded-lg shrink-0" onClick={() => {
+                navigate(`/admin-dashboard/users/${u._id}`);
+              }} title="View Details">
+                <Eye className="h-4 w-4"/>
+              </Button>
             </div>
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       ))}
       {list.length === 0 && (
-        <tr>
-          <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
-            {emptyMessage}
+        <tr className="hover:bg-transparent">
+          <td colSpan={6} className="py-6">
+            <TableEmptyState title={emptyMessage} description="Try refining your search query or filters." />
           </td>
         </tr>
       )}
-    </tbody>
-  </table>
+    </TableBody>
+  </DataTable>
 );
 
 const AdminUsers = () => {
     const { token } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
     const [users, setUsers] = useState([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -608,14 +503,14 @@ const AdminUsers = () => {
     };
 
     const userRowHandlers = {
-        setSelectedMerchantDetails, setIsDetailsModalOpen, setSelectedMerchantForQuote, setQuoteAmount,
+        navigate, setSelectedMerchantDetails, setIsDetailsModalOpen, setSelectedMerchantForQuote, setQuoteAmount,
         setIsQuoteDialogOpen, setSelectedMerchantForActivation, setMaxEvents, setMaxServices,
         setIsActivationDialogOpen, handleOpenResetPassword, handleToggleStatus, isTogglingStatus,
         handleOpenEdit, handleDelete, isDeleting,
     };
 
     return (<AdminLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
+      <section className="py-4 sm:py-6 lg:py-8">
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <div>
             <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
@@ -625,46 +520,48 @@ const AdminUsers = () => {
               {roleFilter === "merchant" ? "Manage merchants, onboarding, and limit request tickets" : roleFilter === "customer" ? "Manage customer and admin accounts" : "Manage all platform users, merchants, onboarding, custom service requests, and limit request tickets"}
             </p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleOpenCreate} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
-                <Users className="h-4 w-4 mr-2"/> Add Merchant
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Merchant</DialogTitle>
-                <DialogDescription>Add a new merchant to the platform.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                  <Input maxLength={NAME_MAX_LENGTH} required value={formState.name} onChange={(e) => setFormState({ ...formState, name: sanitizeNameInput(e.target.value) })}/>
-                </div>
-                <div className="space-y-2">
-                  <Label>Mobile Number</Label>
-                  <Input type="text" required maxLength={12} value={formState.mobile} onChange={(e) => {
-            const val = e.target.value.replace(/[^0-9]/g, "");
-            setFormState({ ...formState, mobile: val });
-        }} placeholder="Enter 12-digit mobile number"/>
-                  <p className="text-xs text-muted-foreground">Exactly 12 numbers (digits only)</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="text" inputMode="email" maxLength={EMAIL_MAX_LENGTH} required value={formState.email} onChange={(e) => setFormState({ ...formState, email: sanitizeEmailInput(e.target.value) })}/>
-                  <p className="text-xs text-muted-foreground">{EMAIL_HINT}</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Password</Label>
-                  <Input type="password" maxLength={30} required value={formState.password} onChange={(e) => setFormState({ ...formState, password: e.target.value })}/>
-                  <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
-                </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Creating..." : "Create Account"}</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          {roleFilter === "merchant" && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={handleOpenCreate} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
+                  <Users className="h-4 w-4 mr-2"/> Add Merchant
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Merchant</DialogTitle>
+                  <DialogDescription>Add a new merchant to the platform.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Name</Label>
+                    <Input maxLength={NAME_MAX_LENGTH} required value={formState.name} onChange={(e) => setFormState({ ...formState, name: sanitizeNameInput(e.target.value) })}/>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mobile Number</Label>
+                    <Input type="text" required maxLength={12} value={formState.mobile} onChange={(e) => {
+              const val = e.target.value.replace(/[^0-9]/g, "");
+              setFormState({ ...formState, mobile: val });
+          }} placeholder="Enter 12-digit mobile number"/>
+                    <p className="text-xs text-muted-foreground">Exactly 12 numbers (digits only)</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input type="text" inputMode="email" maxLength={EMAIL_MAX_LENGTH} required value={formState.email} onChange={(e) => setFormState({ ...formState, email: sanitizeEmailInput(e.target.value) })}/>
+                    <p className="text-xs text-muted-foreground">{EMAIL_HINT}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Password</Label>
+                    <Input type="password" maxLength={30} required value={formState.password} onChange={(e) => setFormState({ ...formState, password: e.target.value })}/>
+                    <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Creating..." : "Create Account"}</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
 
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent>
@@ -706,93 +603,91 @@ const AdminUsers = () => {
         </div>
 
         {/* Tab Headers */}
-        <div className="flex flex-wrap gap-2 mt-6">
-          <button onClick={() => setActiveTab("users")} className={`min-h-[44px] px-4 rounded-full text-sm font-semibold transition-all ${activeTab === "users" ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
-            All Users & Onboarding
-          </button>
-          <button onClick={() => setActiveTab("registrations")} className={`min-h-[44px] px-4 rounded-full text-sm font-semibold transition-all ${activeTab === "registrations" ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
-            Registration Requests ({users.filter(u => u.role === "merchant" && (u.merchantStatus === "details_submitted" || u.merchantStatus === "paid")).length})
-          </button>
-          <button onClick={() => {
-            setActiveTab("custom-services");
-            loadCustomRequests();
-        }} className={`min-h-[44px] px-4 rounded-full text-sm font-semibold transition-all ${activeTab === "custom-services" ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
-            ✨ Custom Service Enquiries ({customRequests.filter(r => r.status === "pending").length})
-          </button>
-          <button onClick={() => {
-            setActiveTab("tickets");
-            loadTickets();
-        }} className={`min-h-[44px] px-4 rounded-full text-sm font-semibold transition-all ${activeTab === "tickets" ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
-            Slots Upgrade Tickets
-          </button>
-          <button onClick={() => {
-            setActiveTab("billing");
-            loadUsers();
-            loadTickets();
-            loadCustomRequests();
-        }} className={`min-h-[44px] px-4 rounded-full text-sm font-semibold transition-all ${activeTab === "billing" ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
-            Billing & Payments History
-          </button>
-        </div>
+        {roleFilter !== "customer" && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar mt-4">
+            <button onClick={() => setActiveTab("users")} className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "users" ? "bg-gradient-primary text-primary-foreground shadow-sm font-bold" : "bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+              All Users & Onboarding
+            </button>
+            <button onClick={() => setActiveTab("registrations")} className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "registrations" ? "bg-gradient-primary text-primary-foreground shadow-sm font-bold" : "bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+              Registration Requests ({users.filter(u => u.role === "merchant" && (u.merchantStatus === "details_submitted" || u.merchantStatus === "paid")).length})
+            </button>
+            <button onClick={() => {
+              setActiveTab("custom-services");
+              loadCustomRequests();
+          }} className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "custom-services" ? "bg-gradient-primary text-primary-foreground shadow-sm font-bold" : "bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+              ✨ Custom Service Enquiries ({customRequests.filter(r => r.status === "pending").length})
+            </button>
+            <button onClick={() => {
+              setActiveTab("tickets");
+              loadTickets();
+          }} className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "tickets" ? "bg-gradient-primary text-primary-foreground shadow-sm font-bold" : "bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+              Slots Upgrade Tickets
+            </button>
+            <button onClick={() => {
+              setActiveTab("billing");
+              loadUsers();
+              loadTickets();
+              loadCustomRequests();
+          }} className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "billing" ? "bg-gradient-primary text-primary-foreground shadow-sm font-bold" : "bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
+              Billing & Payments History
+            </button>
+          </div>
+        )}
 
         {activeTab === "users" || activeTab === "registrations" ? (<>
             {/* Filters */}
-            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }} className="mt-6 flex gap-3">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
-                <Input placeholder="Search users..." maxLength={30} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 bg-card border-border"/>
+            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.1 }} className="mt-4 flex items-center justify-between gap-3 w-full">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
+                <Input placeholder="Search merchants by name or email..." maxLength={30} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 bg-card border-border rounded-xl text-xs sm:text-sm h-10 shadow-xs"/>
               </div>
-              <Button variant="outline" size="icon"><Filter className="h-4 w-4"/></Button>
+              <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border shrink-0 hover:bg-secondary/80">
+                <Filter className="h-4 w-4"/>
+              </Button>
             </motion.div>
 
-            {/* Users Table */}
-            <div className="mt-6 rounded-xl border border-border overflow-hidden bg-card">
-              <div className="overflow-x-auto w-full">
-                <UsersTableBody list={filteredUsers} emptyMessage={activeTab === "registrations" ? "No pending registration requests found" : roleFilter === "merchant" ? "No merchants found" : roleFilter === "customer" ? "No users found" : "No users found"} {...userRowHandlers}/>
-              </div>
+            {/* Merchant Table Card */}
+            <div className="mt-4 w-full">
+              <UsersTableBody list={filteredUsers} emptyMessage={activeTab === "registrations" ? "No pending registration requests found" : roleFilter === "merchant" ? "No merchants found" : roleFilter === "customer" ? "No users found" : "No users found"} {...userRowHandlers}/>
             </div>
           </>) : activeTab === "custom-services" ? (<>
             {/* Custom Service Enquiries Table */}
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
-              <table className="w-full text-sm min-w-[850px]">
-                <thead>
-                  <tr className="border-b border-border bg-secondary/50">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Customer</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Service Title & Category</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Date & Location</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Requirements / Details</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Status</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Quote Amount</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {customRequests.map((r) => (<tr key={r._id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                      <td className="px-4 py-3 align-middle font-medium">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 w-full">
+              <DataTable minWidth="100%">
+                <TableHeader>
+                  <TableHeaderCell className="w-[16%]">Customer</TableHeaderCell>
+                  <TableHeaderCell className="w-[20%]">Service Title & Category</TableHeaderCell>
+                  <TableHeaderCell className="w-[18%]">Date & Location</TableHeaderCell>
+                  <TableHeaderCell className="w-[20%]">Requirements / Details</TableHeaderCell>
+                  <TableHeaderCell className="w-[10%]">Status</TableHeaderCell>
+                  <TableHeaderCell className="w-[8%] whitespace-nowrap">Quote Amount</TableHeaderCell>
+                  <TableHeaderCell align="right" className="w-[8%]">Actions</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                  {customRequests.map((r) => (<TableRow key={r._id}>
+                      <TableCell className="font-medium">
                         <div className="flex flex-col">
-                          <span>{r.user?.name || "Customer"}</span>
-                          <span className="text-xs text-muted-foreground">{r.user?.email}</span>
+                          <span className="font-semibold text-xs text-foreground">{r.user?.name || "Customer"}</span>
+                          <span className="text-[11px] text-muted-foreground truncate max-w-[140px]">{r.user?.email}</span>
                           {r.user?.mobile && <span className="text-[10px] text-muted-foreground">📞 {r.user?.mobile}</span>}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 align-middle">
+                      </TableCell>
+                      <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-semibold text-foreground">{r.serviceTitle}</span>
-                          <span className="inline-flex items-center w-fit rounded-full px-2 py-0.5 text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 mt-1">
-                            {r.category || "General"} {r.quantity ? `• Count: ${r.quantity}` : ""}
-                          </span>
+                          <span className="font-semibold text-xs text-foreground line-clamp-1">{r.serviceTitle}</span>
+                          <span className="text-[10px] text-muted-foreground">{r.category || "General"}</span>
                         </div>
-                      </td>
-                      <td className="px-4 py-3 align-middle text-xs">
-                        <div className="flex flex-col">
-                          <span className="font-medium">📅 {new Date(r.eventDate).toLocaleDateString()}</span>
-                          <span className="text-muted-foreground mt-0.5">📍 {r.location}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col text-xs text-muted-foreground">
+                          {r.eventDate && <span>📅 {new Date(r.eventDate).toLocaleDateString()}</span>}
+                          {r.location && <span className="truncate max-w-[140px]">📍 {r.location}</span>}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 align-middle text-muted-foreground italic text-xs max-w-xs truncate" title={r.description}>
-                        {r.description}
-                      </td>
-                      <td className="px-4 py-3 align-middle">
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        <p className="line-clamp-2 max-w-[200px]" title={r.description}>{r.description || "—"}</p>
+                      </TableCell>
+                      <TableCell>
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${r.status === "paid" ? "bg-green-500/10 text-green-500 border-green-500/20"
                     : r.status === "quoted" ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
                         : r.status === "rejected" ? "bg-red-500/10 text-red-500 border-red-500/20"
@@ -802,86 +697,76 @@ const AdminUsers = () => {
                         : r.status === "rejected" ? "Declined"
                             : "Pending Review"}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 align-middle font-semibold text-primary">
+                      </TableCell>
+                      <TableCell className="font-semibold text-xs text-primary whitespace-nowrap">
                         {r.quotationAmount > 0 ? formatCurrency(r.quotationAmount) : (r.budget > 0 ? `Budget: ${formatCurrency(r.budget)}` : "—")}
-                      </td>
-                      <td className="px-4 py-3 align-middle text-right">
-                        <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-                          <Button variant="outline" size="sm" className="text-blue-600 border-blue-500/30 hover:bg-blue-500/10 font-medium" onClick={() => {
-                            setSelectedCustomForDetails(r);
-                            setIsCustomDetailsOpen(true);
-                          }}>
-                            <Eye className="h-3.5 w-3.5 mr-1"/> Details
-                          </Button>
-                          {r.status === "pending" && (<>
-                              <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 font-medium" onClick={() => {
+                      </TableCell>
+                      <TableCell align="right">
+                        <div className="flex items-center justify-end gap-2">
+                          {r.status === "pending" && (<Button variant="outline" size="sm" className="text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 font-medium text-xs h-8 px-2" onClick={() => {
                         setSelectedCustomForQuote(r);
                         setCustomQuoteAmount(r.budget ? String(r.budget) : "");
                         setCustomQuoteNote("");
                         setIsCustomQuoteOpen(true);
                     }}>
                                 <DollarSign className="h-3.5 w-3.5 mr-1"/> Send Quote
-                              </Button>
-                              <Button variant="outline" size="sm" className="text-red-600 border-red-500/30 hover:bg-red-500/10 font-medium" onClick={() => {
+                              </Button>)}
+                          {r.status === "pending" && (<Button variant="outline" size="sm" className="text-red-600 border-red-500/30 hover:bg-red-500/10 font-medium text-xs h-8 px-2" onClick={() => {
                         setSelectedCustomForReject(r);
                         setRejectionReason("");
                         setIsRejectOpen(true);
                     }}>
                                 <XCircle className="h-3.5 w-3.5 mr-1"/> Decline
-                              </Button>
-                            </>)}
+                              </Button>)}
                           {r.status === "quoted" && (<span className="text-xs text-muted-foreground">Quote sent (₹{r.quotationAmount?.toLocaleString()})</span>)}
-                          {r.status === "rejected" && (<span className="text-xs text-red-500 italic truncate max-w-[120px]" title={r.rejectionReason}>Declined: {r.rejectionReason}</span>)}
+                          {r.status === "rejected" && (<span className="text-xs text-red-500 italic truncate max-w-[120px]" title={r.rejectionReason}>Declined</span>)}
                           {r.status === "paid" && (<span className="text-xs text-green-600 font-semibold flex items-center gap-1 justify-end">
                               <CheckCircle2 className="h-3.5 w-3.5"/> Confirmed
                             </span>)}
                         </div>
-                      </td>
-                    </tr>))}
-                  {customRequests.length === 0 && (<tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                      </TableCell>
+                    </TableRow>))}
+                  {customRequests.length === 0 && (<TableRow>
+                      <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                         {loadingCustomRequests ? "Loading custom service requests..." : "No custom service enquiries found."}
-                      </td>
-                    </tr>)}
-                </tbody>
-              </table>
+                      </TableCell>
+                    </TableRow>)}
+                </TableBody>
+              </DataTable>
             </motion.div>
           </>) : activeTab === "tickets" ? (<>
             {/* Tickets Table */}
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
-              <table className="w-full text-sm min-w-[700px]">
-                <thead>
-                  <tr className="border-b border-border bg-secondary/50">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Merchant</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Requested slots</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Explanation Message</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Requested Date</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Ticket status</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Quotation Amount</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tickets.map((t) => (<tr key={t._id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                      <td className="px-4 py-3 align-middle font-medium">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 w-full">
+              <DataTable minWidth="100%">
+                <TableHeader>
+                  <TableHeaderCell className="w-[18%]">Merchant</TableHeaderCell>
+                  <TableHeaderCell className="w-[16%]">Requested slots</TableHeaderCell>
+                  <TableHeaderCell className="w-[24%]">Explanation Message</TableHeaderCell>
+                  <TableHeaderCell className="w-[12%] whitespace-nowrap">Requested Date</TableHeaderCell>
+                  <TableHeaderCell className="w-[12%]">Ticket status</TableHeaderCell>
+                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Quotation Amount</TableHeaderCell>
+                  <TableHeaderCell align="right" className="w-[8%]">Actions</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                  {tickets.map((t) => (<TableRow key={t._id}>
+                      <TableCell className="font-medium">
                         <div className="flex flex-col">
-                          <span>{t.merchant?.name}</span>
-                          <span className="text-xs text-muted-foreground">{t.merchant?.email}</span>
+                          <span className="font-semibold text-xs text-foreground">{t.merchant?.name}</span>
+                          <span className="text-[11px] text-muted-foreground truncate max-w-[140px]">{t.merchant?.email}</span>
                           {t.merchant?.mobile && <span className="text-[10px] text-muted-foreground">📞 {t.merchant?.mobile}</span>}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 align-middle">
+                      </TableCell>
+                      <TableCell>
                         <div className="flex flex-col text-xs font-semibold">
                           <span>+{t.requestedEvents} Event slots</span>
                           <span>+{t.requestedServices} Service slots</span>
                         </div>
-                      </td>
-                      <td className="px-4 py-3 align-middle text-muted-foreground italic text-xs max-w-xs truncate" title={t.message}>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground italic text-xs max-w-[200px] truncate" title={t.message}>
                         {t.message ? `"${t.message}"` : "—"}
-                      </td>
-                      <td className="px-4 py-3 align-middle text-muted-foreground">{new Date(t.createdAt).toLocaleDateString()}</td>
-                      <td className="px-4 py-3 align-middle">
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{new Date(t.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${t.status === "approved" ? "bg-green-500/10 text-green-500 border-green-500/20"
                     : t.status === "paid" ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
                         : t.status === "quotation_sent" ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
@@ -891,51 +776,49 @@ const AdminUsers = () => {
                         : t.status === "quotation_sent" ? "Quotation Sent"
                             : "Pending Review"}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 align-middle font-semibold text-primary">
+                      </TableCell>
+                      <TableCell className="font-semibold text-xs text-primary whitespace-nowrap">
                         {t.quotationAmount > 0 ? formatCurrency(t.quotationAmount) : "—"}
-                      </td>
-                      <td className="px-4 py-3 align-middle text-right">
+                      </TableCell>
+                      <TableCell align="right">
                         <div className="flex items-center justify-end gap-2">
-                          {t.status === "pending" && (<Button variant="outline" size="sm" className="text-yellow-600 border-yellow-500/30 hover:bg-yellow-500/10" onClick={() => {
+                          {t.status === "pending" && (<Button variant="outline" size="sm" className="text-yellow-600 border-yellow-500/30 hover:bg-yellow-500/10 text-xs h-8 px-2" onClick={() => {
                         setSelectedTicketForQuote(t);
                         setTicketQuoteAmount("");
                         setIsTicketQuoteDialogOpen(true);
                     }}>
                                 <DollarSign className="h-3.5 w-3.5 mr-1"/> Send Quote
                             </Button>)}
-                          {t.status === "paid" && (<Button variant="outline" size="sm" className="text-green-600 border-green-500/30 hover:bg-green-500/10 font-bold" onClick={() => handleApproveTicketClick(t._id)}>
+                          {t.status === "paid" && (<Button variant="outline" size="sm" className="text-green-600 border-green-500/30 hover:bg-green-500/10 font-bold text-xs h-8 px-2" onClick={() => handleApproveTicketClick(t._id)}>
                                <CheckCircle2 className="h-3.5 w-3.5 mr-1"/> Approve & Upgrade
                             </Button>)}
-                          {t.status === "quotation_sent" && (<span className="text-xs text-muted-foreground">Awaiting merchant payment</span>)}
+                          {t.status === "quotation_sent" && (<span className="text-xs text-muted-foreground italic">Awaiting merchant payment</span>)}
                           {t.status === "approved" && (<span className="text-xs text-green-600 font-semibold flex items-center gap-1 justify-end">
                               <CheckCircle2 className="h-3 w-3"/> Completed
                             </span>)}
                         </div>
-                      </td>
-                    </tr>))}
-                  {tickets.length === 0 && (<tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                      </TableCell>
+                    </TableRow>))}
+                  {tickets.length === 0 && (<TableRow>
+                      <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                         {loadingTickets ? "Loading tickets..." : "No upgrade request tickets found"}
-                      </td>
-                    </tr>)}
-                </tbody>
-              </table>
+                      </TableCell>
+                    </TableRow>)}
+                </TableBody>
+              </DataTable>
             </motion.div>
           </>) : (<>
             {/* Billing & Payments History Table */}
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
-              <table className="w-full text-sm min-w-[700px]">
-                <thead>
-                  <tr className="border-b border-border bg-secondary/50">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Payer</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Description</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Payment Date</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Amount Received</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 w-full">
+              <DataTable minWidth="100%">
+                <TableHeader>
+                  <TableHeaderCell className="w-[20%]">Payer</TableHeaderCell>
+                  <TableHeaderCell className="w-[35%]">Description</TableHeaderCell>
+                  <TableHeaderCell className="w-[20%] whitespace-nowrap">Payment Date</TableHeaderCell>
+                  <TableHeaderCell className="w-[15%] whitespace-nowrap">Amount Received</TableHeaderCell>
+                  <TableHeaderCell align="right" className="w-[10%]">Status</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
                   {(() => {
                 const billingHistory = [];
                 // 1. Setup payments
@@ -989,32 +872,30 @@ const AdminUsers = () => {
                 // Sort descending
                 billingHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                 if (billingHistory.length === 0) {
-                    return (<tr>
-                          <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No payment history found</td>
-                        </tr>);
+                    return (<TableRow>
+                          <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">No payment history found</TableCell>
+                        </TableRow>);
                 }
-                return billingHistory.map(row => (<tr key={row.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                        <td className="px-4 py-3 align-middle font-medium">
+                return billingHistory.map(row => (<TableRow key={row.id}>
+                        <TableCell className="font-medium">
                           <div className="flex flex-col">
-                            <span>{row.merchantName}</span>
-                            <span className="text-xs text-muted-foreground">{row.merchantEmail}</span>
+                            <span className="font-semibold text-xs text-foreground">{row.merchantName}</span>
+                            <span className="text-[11px] text-muted-foreground truncate max-w-[140px]">{row.merchantEmail}</span>
                             {row.merchantMobile && <span className="text-[10px] text-muted-foreground">📞 {row.merchantMobile}</span>}
                           </div>
-                        </td>
-                        <td className="px-4 py-3 align-middle text-muted-foreground">{row.description}</td>
-                        <td className="px-4 py-3 align-middle text-muted-foreground">
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs">{row.description}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {new Date(row.date).toLocaleDateString()} {new Date(row.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </td>
-                        <td className="px-4 py-3 align-middle font-bold text-primary">{formatCurrency(row.amount)}</td>
-                        <td className="px-4 py-3 align-middle text-right">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${row.statusColor}`}>
-                            {row.status}
-                          </span>
-                        </td>
-                      </tr>));
+                        </TableCell>
+                        <TableCell className="font-bold text-xs text-primary whitespace-nowrap">{formatCurrency(row.amount)}</TableCell>
+                        <TableCell align="right">
+                          <StatusBadge status={row.status === "Paid & Confirmed" ? "active" : "pending"} label={row.status} />
+                        </TableCell>
+                      </TableRow>));
             })()}
-                </tbody>
-              </table>
+                </TableBody>
+              </DataTable>
             </motion.div>
           </>)}
 
@@ -1273,54 +1154,199 @@ const AdminUsers = () => {
         <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary"/> Merchant Onboarding Details
+              <DialogTitle className="flex items-center justify-between gap-2 pr-6">
+                <div className="flex items-center gap-2">
+                  <Eye className="h-5 w-5 text-primary"/>
+                  <span>Merchant Profile & Details</span>
+                </div>
+                {selectedMerchantDetails && (
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    selectedMerchantDetails.status === "deactivated" ? "bg-red-500/10 text-red-500 border border-red-500/20" : "bg-green-500/10 text-green-600 border border-green-500/20"
+                  }`}>
+                    {selectedMerchantDetails.status === "deactivated" ? "Deactivated" : "Active Account"}
+                  </span>
+                )}
               </DialogTitle>
               <DialogDescription>
-                Review submitted business qualifications and capabilities.
+                Full business overview, qualifications, contact info, and account management actions.
               </DialogDescription>
             </DialogHeader>
-            {selectedMerchantDetails && (<div className="space-y-4 py-2 text-sm max-h-[70vh] overflow-y-auto pr-2">
-                <div className="grid grid-cols-2 gap-4 border-b border-border pb-3">
-                  <div>
-                    <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Business Name</span>
-                    <p className="font-semibold text-base mt-0.5">{selectedMerchantDetails.merchantDetails?.businessName}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Experience</span>
-                    <p className="font-semibold text-base mt-0.5">{selectedMerchantDetails.merchantDetails?.experienceYears} years</p>
-                  </div>
-                </div>
 
-                <div className="border-b border-border pb-3">
-                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Business Location / Address</span>
-                  <p className="mt-0.5">{selectedMerchantDetails.merchantDetails?.address}</p>
-                </div>
-
-                <div className="border-b border-border pb-3">
-                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Business Description</span>
-                  <p className="mt-1 text-muted-foreground whitespace-pre-line leading-relaxed">
-                    {selectedMerchantDetails.merchantDetails?.businessDescription}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-3 bg-secondary/30 rounded-lg border border-border/50">
-                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Event Types Handled</span>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {selectedMerchantDetails.merchantDetails?.eventTypes?.map((t) => (<span key={t} className="text-xs bg-secondary text-foreground px-2 py-0.5 rounded-full border border-border">{t}</span>)) || <span className="text-xs text-muted-foreground">None selected</span>}
+            {selectedMerchantDetails && (<div className="space-y-4 py-2 text-sm max-h-[70vh] overflow-y-auto pr-1">
+                {/* Account & Contact Information Card */}
+                <div className="p-4 bg-secondary/20 rounded-xl border border-border/60 space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5" /> Account & Contact Info
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <span className="text-[11px] text-muted-foreground uppercase font-semibold">Account Holder</span>
+                      <p className="font-semibold text-sm mt-0.5 text-foreground">{selectedMerchantDetails.name}</p>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-muted-foreground uppercase font-semibold">Email Address</span>
+                      <p className="font-medium text-xs mt-0.5 text-foreground truncate" title={selectedMerchantDetails.email}>{selectedMerchantDetails.email}</p>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-muted-foreground uppercase font-semibold">Mobile Number</span>
+                      <p className="font-medium text-xs mt-0.5 text-foreground">{selectedMerchantDetails.mobile || "Not provided"}</p>
                     </div>
                   </div>
-                  <div className="p-3 bg-secondary/30 rounded-lg border border-border/50">
-                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Services Offered</span>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {selectedMerchantDetails.merchantDetails?.serviceTypes?.map((t) => (<span key={t} className="text-xs bg-secondary text-foreground px-2 py-0.5 rounded-full border border-border">{t}</span>)) || <span className="text-xs text-muted-foreground">None selected</span>}
+                </div>
+
+                {/* Business Profile Card */}
+                <div className="p-4 bg-secondary/20 rounded-xl border border-border/60 space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5" /> Business Profile
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-[11px] text-muted-foreground uppercase font-semibold">Business Name</span>
+                      <p className="font-semibold text-sm mt-0.5 text-foreground">{selectedMerchantDetails.merchantDetails?.businessName || "—"}</p>
                     </div>
+                    <div>
+                      <span className="text-[11px] text-muted-foreground uppercase font-semibold">Experience</span>
+                      <p className="font-semibold text-sm mt-0.5 text-foreground">
+                        {selectedMerchantDetails.merchantDetails?.experienceYears ? `${selectedMerchantDetails.merchantDetails.experienceYears} years` : "—"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] text-muted-foreground uppercase font-semibold">Business Location / Address</span>
+                    <p className="text-xs mt-0.5 text-foreground/90">{selectedMerchantDetails.merchantDetails?.address || "—"}</p>
+                  </div>
+
+                  {selectedMerchantDetails.merchantDetails?.businessDescription && (
+                    <div>
+                      <span className="text-[11px] text-muted-foreground uppercase font-semibold">Business Description</span>
+                      <p className="text-xs mt-1 text-muted-foreground whitespace-pre-line leading-relaxed bg-background/50 p-2.5 rounded-lg border border-border/40">
+                        {selectedMerchantDetails.merchantDetails.businessDescription}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Capability Tags */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 bg-secondary/20 rounded-xl border border-border/60">
+                    <span className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Event Types Handled</span>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {selectedMerchantDetails.merchantDetails?.eventTypes?.map((t) => (<span key={t} className="text-xs bg-secondary text-foreground px-2.5 py-0.5 rounded-full border border-border/70 font-medium">{t}</span>)) || <span className="text-xs text-muted-foreground italic">None selected</span>}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-secondary/20 rounded-xl border border-border/60">
+                    <span className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">Services Offered</span>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {selectedMerchantDetails.merchantDetails?.serviceTypes?.map((t) => (<span key={t} className="text-xs bg-secondary text-foreground px-2.5 py-0.5 rounded-full border border-border/70 font-medium">{t}</span>)) || <span className="text-xs text-muted-foreground italic">None selected</span>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Onboarding & Limits Card */}
+                <div className="p-3.5 bg-secondary/20 rounded-xl border border-border/60 space-y-2">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Onboarding & Account Status
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-[11px] text-muted-foreground uppercase font-semibold">Onboarding Status: </span>
+                      <div className="mt-1">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                          selectedMerchantDetails.merchantStatus === "active" ? "bg-tint-mint text-tint-mint-fg" :
+                          selectedMerchantDetails.merchantStatus === "paid" ? "bg-tint-violet text-tint-violet-fg" :
+                          selectedMerchantDetails.merchantStatus === "quotation_sent" ? "bg-tint-orange text-tint-orange-fg" :
+                          selectedMerchantDetails.merchantStatus === "details_submitted" ? "bg-tint-orange text-tint-orange-fg" :
+                          "bg-secondary text-muted-foreground"
+                        }`}>
+                          {selectedMerchantDetails.merchantStatus === "active" ? "Activated" :
+                           selectedMerchantDetails.merchantStatus === "paid" ? "Paid (Awaiting Activation)" :
+                           selectedMerchantDetails.merchantStatus === "quotation_sent" ? "Quotation Sent" :
+                           selectedMerchantDetails.merchantStatus === "details_submitted" ? "Review Pending" :
+                           "Details Pending"}
+                        </span>
+                      </div>
+                    </div>
+                    {selectedMerchantDetails.role === "merchant" && (
+                      <div>
+                        <span className="text-[11px] text-muted-foreground uppercase font-semibold">Slot Limits: </span>
+                        <p className="font-semibold text-xs mt-1 text-foreground">
+                          {selectedMerchantDetails.maxEvents || 5} Events / {selectedMerchantDetails.maxServices || 5} Services
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>)}
-            <DialogFooter>
-              <Button type="button" onClick={() => setIsDetailsModalOpen(false)}>Close Details</Button>
+
+            <DialogFooter className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 border-t border-border pt-4 mt-2">
+              {selectedMerchantDetails && (
+                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                  {/* Reset Password Action with Key Symbol */}
+                  <Button variant="outline" size="sm" onClick={() => {
+                    setIsDetailsModalOpen(false);
+                    handleOpenResetPassword(selectedMerchantDetails);
+                  }} title="Reset Password" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-500/30">
+                    <KeyRound className="h-4 w-4 mr-1"/> Reset Password
+                  </Button>
+
+                  {/* Limits Action Button */}
+                  {selectedMerchantDetails.role === "merchant" && (
+                    <Button variant="outline" size="sm" onClick={() => {
+                      setIsDetailsModalOpen(false);
+                      setSelectedMerchantForActivation(selectedMerchantDetails);
+                      setMaxEvents(selectedMerchantDetails.maxEvents?.toString() || "5");
+                      setMaxServices(selectedMerchantDetails.maxServices?.toString() || "5");
+                      setIsActivationDialogOpen(true);
+                    }} className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-500/30" title="Modify account listing limits">
+                      Limits
+                    </Button>
+                  )}
+
+                  {/* Edit Action */}
+                  <Button variant="outline" size="sm" onClick={() => {
+                    setIsDetailsModalOpen(false);
+                    handleOpenEdit(selectedMerchantDetails);
+                  }}>
+                    <Pencil className="h-3.5 w-3.5 mr-1.5"/> Edit
+                  </Button>
+
+                  {/* Deactivate / Activate Action */}
+                  {selectedMerchantDetails.role !== "admin" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isTogglingStatus === selectedMerchantDetails._id}
+                      onClick={() => handleToggleStatus(selectedMerchantDetails._id, selectedMerchantDetails.status || "active")}
+                      className={`${selectedMerchantDetails.status === "deactivated" ? "text-green-600 hover:text-green-700 hover:bg-green-50 border-green-500/30" : "text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-500/30"}`}
+                    >
+                      {isTogglingStatus === selectedMerchantDetails._id ? ("...") : selectedMerchantDetails.status === "deactivated" ? (
+                        <>
+                          <UserCheck className="h-3.5 w-3.5 mr-1.5"/> Activate
+                        </>
+                      ) : (
+                        <>
+                          <UserX className="h-3.5 w-3.5 mr-1.5"/> Deactivate
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {/* Delete Action */}
+                  {selectedMerchantDetails.role !== "admin" && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={isDeleting === selectedMerchantDetails._id}
+                      onClick={() => handleDelete(selectedMerchantDetails._id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5"/>
+                      {isDeleting === selectedMerchantDetails._id ? "Deleting..." : "Delete"}
+                    </Button>
+                  )}
+                </div>
+              )}
+              <Button type="button" variant="secondary" size="sm" onClick={() => setIsDetailsModalOpen(false)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

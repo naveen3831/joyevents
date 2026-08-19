@@ -290,6 +290,19 @@
     scrollbar-color: hsl(var(--border) / 0.8) transparent;
   }
 
+  /* Hide scrollbars for side navigation bars while preserving scroll capability */
+  .no-scrollbar::-webkit-scrollbar,
+  .custom-scrollbar::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  .no-scrollbar,
+  .custom-scrollbar {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+
   /* Forms compatibility resets for Safari/Firefox */
   input,
   select,

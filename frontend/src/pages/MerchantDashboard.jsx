@@ -16,6 +16,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useGsapReveal } from "@/lib/gsapAnimations";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import { TableSkeleton } from "@/components/common/table/TableSkeleton";
+import { TableEmptyState } from "@/components/common/table/TableEmptyState";
 const STATUS_BADGE = {
     assigned: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
     pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
@@ -913,154 +917,141 @@ const MerchantDashboard = () => {
                     <p className="text-sm">Rejected or cancelled bookings will appear here.</p>
                   </div>)}
               </div>) : (<>
-              <div className="rounded-xl border border-border bg-card overflow-x-auto">
-                <table className="w-full text-sm min-w-[600px]">
-                  <thead>
-                    <tr className="border-b border-border bg-secondary/50">
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">#</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Service</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Price</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Event Date</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Assigned On</th>
-                      {(tab === "completed" || tab === "cancelled") && <th className="text-left px-4 py-3 font-medium text-muted-foreground">
-                        {tab === "completed" ? "Completed On" : "Cancelled On"}
-                      </th>}
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Rating</th>
-                      {tab === "active" && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Action</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {displayBookings.slice(0, 5).map((b, idx) => (<tr key={b._id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
-                        <td className="px-4 py-3 text-muted-foreground">{idx + 1}</td>
-                        <td className="px-4 py-3">
-                          <div>
-                            <div className="font-medium">{b.service?.name || b.event?.title || b.serviceName}</div>
-                            <div className="mt-0.5">
-                              {b.service ? (<span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400">Service</span>) : b.event ? (<span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400">Event</span>) : null}
-                            </div>
+              <DataTable minWidth="700px">
+                <TableHeader>
+                  <TableHeaderCell width="40px">#</TableHeaderCell>
+                  <TableHeaderCell width="180px">Service / Event</TableHeaderCell>
+                  <TableHeaderCell width="150px">Customer</TableHeaderCell>
+                  <TableHeaderCell width="180px">Location</TableHeaderCell>
+                  <TableHeaderCell width="100px">Price</TableHeaderCell>
+                  <TableHeaderCell width="120px">Event Date</TableHeaderCell>
+                  <TableHeaderCell width="120px">Assigned On</TableHeaderCell>
+                  {(tab === "completed" || tab === "cancelled") && (
+                    <TableHeaderCell width="120px">
+                      {tab === "completed" ? "Completed On" : "Cancelled On"}
+                    </TableHeaderCell>
+                  )}
+                  <TableHeaderCell width="110px">Status</TableHeaderCell>
+                  <TableHeaderCell width="100px">Rating</TableHeaderCell>
+                  {tab === "active" && <TableHeaderCell align="right" width="130px">Action</TableHeaderCell>}
+                </TableHeader>
+                <TableBody>
+                  {displayBookings.slice(0, 5).map((b, idx) => (
+                    <TableRow key={b._id}>
+                      <TableCell className="text-muted-foreground text-xs font-medium">{idx + 1}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-semibold text-xs text-foreground">{b.service?.name || b.event?.title || b.serviceName}</div>
+                          <div className="mt-1">
+                            {b.service ? (
+                              <StatusBadge status="service" label="Service" />
+                            ) : b.event ? (
+                              <StatusBadge status="event" label="Event" className="bg-purple-500/15 text-purple-600 border-purple-500/30" />
+                            ) : null}
                           </div>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {b.customer?.name || "—"}
-                          {b.customer?.email && <span className="block text-xs opacity-60">{b.customer.email}</span>}
-                        </td>
-                        <td className="px-4 py-3 max-w-[300px]">
-                          {b.customerLocation && b.customerLocation.address ? (<div className="space-y-2">
-                              <div className="flex items-start gap-2">
-                                <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0"/>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-medium leading-relaxed">{b.customerLocation.address}</p>
-                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <p className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
-                                      Lat: {b.customerLocation.latitude?.toFixed(4)}, Lng: {b.customerLocation.longitude?.toFixed(4)}
-                                    </p>
-                                    <a href={`https://www.google.com/maps?q=${b.customerLocation.latitude},${b.customerLocation.longitude}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline inline-flex items-center gap-1 whitespace-nowrap">
-                                      View on Maps <ExternalLink className="h-2.5 w-2.5"/>
-                                    </a>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>) : b.event?.location ? (<div className="flex items-start gap-2">
-                              <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0"/>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        <div className="font-medium text-foreground">{b.customer?.name || "—"}</div>
+                        {b.customer?.email && <span className="block text-[10px] text-muted-foreground">{b.customer.email}</span>}
+                      </TableCell>
+                      <TableCell className="max-w-[250px]">
+                        {b.customerLocation && b.customerLocation.address ? (
+                          <div className="space-y-1">
+                            <div className="flex items-start gap-1">
+                              <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0"/>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium leading-relaxed">{b.event.location}</p>
-                                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.event.location)}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline inline-flex items-center gap-1 whitespace-nowrap mt-1">
-                                  View on Maps <ExternalLink className="h-2.5 w-2.5"/>
-                                </a>
+                                <p className="text-xs leading-relaxed line-clamp-2 text-foreground/90">{b.customerLocation.address}</p>
                               </div>
-                            </div>) : (<span className="text-xs text-muted-foreground">No location provided</span>)}
-                        </td>
-                        <td className="px-4 py-3">{formatCurrency(b.price)}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{new Date(b.datetime).toLocaleString()}</td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {b.assignedAt ? new Date(b.assignedAt).toLocaleString() : new Date(b.updatedAt).toLocaleString()}
-                        </td>
-                        {(tab === "completed" || tab === "cancelled") && (<td className="px-4 py-3 text-muted-foreground">
-                            {tab === "completed" && b.completedAt ? new Date(b.completedAt).toLocaleString() :
-                        tab === "cancelled" && b.rejectedAt ? new Date(b.rejectedAt).toLocaleString() : "—"}
-                          </td>)}
-                        <td className="px-4 py-3">
-                          <div className="flex flex-col gap-1">
-                            <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_BADGE[b.status] || "bg-secondary text-muted-foreground"}`}>
-                              {b.status}
-                            </span>
-                            {b.status === "pending" && b.approvedAt && (<span className="text-xs text-blue-400 bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20">
-                                Previously Approved
-                              </span>)}
-                            {b.status === "cancelled" && b.rejectionReason && (<span className="text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded">
-                                Reason: {b.rejectionReason}
-                              </span>)}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          {b.rating?.score ? (<div className="flex items-center gap-2">
-                              <div className="flex gap-0.5">
-                                {[1, 2, 3, 4, 5].map((star) => (<Star key={star} className={`h-4 w-4 ${star <= b.rating.score
-                            ? "fill-yellow-500 text-yellow-500"
-                            : "text-muted-foreground/30 fill-none"}`}/>))}
-                              </div>
-                              <span className="text-xs font-semibold">{b.rating.score}/5</span>
-                            </div>) : (<span className="text-xs text-muted-foreground">No rating</span>)}
-                          {b.rating?.comment && (<p className="text-xs text-muted-foreground mt-1 italic">"{b.rating.comment}"</p>)}
-                        </td>
-                        {tab === "active" && (<td className="px-4 py-3">
-                            <div className="flex gap-2 flex-wrap">
-                              {/* Initial approval/rejection for NEW pending bookings (never approved before) - ONLY for Services */}
-                              {b.service && (b.status === "pending" || b.status === "pending_approval") && !b.approvedAt && (<>
-                                  <Button size="sm" className="bg-green-600 text-white hover:bg-green-700" disabled={approving === b._id} onClick={() => setApprovalOptions({ id: b._id, show: true })}>
-                                    {approving === b._id ? "…" : "✓ Approve"}
-                                  </Button>
-                                  <Button size="sm" variant="destructive" onClick={() => setRejecting({ id: b._id, show: true })}>
-                                    ✕ Reject
-                                  </Button>
-                                </>)}
-                              
-                              {/* Status management for approved bookings OR pending bookings that were approved before - ONLY for Services */}
-                              {b.service && (b.status === "paid" || b.status === "confirmed" || b.status === "awaiting_payment" || b.status === "approved" || b.status === "assigned" || b.status === "accepted" || b.status === "processing" || ((b.status === "pending" || b.status === "pending_approval") && b.approvedAt)) && (<>
-                                  {b.status !== "completed" && (<Button size="sm" variant="outline" onClick={() => setStatusUpdate({ id: b._id, show: true, currentStatus: b.status })} className="text-xs">
-                                      Update Status
-                                    </Button>)}
-                                  {b.status !== "completed" && (<Button size="sm" className="bg-gradient-primary text-primary-foreground hover:opacity-90" disabled={completing === b._id} onClick={() => handleComplete(b._id)}>
-                                      {completing === b._id ? "…" : "Mark Complete"}
-                                    </Button>)}
-                                </>)}
-
-                              {/* Fallback for non-service bookings (Events) if not cancellation state */}
-                              {!b.service && !["cancellation_requested", "cancellation_fee_proposed", "refund_pending", "refunded"].includes(b.status) && (<span className="text-xs text-muted-foreground italic capitalize">{b.status}</span>)}
-
-                              {/* Cancellation management for both Events & Services */}
-                              {b.status === "cancellation_requested" && (<>
-                                  <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700 text-xs font-semibold" onClick={() => {
-                            setSelectedCancelBooking(b);
-                            setCancellationModal(true);
-                        }}>
-                                    Approve Cancel
-                                  </Button>
-                                  <Button size="sm" variant="outline" className="text-red-500 border-red-500/30 hover:bg-red-500/10 text-xs font-semibold" onClick={() => handleRejectCancel(b._id)}>
-                                    Reject Cancel
-                                  </Button>
-                                </>)}
-
-                              {b.status === "refund_pending" && (<Button size="sm" className="bg-purple-600 text-white hover:bg-purple-700 text-xs font-semibold" onClick={() => handleProcessRefund(b._id)}>
-                                  Process Refund ({formatCurrency(b.price - (b.cancellationFee || 0))})
-                                </Button>)}
-
-                              {b.status === "cancellation_fee_proposed" && (<span className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20 italic">
-                                  Fee proposed, awaiting customer...
-                                </span>)}
-
-                              {b.status === "refunded" && (<span className="text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded border border-red-500/20 italic">
-                                  Refunded {formatCurrency(b.refundAmount || 0)}
-                                </span>)}
                             </div>
-                          </td>)}
-                      </tr>))}
-                  </tbody>
-                </table>
-              </div>
+                          </div>
+                        ) : b.event?.location ? (
+                          <div className="flex items-start gap-1">
+                            <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0"/>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs leading-relaxed line-clamp-2 text-foreground/90">{b.event.location}</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-bold text-xs text-foreground">{formatCurrency(b.price)}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{new Date(b.datetime).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                        {b.assignedAt ? new Date(b.assignedAt).toLocaleDateString() : new Date(b.updatedAt).toLocaleDateString()}
+                      </TableCell>
+                      {(tab === "completed" || tab === "cancelled") && (
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {tab === "completed" && b.completedAt ? new Date(b.completedAt).toLocaleDateString() :
+                           tab === "cancelled" && b.rejectedAt ? new Date(b.rejectedAt).toLocaleDateString() : "—"}
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        <StatusBadge status={b.status} />
+                      </TableCell>
+                      <TableCell>
+                        {b.rating?.score ? (
+                          <div className="flex items-center gap-1">
+                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400"/>
+                            <span className="text-xs font-bold text-foreground">{b.rating.score}/5</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      {tab === "active" && (
+                        <TableCell align="right">
+                          <div className="flex gap-1.5 flex-wrap items-center justify-end">
+                            {b.service && (b.status === "pending" || b.status === "pending_approval") && !b.approvedAt && (
+                              <>
+                                <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-semibold" disabled={approving === b._id} onClick={() => setApprovalOptions({ id: b._id, show: true })}>
+                                  {approving === b._id ? "…" : "Approve"}
+                                </Button>
+                                <Button size="sm" variant="destructive" className="text-xs font-semibold" onClick={() => setRejecting({ id: b._id, show: true })}>
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+                            {b.service && (b.status === "paid" || b.status === "confirmed" || b.status === "awaiting_payment" || b.status === "approved" || b.status === "assigned" || b.status === "accepted" || b.status === "processing" || ((b.status === "pending" || b.status === "pending_approval") && b.approvedAt)) && (
+                              <>
+                                {b.status !== "completed" && (
+                                  <Button size="sm" variant="outline" onClick={() => setStatusUpdate({ id: b._id, show: true, currentStatus: b.status })} className="text-xs">
+                                    Update
+                                  </Button>
+                                )}
+                                {b.status !== "completed" && (
+                                  <Button size="sm" className="bg-gradient-primary text-primary-foreground hover:opacity-90 text-xs font-semibold" disabled={completing === b._id} onClick={() => handleComplete(b._id)}>
+                                    {completing === b._id ? "…" : "Complete"}
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                            {!b.service && !["cancellation_requested", "cancellation_fee_proposed", "refund_pending", "refunded"].includes(b.status) && (
+                              <span className="text-xs text-muted-foreground italic capitalize">{b.status}</span>
+                            )}
+                            {b.status === "cancellation_requested" && (
+                              <>
+                                <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700 text-xs font-semibold" onClick={() => { setSelectedCancelBooking(b); setCancellationModal(true); }}>
+                                  Approve Cancel
+                                </Button>
+                                <Button size="sm" variant="outline" className="text-rose-500 border-rose-500/30 hover:bg-rose-500/10 text-xs font-semibold" onClick={() => handleRejectCancel(b._id)}>
+                                  Reject Cancel
+                                </Button>
+                              </>
+                            )}
+                            {b.status === "refund_pending" && (
+                              <Button size="sm" className="bg-purple-600 text-white hover:bg-purple-700 text-xs font-semibold" onClick={() => handleProcessRefund(b._id)}>
+                                Refund ({formatCurrency(b.price - (b.cancellationFee || 0))})
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </DataTable>
               {/* View All button — show when more than 5 bookings */}
               {displayBookings.length > 5 && (<div className="mt-3 text-center">
                   <Link to="/merchant-dashboard/bookings">
@@ -1575,66 +1566,63 @@ const MerchantDashboard = () => {
                 <DollarSign className="h-5 w-5 text-green-500"/> Billing & Payments History
               </h2>
             </div>
-            <div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
-              <table className="w-full text-sm min-w-[600px]">
-                <thead>
-                  <tr className="border-b border-border bg-secondary/50">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Description</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Payment Date</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Amount Paid</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-            const billingHistory = [];
-            // 1. Setup Onboarding Payment (if paid or active)
-            if (user?.merchantStatus === "active" || user?.merchantStatus === "paid") {
-                billingHistory.push({
-                    id: "setup-fee",
-                    date: user.updatedAt || user.createdAt,
-                    description: "Onboarding Account Setup Fee",
-                    amount: user.quotationAmount || 0,
-                    status: user.merchantStatus === "active" ? "Activated" : "Paid (Awaiting Activation)",
-                    statusColor: user.merchantStatus === "active" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-purple-500/10 text-purple-600 border-purple-500/20"
-                });
-            }
-            // 2. Ticket Payments
-            tickets.forEach((t) => {
-                if (t.status === "paid" || t.status === "approved") {
+            <DataTable minWidth="600px">
+              <TableHeader>
+                <TableHeaderCell width="250px">Description</TableHeaderCell>
+                <TableHeaderCell width="160px">Payment Date</TableHeaderCell>
+                <TableHeaderCell width="120px">Amount Paid</TableHeaderCell>
+                <TableHeaderCell align="right" width="160px">Status</TableHeaderCell>
+              </TableHeader>
+              <TableBody>
+                {(() => {
+                  const billingHistory = [];
+                  if (user?.merchantStatus === "active" || user?.merchantStatus === "paid") {
                     billingHistory.push({
+                      id: "setup-fee",
+                      date: user.updatedAt || user.createdAt,
+                      description: "Onboarding Account Setup Fee",
+                      amount: user.quotationAmount || 0,
+                      status: user.merchantStatus === "active" ? "active" : "paid",
+                      label: user.merchantStatus === "active" ? "Activated" : "Paid (Awaiting Activation)"
+                    });
+                  }
+                  tickets.forEach((t) => {
+                    if (t.status === "paid" || t.status === "approved") {
+                      billingHistory.push({
                         id: t._id,
                         date: t.updatedAt || t.createdAt,
                         description: `Limit Upgrade (+${t.requestedEvents} Events, +${t.requestedServices} Services)`,
                         amount: t.quotationAmount || 0,
-                        status: t.status === "approved" ? "Approved & Upgraded" : "Paid (Awaiting Approval)",
-                        statusColor: t.status === "approved" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                    });
-                }
-            });
-            // Sort descending
-            billingHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            if (billingHistory.length === 0) {
-                return (<tr>
-                          <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No payment history found</td>
-                        </tr>);
-            }
-            return billingHistory.map(row => (<tr key={row.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                        <td className="px-4 py-3 align-middle font-medium">{row.description}</td>
-                        <td className="px-4 py-3 align-middle text-muted-foreground">
-                          {new Date(row.date).toLocaleDateString()} {new Date(row.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </td>
-                        <td className="px-4 py-3 align-middle font-bold text-primary">{formatCurrency(row.amount)}</td>
-                        <td className="px-4 py-3 align-middle text-right">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${row.statusColor}`}>
-                            {row.status}
-                          </span>
-                        </td>
-                      </tr>));
-        })()}
-                </tbody>
-              </table>
-            </div>
+                        status: t.status === "approved" ? "approved" : "paid",
+                        label: t.status === "approved" ? "Approved & Upgraded" : "Paid (Awaiting Approval)"
+                      });
+                    }
+                  });
+                  billingHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                  if (billingHistory.length === 0) {
+                    return (
+                      <TableRow>
+                        <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                          No payment history found
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+                  return billingHistory.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="font-semibold text-xs text-foreground">{row.description}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                        {new Date(row.date).toLocaleDateString()} {new Date(row.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </TableCell>
+                      <TableCell className="font-bold text-xs text-primary">{formatCurrency(row.amount)}</TableCell>
+                      <TableCell align="right">
+                        <StatusBadge status={row.status} label={row.label} />
+                      </TableCell>
+                    </TableRow>
+                  ));
+                })()}
+              </TableBody>
+            </DataTable>
           </motion.div>
         </div>
       </section>

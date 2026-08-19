@@ -8,11 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiListBookings, apiRefundPayment } from "@/lib/api";
 import { toast } from "sonner";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
+import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import { TableSkeleton } from "@/components/common/table/TableSkeleton";
+import { TableEmptyState } from "@/components/common/table/TableEmptyState";
 const REFUND_STATUS_BADGE = {
     pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
     approved: "bg-green-500/15 text-green-400 border border-green-500/30",
@@ -179,92 +182,96 @@ const AdminRefunds = () => {
           </div>
 
           {/* Refund Requests Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between flex-wrap gap-2">
-                <span>Refund Requests & History</span>
-                <div className="flex gap-2 flex-wrap">
-                  <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm min-h-[36px]">
-                    <option value="all">All Status</option>
-                    <option value="refunded">Refunded</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (<div className="flex items-center justify-center py-16 text-muted-foreground">
-                  Loading refund data...
-                </div>) : filteredBookings.length === 0 ? (<div className="py-16 text-center text-muted-foreground">
-                  <RefreshCcw className="h-12 w-12 mx-auto mb-4 opacity-30"/>
-                  <p>No refund requests or refunded bookings.</p>
-                </div>) : (<div className="overflow-x-auto w-full">
-                  <Table className="text-xs min-w-[800px]">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="py-2.5 px-2">Booking ID</TableHead>
-                        <TableHead className="py-2.5 px-2">Service/Event</TableHead>
-                        <TableHead className="py-2.5 px-2">Customer</TableHead>
-                        <TableHead className="py-2.5 px-2">Amount</TableHead>
-                        <TableHead className="py-2.5 px-2">Refund Reason</TableHead>
-                        <TableHead className="py-2.5 px-2">Refund Status</TableHead>
-                        <TableHead className="py-2.5 px-2">Date</TableHead>
-                        <TableHead className="py-2.5 px-2">Actions</TableHead>
+          <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+            <div className="p-4 sm:p-6 border-b border-border/80 flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h2 className="font-display text-lg sm:text-xl font-bold">Refund Requests & History</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Manage refund processing and view complete cancellation history.</p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-xl border border-border bg-card px-3 py-1.5 text-xs sm:text-sm min-h-[36px]">
+                  <option value="all">All Status</option>
+                  <option value="refunded">Refunded</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+            {loading ? (
+              <TableSkeleton columns={8} rows={5} minWidth="100%" />
+            ) : filteredBookings.length === 0 ? (
+              <TableEmptyState title="No refund requests found" description="No refund records match your selected criteria." colSpan={8} />
+            ) : (
+              <DataTable minWidth="100%">
+                <TableHeader>
+                  <TableHeaderCell className="w-[8%] font-mono">Booking ID</TableHeaderCell>
+                  <TableHeaderCell className="w-[20%]">Service / Event</TableHeaderCell>
+                  <TableHeaderCell className="w-[16%]">Customer</TableHeaderCell>
+                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Amount</TableHeaderCell>
+                  <TableHeaderCell className="w-[20%]">Refund Reason</TableHeaderCell>
+                  <TableHeaderCell className="w-[12%]">Refund Status</TableHeaderCell>
+                  <TableHeaderCell className="w-[8%] whitespace-nowrap">Date</TableHeaderCell>
+                  <TableHeaderCell align="right" className="w-[6%]">Actions</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                  {filteredBookings.map((booking) => {
+                    const refundStatus = getRefundStatus(booking);
+                    return (
+                      <TableRow key={booking._id}>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {booking._id.slice(-8)}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-semibold text-xs text-foreground">
+                              {booking.service?.name || booking.serviceName || booking.event?.title}
+                            </p>
+                            {booking.assignedTo && (
+                              <p className="text-[10px] text-muted-foreground">
+                                Merchant: {booking.assignedTo.name}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-semibold text-xs text-foreground">{booking.customer?.name}</p>
+                            <p className="text-[10px] text-muted-foreground truncate max-w-[140px]">{booking.customer?.email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-bold text-xs text-primary">
+                          {formatCurrency(booking.price)}
+                        </TableCell>
+                        <TableCell>
+                          {booking.refundReason ? (
+                            <div className="max-w-[160px]">
+                              <p className="text-xs truncate text-foreground">{booking.refundReason}</p>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={refundStatus} />
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {booking.refundedAt
+                            ? new Date(booking.refundedAt).toLocaleDateString()
+                            : new Date(booking.datetime).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell align="right">
+                          {booking.status === "cancelled" && booking.paymentStatus === "paid" && (
+                            <Button size="sm" variant="outline" className="text-xs h-8 px-3 rounded-lg border-primary/30 text-primary hover:bg-primary/10 font-medium" onClick={() => openRefundDialog(booking)}>
+                              Process Refund
+                            </Button>
+                          )}
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredBookings.map((booking) => {
-                  const refundStatus = getRefundStatus(booking);
-                  return (<TableRow key={booking._id}>
-                            <TableCell className="font-mono text-xs py-2.5 px-2">
-                              {booking._id.slice(-8)}
-                            </TableCell>
-                            <TableCell className="py-2.5 px-2">
-                              <div>
-                                <p className="font-medium text-xs">
-                                  {booking.service?.name || booking.serviceName || booking.event?.title}
-                                </p>
-                                {booking.assignedTo && (<p className="text-[10px] text-muted-foreground">
-                                    Merchant: {booking.assignedTo.name}
-                                  </p>)}
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-2.5 px-2">
-                              <div>
-                                <p className="font-medium text-xs">{booking.customer?.name}</p>
-                                <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{booking.customer?.email}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell className="font-semibold text-xs py-2.5 px-2">
-                              {formatCurrency(booking.price)}
-                            </TableCell>
-                            <TableCell className="py-2.5 px-2">
-                              {booking.refundReason ? (<div className="max-w-[160px]">
-                                  <p className="text-xs truncate">{booking.refundReason}</p>
-                                </div>) : (<span className="text-[10px] text-muted-foreground">—</span>)}
-                            </TableCell>
-                            <TableCell className="py-2.5 px-2">
-                              <Badge className={`px-1.5 py-0.5 text-[9px] ${REFUND_STATUS_BADGE[refundStatus] || "bg-secondary text-muted-foreground"}`}>
-                                {getRefundStatusLabel(refundStatus)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-[10px] py-2.5 px-2">
-                              {booking.refundedAt
-                          ? new Date(booking.refundedAt).toLocaleDateString()
-                          : new Date(booking.datetime).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell className="py-2.5 px-2">
-                              {booking.status === "cancelled" && booking.paymentStatus === "paid" && (<Button size="sm" variant="outline" className="text-[10px] h-7 px-2" onClick={() => openRefundDialog(booking)}>
-                                  Process Refund
-                                </Button>)}
-                            </TableCell>
-                          </TableRow>);
-              })}
-                    </TableBody>
-                  </Table>
-                </div>)}
-            </CardContent>
-          </Card>
+                    );
+                  })}
+                </TableBody>
+              </DataTable>
+            )}
+          </div>
         </motion.div>
       </section>
 

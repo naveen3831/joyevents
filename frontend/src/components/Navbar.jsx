@@ -48,8 +48,8 @@ const Navbar = ({ hideDashboardLinks = false }) => {
   const platformName = usePlatformName();
   const { cartCount } = useCart();
 
-  const iconBtnClass = "w-11 h-11 flex items-center justify-center rounded-xl bg-secondary/80 border border-border/80 hover:bg-secondary hover:border-primary/40 text-foreground/80 hover:text-primary transition-all relative shrink-0 shadow-sm";
-  const activeIconBtnClass = "w-11 h-11 flex items-center justify-center rounded-xl bg-primary/15 border border-primary/30 text-primary transition-all relative shrink-0 shadow-sm";
+  const iconBtnClass = "w-9 h-9 flex items-center justify-center rounded-xl bg-secondary/80 border border-border/80 hover:bg-secondary hover:border-primary/40 text-foreground/80 hover:text-primary transition-all relative shrink-0 shadow-sm";
+  const activeIconBtnClass = "w-9 h-9 flex items-center justify-center rounded-xl bg-primary/15 border border-primary/30 text-primary transition-all relative shrink-0 shadow-sm";
 
   useEffect(() => {
     document.title = platformName;
@@ -111,19 +111,19 @@ const Navbar = ({ hideDashboardLinks = false }) => {
   }
 
   const logoElement = hideDashboardLinks ? (
-    <div className="flex items-center gap-3 cursor-default shrink-0">
-      <Logo className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 shrink-0" />
-      <span className="font-display text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-foreground">{platformName}</span>
+    <div className="flex items-center gap-2.5 cursor-default shrink-0">
+      <Logo className="h-8 w-8 sm:h-9 sm:w-9 lg:h-9 lg:w-9 shrink-0" />
+      <span className="font-display text-lg sm:text-xl lg:text-2xl font-black tracking-tight text-foreground">{platformName}</span>
     </div>
   ) : isCustomer ? (
-    <Link to="/customer-dashboard" className="flex items-center gap-3 group">
-      <Logo className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 shrink-0 transition-transform duration-300 group-hover:scale-105" />
-      <span className="font-display text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-foreground group-hover:text-primary transition-colors">{platformName}</span>
+    <Link to="/customer-dashboard" className="flex items-center gap-2.5 group">
+      <Logo className="h-8 w-8 sm:h-9 sm:w-9 lg:h-9 lg:w-9 shrink-0 transition-transform duration-300 group-hover:scale-105" />
+      <span className="font-display text-lg sm:text-xl lg:text-2xl font-black tracking-tight text-foreground group-hover:text-primary transition-colors">{platformName}</span>
     </Link>
   ) : (
-    <Link to="/" className="flex items-center gap-3 group">
-      <Logo className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 shrink-0 transition-transform duration-300 group-hover:scale-105" />
-      <span className="font-display text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-foreground group-hover:text-primary transition-colors">{platformName}</span>
+    <Link to="/" className="flex items-center gap-2.5 group">
+      <Logo className="h-8 w-8 sm:h-9 sm:w-9 lg:h-9 lg:w-9 shrink-0 transition-transform duration-300 group-hover:scale-105" />
+      <span className="font-display text-lg sm:text-xl lg:text-2xl font-black tracking-tight text-foreground group-hover:text-primary transition-colors">{platformName}</span>
     </Link>
   );
 
@@ -131,11 +131,11 @@ const Navbar = ({ hideDashboardLinks = false }) => {
   const RoleIcon = roleIcons[role] || User;
 
   return (
-    <motion.nav initial={{ y: -100 }} animate={{ y: 0 }} className={`fixed left-0 right-0 top-0 z-50 w-full bg-background/85 backdrop-blur-xl border-b border-border/80 transition-all duration-300 ${scrolled ? "shadow-md py-3" : "py-4 sm:py-5"}`}>
+    <motion.nav initial={{ y: -100 }} animate={{ y: 0 }} className={`fixed left-0 right-0 top-0 z-50 w-full bg-background/85 backdrop-blur-xl border-b border-border/80 transition-all duration-300 ${hideDashboardLinks ? "py-2 sm:py-2.5 shadow-sm" : scrolled ? "shadow-md py-2.5" : "py-3 sm:py-4"}`}>
       <div className="flex items-center justify-between px-4 sm:px-8 lg:px-12 xl:px-20 w-full transition-all duration-300">
 
         {/* MOBILE BAR */}
-        <div className="flex lg:hidden items-center justify-between w-full min-h-[44px]">
+        <div className="flex lg:hidden items-center justify-between w-full min-h-[40px]">
           {logoElement}
           <div className="flex items-center gap-1.5 shrink-0">
             {isLoggedIn && role === "customer" && (() => {
@@ -143,10 +143,10 @@ const Navbar = ({ hideDashboardLinks = false }) => {
               const isCartActive = location.pathname === "/customer-dashboard/cart";
               return (
                 <>
-                  <Link to="/customer-dashboard/favorites" className={`w-8.5 h-8.5 flex items-center justify-center rounded-lg border transition-all relative shrink-0 shadow-sm ${isFavoritesActive ? "bg-primary/15 border-primary/30 text-primary" : "bg-secondary/80 border-border/80 text-foreground/80 hover:bg-secondary hover:text-primary"}`} title="Wishlist">
+                  <Link to="/customer-dashboard/favorites" className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all relative shrink-0 shadow-sm ${isFavoritesActive ? "bg-primary/15 border-primary/30 text-primary" : "bg-secondary/80 border-border/80 text-foreground/80 hover:bg-secondary hover:text-primary"}`} title="Wishlist">
                     <Heart className={`h-3.5 w-3.5 ${isFavoritesActive ? "fill-current" : ""}`} />
                   </Link>
-                  <Link to="/customer-dashboard/cart" className={`w-8.5 h-8.5 flex items-center justify-center rounded-lg border transition-all relative shrink-0 shadow-sm ${isCartActive ? "bg-primary/15 border-primary/30 text-primary" : "bg-secondary/80 border-border/80 text-foreground/80 hover:bg-secondary hover:text-primary"}`} title="Cart">
+                  <Link to="/customer-dashboard/cart" className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all relative shrink-0 shadow-sm ${isCartActive ? "bg-primary/15 border-primary/30 text-primary" : "bg-secondary/80 border-border/80 text-foreground/80 hover:bg-secondary hover:text-primary"}`} title="Cart">
                     <ShoppingBag className={`h-3.5 w-3.5 ${isCartActive ? "fill-current" : ""}`} />
                     {cartCount > 0 && (
                       <span className="absolute -top-1 -right-1 flex h-3.5 min-w-[0.9rem] px-0.5 items-center justify-center rounded-full text-[8px] font-black bg-primary text-primary-foreground shadow-sm border border-background">
@@ -157,7 +157,7 @@ const Navbar = ({ hideDashboardLinks = false }) => {
                 </>
               );
             })()}
-            {isLoggedIn && (<NotificationBell buttonClassName="w-8.5 h-8.5 rounded-lg" iconClassName="h-3.5 w-3.5" />)}
+            {isLoggedIn && (<NotificationBell buttonClassName="w-8 h-8 rounded-lg" iconClassName="h-3.5 w-3.5" />)}
           </div>
         </div>
 
@@ -236,12 +236,12 @@ const Navbar = ({ hideDashboardLinks = false }) => {
             return (
               <>
                 <Link to="/customer-dashboard/favorites" className={isFavoritesActive ? activeIconBtnClass : iconBtnClass} title="Favorites">
-                  <Heart className={`h-5 w-5 ${isFavoritesActive ? "fill-current" : ""}`} />
+                  <Heart className={`h-4.5 w-4.5 ${isFavoritesActive ? "fill-current" : ""}`} />
                 </Link>
                 <Link to="/customer-dashboard/cart" className={isCartActive ? activeIconBtnClass : iconBtnClass} title="Cart">
-                  <ShoppingBag className={`h-5 w-5 ${isCartActive ? "fill-current" : ""}`} />
+                  <ShoppingBag className={`h-4.5 w-4.5 ${isCartActive ? "fill-current" : ""}`} />
                   {cartCount > 0 && (
-                    <span className={`absolute -top-1.5 -right-1.5 flex h-5 min-w-[1.25rem] px-1 items-center justify-center rounded-full text-[9px] font-bold shadow-glow border border-background ${isCartActive ? "bg-background text-primary" : "bg-primary text-primary-foreground"}`}>
+                    <span className={`absolute -top-1.5 -right-1.5 flex h-4 min-w-[1.1rem] px-0.5 items-center justify-center rounded-full text-[9px] font-bold shadow-glow border border-background ${isCartActive ? "bg-background text-primary" : "bg-primary text-primary-foreground"}`}>
                       {cartCount}
                     </span>
                   )}
@@ -249,21 +249,21 @@ const Navbar = ({ hideDashboardLinks = false }) => {
               </>
             );
           })()}
-          {isLoggedIn && (<NotificationBell />)}
+          {isLoggedIn && (<NotificationBell buttonClassName="w-9 h-9 rounded-xl" iconClassName="h-4 w-4" />)}
 
           {isLoggedIn && !hideDashboardLinks && (
-            <div className="flex items-center gap-2.5 rounded-xl border border-primary/30 bg-primary/10 px-4 h-11 text-sm font-bold text-primary whitespace-nowrap shrink-0 shadow-sm">
+            <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3.5 h-9 text-xs sm:text-sm font-bold text-primary whitespace-nowrap shrink-0 shadow-sm">
               <RoleIcon className="h-4 w-4 text-primary" />
               {roleLabels[role]}
             </div>
           )}
           {!isAuthPage && (isLoggedIn ? (hideDashboardLinks ? null : (
-            <Button variant="outline" onClick={handleLogout} className="h-11 rounded-xl px-5 shrink-0 whitespace-nowrap text-sm font-semibold border-border/80 hover:bg-secondary">
+            <Button variant="outline" onClick={handleLogout} className="h-9 rounded-xl px-4 shrink-0 whitespace-nowrap text-sm font-semibold border-border/80 hover:bg-secondary">
               {t("logout")}
             </Button>
           )) : (
             <Link to="/login" className="shrink-0">
-              <Button className="h-11 px-7 rounded-xl text-base font-bold bg-gradient-primary text-primary-foreground hover:opacity-95 shadow-glow hover:scale-105 transition-all whitespace-nowrap">
+              <Button className="h-9 px-6 rounded-xl text-sm font-bold bg-gradient-primary text-primary-foreground hover:opacity-95 shadow-glow hover:scale-105 transition-all whitespace-nowrap">
                 {t("sign_in")}
               </Button>
             </Link>
