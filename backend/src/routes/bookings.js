@@ -925,6 +925,34 @@ router.patch("/:id/assign", verifyToken, requireRole("admin"), async (req, res) 
   }
 });
 
+// Admin/Merchant/Customer: get single booking detail
+router.get("/:id", verifyToken, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate("customer", "name email")
+      .populate("assignedTo", "name email")
+      .populate("service", "name price category image")
+      .populate("event", "title datetime location price category tickets image eventType");
+      
+    if (!booking) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+    
+    // Check permission: Admin, the Customer who booked, or the Merchant assigned
+    const isAdmin = req.user.role === "admin";
+    const isCustomer = booking.customer?._id?.toString() === req.user._id?.toString();
+    const isMerchant = booking.assignedTo?._id?.toString() === req.user._id?.toString();
+    
+    if (!isAdmin && !isCustomer && !isMerchant) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+    
+    res.json({ booking });
+  } catch (error) {
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+
 // Merchant: mark booking as completed
 router.patch("/:id/complete", verifyToken, requireRole("merchant", "admin"), async (req, res) => {
   try {

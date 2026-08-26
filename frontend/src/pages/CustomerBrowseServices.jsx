@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
-import { apiListServices, apiListEvents, apiGetAllPromoCodes, apiValidatePromoCode } from "@/lib/api";
-import EventCard from "@/components/EventCard";
+import { apiListServices, apiGetAllPromoCodes, apiValidatePromoCode } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import ContactMerchantModal from "@/components/ContactMerchantModal";
@@ -27,9 +26,6 @@ const CustomerBrowseServices = () => {
     const navigate = useNavigate();
     const { addToCart } = useCart();
     const [services, setServices] = useState([]);
-    const [events, setEvents] = useState([]);
-    const [eventsLoading, setEventsLoading] = useState(true);
-    const [viewMode, setViewMode] = useState("all"); // "all", "services", "events"
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [contactService, setContactService] = useState(null);
@@ -92,60 +88,23 @@ const CustomerBrowseServices = () => {
     }, []);
     useEffect(() => {
         fetchServices(true);
-        const fetchEvents = async () => {
-            try {
-                const res = await apiListEvents();
-                setEvents(res.events || []);
-            } catch {
-            } finally {
-                setEventsLoading(false);
-            }
-        };
-        fetchEvents();
         const interval = setInterval(() => {
             fetchServices(false);
-            fetchEvents();
         }, 5000);
         return () => clearInterval(interval);
     }, []);
 
-    const filteredEvents = useMemo(() => {
-        return events.filter(e => {
-            const q = search.toLowerCase();
-            const matchSearch = !q ||
-                e.title?.toLowerCase().includes(q) ||
-                e.category?.toLowerCase().includes(q) ||
-                e.location?.toLowerCase().includes(q);
-            const matchCat = selectedCategory === "All" || e.category === selectedCategory;
-            return matchSearch && matchCat;
-        });
-    }, [events, search, selectedCategory]);
     const availableCategories = useMemo(() => {
-        if (viewMode === "services") {
-            const serviceCats = Array.from(new Set(services.map(s => s.category).filter(Boolean)));
-            return ["All", ...serviceCats.sort()];
-        } else if (viewMode === "events") {
-            const eventCats = Array.from(new Set(events.map(e => e.category).filter(Boolean)));
-            return ["All", ...eventCats.sort()];
-        } else {
-            const allCats = Array.from(new Set([...services.map(s => s.category), ...events.map(e => e.category)].filter(Boolean)));
-            return ["All", ...allCats.sort()];
-        }
-    }, [services, events, viewMode]);
-
-    const handleViewModeChange = (mode) => {
-        setViewMode(mode);
-        setSelectedCategory("All");
-    };
+        const serviceCats = Array.from(new Set(services.map(s => s.category).filter(Boolean)));
+        return ["All", ...serviceCats.sort()];
+    }, [services]);
     const activeFilterCount = [
-        viewMode !== "all",
         selectedCategory !== "All",
         sortBy !== "default",
         !!priceMin,
         !!priceMax,
     ].filter(Boolean).length;
     const clearFilters = () => {
-        setViewMode("all");
         setSelectedCategory("All");
         setSortBy("default");
         setPriceMin("");
@@ -341,10 +300,10 @@ const CustomerBrowseServices = () => {
                   </span>
                 </div>
                 <h1 className="font-display text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight">
-                  Explore & Book <span className="text-gradient">Extraordinary Experiences</span>
+                  Explore & Book <span className="text-gradient">Professional Services</span>
                 </h1>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 max-w-2xl leading-relaxed">
-                  Discover live music, DJ nights, wedding decor, photography, catering, and ticketed events across your region. Filter by real-time categories or request a custom event service instantly.
+                  Discover wedding decor, photography, catering, DJ services, and professional helpers for your next celebration. Filter by category or request a custom service instantly.
                 </p>
               </div>
 
@@ -358,7 +317,7 @@ const CustomerBrowseServices = () => {
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
                 <Input
-                  placeholder="Search events or services by title, category, location..."
+                  placeholder="Search services by title, category, description..."
                   value={search}
                   maxLength={50}
                   onChange={e => setSearch(e.target.value)}
@@ -419,44 +378,7 @@ const CustomerBrowseServices = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                      {/* Filter 1: Type Selection (All Experiences, Services, Events) */}
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
-                          Experience Type
-                        </label>
-                        <div className="grid grid-cols-3 gap-1.5 p-1 bg-secondary/50 rounded-2xl border border-border/60">
-                          <button
-                            onClick={() => handleViewModeChange("all")}
-                            className={`py-2 px-2 text-xs font-bold rounded-xl transition-all ${
-                              viewMode === "all"
-                                ? "bg-gradient-primary text-white shadow-sm"
-                                : "text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            All ({events.length + services.length})
-                          </button>
-                          <button
-                            onClick={() => handleViewModeChange("services")}
-                            className={`py-2 px-2 text-xs font-bold rounded-xl transition-all ${
-                              viewMode === "services"
-                                ? "bg-gradient-primary text-white shadow-sm"
-                                : "text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            Services ({services.length})
-                          </button>
-                          <button
-                            onClick={() => handleViewModeChange("events")}
-                            className={`py-2 px-2 text-xs font-bold rounded-xl transition-all ${
-                              viewMode === "events"
-                                ? "bg-gradient-primary text-white shadow-sm"
-                                : "text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            Events ({events.length})
-                          </button>
-                        </div>
-                      </div>
+
 
                       {/* Filter 2: Price Range */}
                       <div className="space-y-2">
@@ -530,57 +452,13 @@ const CustomerBrowseServices = () => {
             </AnimatePresence>
           </motion.div>
 
-          {/* Events Section (shown when viewMode is 'all' or 'events') */}
-          {(viewMode === "all" || viewMode === "events") && (
-            <div className="mb-10">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-display text-lg sm:text-xl font-bold flex items-center gap-2">
-                  <Ticket className="h-5 w-5 text-primary" /> Upcoming Events
-                </h2>
-                {viewMode === "all" && (
-                  <button onClick={() => setViewMode("events")} className="text-xs text-primary font-bold hover:underline">
-                    View All Events ({filteredEvents.length}) →
-                  </button>
-                )}
-              </div>
-
-              {eventsLoading ? (
-                <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" /> Loading events...
-                </div>
-              ) : filteredEvents.length === 0 ? (
-                <div className="p-6 rounded-2xl border border-border bg-card text-center text-muted-foreground">
-                  No events found matching your criteria.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1400px]:grid-cols-4 gap-[20px] items-start w-full">
-                  {(viewMode === "all" ? filteredEvents.slice(0, 4) : filteredEvents).map((event, idx) => (
-                    <EventCard
-                      key={event._id}
-                      event={event}
-                      index={idx}
-                      onViewDetails={(e) => navigate(`/customer-dashboard/events/${e._id}`)}
-                      onBookNow={(e) => navigate(`/customer-dashboard/events/${e._id}`)}
-                    />
-                  ))}
-                </div>
-              )}
+          {/* Services Section */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-lg sm:text-xl font-bold flex items-center gap-2">
+                <Briefcase className="h-5 w-5 text-orange-500" /> Services ({filtered.length})
+              </h2>
             </div>
-          )}
-
-          {/* Services Section (shown when viewMode is 'all' or 'services') */}
-          {(viewMode === "all" || viewMode === "services") && (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-display text-lg sm:text-xl font-bold flex items-center gap-2">
-                  <Briefcase className="h-5 w-5 text-orange-500" /> Featured Services
-                </h2>
-                {viewMode === "all" && (
-                  <button onClick={() => setViewMode("services")} className="text-xs text-orange-500 font-bold hover:underline">
-                    View All Services ({filtered.length}) →
-                  </button>
-                )}
-              </div>
 
               {loading ? (
                 <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
@@ -599,7 +477,7 @@ const CustomerBrowseServices = () => {
                 </div>
               ) : (
                 <div ref={gridRef} className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {(viewMode === "all" ? filtered.slice(0, 4) : filtered).map((svc, i) => (
+                  {filtered.map((svc, i) => (
                     <motion.div key={svc._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: i * 0.04 }} onClick={() => goToDetail(svc)} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors w-full h-full cursor-pointer">
                       {/* Image */}
                       <div className="relative overflow-hidden bg-secondary shrink-0 w-full h-48 sm:h-52 cursor-pointer" onClick={() => goToDetail(svc)}>
@@ -647,7 +525,7 @@ const CustomerBrowseServices = () => {
                             <ShoppingBag className="h-4 w-4"/> Add to Cart
                           </Button>
                           {svc.createdBy && (<button onClick={() => setContactService(svc)} className="w-full rounded-lg py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium border border-border hover:bg-secondary transition-all text-muted-foreground flex items-center justify-center gap-1">
-                              <Mail className="h-3.5 w-3.5"/> Contact Organiser
+                              <Mail className="h-3.5 w-3.5"/> Contact Provider
                             </button>)}
                         </div>
                       </div>
@@ -656,7 +534,6 @@ const CustomerBrowseServices = () => {
                 </div>
               )}
             </div>
-          )}
         </div>
       </section>
       {contactService && (<ContactMerchantModal itemTitle={contactService.name} serviceId={contactService._id} onClose={() => setContactService(null)}/>)}

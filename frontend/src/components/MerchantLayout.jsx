@@ -13,7 +13,8 @@ const MerchantLayout = ({ children }) => {
   const allowedPaths = [
     "/merchant-dashboard",
     "/merchant-dashboard/profile",
-    "/merchant-dashboard/settings"
+    "/merchant-dashboard/settings",
+    "/merchant-dashboard/upgrade-slots"
   ];
 
   // Lock document body overflow inside the Merchant Portal dashboard shell
