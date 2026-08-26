@@ -3,6 +3,7 @@ import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Search, CheckCircle2, XCircle, Loader2, QrCode } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
+import PageHeader from "@/components/common/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -146,22 +147,16 @@ const TicketValidation = () => {
         }
     };
     return (<MerchantLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <div className="container mx-auto">
-          {/* Header */}
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
-            <div className="flex items-center gap-3 mb-6 sm:mb-8">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground shrink-0">
-                <QrCode className="h-5 w-5"/>
-              </div>
-              <div>
-                <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-                  Ticket <span className="text-gradient">Validation</span>
-                </h1>
-                <p className="text-muted-foreground text-sm mt-1">Verify and validate customer tickets at event entrance</p>
-              </div>
-            </div>
-          </motion.div>
+      <div className="w-full min-w-0 space-y-5 font-sans">
+        <PageHeader
+          title="Ticket Validation"
+          subtitle="Scan or enter ticket ID codes to verify customer booking authenticity and grant venue admission."
+          breadcrumbs={[
+            { label: "Merchant Portal", to: "/merchant-dashboard" },
+            { label: "Operations" },
+            { label: "Ticket Validation" },
+          ]}
+        />
 
           {/* Validation Section */}
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.1 }} className="grid gap-8 lg:grid-cols-3">
@@ -339,8 +334,6 @@ const TicketValidation = () => {
               </div>
             </div>
           </motion.div>
-        </div>
-      </section>
 
       {/* Mark as Used Dialog */}
       <Dialog open={markUsedDialogOpen} onOpenChange={setMarkUsedDialogOpen}>
@@ -371,6 +364,7 @@ const TicketValidation = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </MerchantLayout>);
 };
 export default TicketValidation;

@@ -19,7 +19,7 @@ export async function connectDB() {
   loadEnv();
   try {
     dns.setDefaultResultOrder?.("ipv4first");
-  } catch {}
+  } catch { }
   const customDns = (process.env.MONGO_DNS_SERVERS || "")
     .split(/[,\s]+/)
     .map(s => s.trim())

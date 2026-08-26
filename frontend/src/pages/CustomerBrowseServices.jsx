@@ -13,7 +13,6 @@ import EventCard from "@/components/EventCard";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import ContactMerchantModal from "@/components/ContactMerchantModal";
-import RequestCustomServiceModal from "@/components/RequestCustomServiceModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useGsapStagger } from "@/lib/gsapAnimations";
 const SORT_OPTIONS = [
@@ -330,8 +329,8 @@ const CustomerBrowseServices = () => {
     const gridRef = useGsapStagger([filtered.length, loading]);
     return (
     <CustomerLayout>
-      <section className="py-4 sm:py-8 lg:py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-2 sm:py-6">
+        <div className="w-full">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
             {/* Header Copy / Matter */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/60">
@@ -349,7 +348,7 @@ const CustomerBrowseServices = () => {
                 </p>
               </div>
 
-              <Button onClick={() => setShowCustomModal(true)} className="bg-gradient-primary text-white font-bold h-11 px-5 rounded-2xl shadow-glow hover:scale-105 transition-all shrink-0">
+              <Button onClick={() => navigate("/customer-dashboard/request-custom-service")} className="bg-gradient-primary text-white font-bold h-11 px-5 rounded-2xl shadow-glow hover:scale-105 transition-all shrink-0">
                 <Sparkles className="h-4 w-4 mr-2" /> Request Custom Service
               </Button>
             </div>
@@ -554,7 +553,7 @@ const CustomerBrowseServices = () => {
                   No events found matching your criteria.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1400px]:grid-cols-4 gap-[20px] items-start w-full">
                   {(viewMode === "all" ? filteredEvents.slice(0, 4) : filteredEvents).map((event, idx) => (
                     <EventCard
                       key={event._id}
@@ -793,11 +792,6 @@ const CustomerBrowseServices = () => {
             </div>)}
         </DialogContent>
       </Dialog>
-
-      <RequestCustomServiceModal
-        open={showCustomModal}
-        onOpenChange={setShowCustomModal}
-      />
     </CustomerLayout>);
 };
 export default CustomerBrowseServices;

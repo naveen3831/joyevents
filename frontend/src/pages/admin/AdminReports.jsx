@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
 import { BarChart3, TrendingUp, DollarSign, Calendar, Users, MapPin, Star, Loader2, Target, Award } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
+import PageHeader from "@/components/common/PageHeader";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiListBookings, apiListEvents, apiListUsers } from "@/lib/api";
@@ -164,14 +165,11 @@ const AdminReports = () => {
       </AdminLayout>);
     }
     return (<AdminLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mb-8">
-          <h1 className="font-display text-xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
-            <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0"/>
-            Reports <span className="text-gradient">&</span> Analytics
-          </h1>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-2">Real-time platform performance and insights</p>
-        </motion.div>
+      <PageHeader
+        title="Reports & Growth Analytics"
+        subtitle="Real-time performance metrics, revenue growth, top merchants, and location analytics."
+        breadcrumbs={[{ label: "Admin Portal" }, { label: "Growth" }, { label: "Reports & Analytics" }]}
+      />
 
         {/* Platform Metrics */}
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.05 }} className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -405,7 +403,6 @@ const AdminReports = () => {
             </CardContent>
           </Card>
         </motion.div>
-      </section>
     </AdminLayout>);
 };
 export default AdminReports;

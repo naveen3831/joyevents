@@ -9,9 +9,9 @@ const CustomerLayout = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     return (<div className="h-screen w-full flex flex-col overflow-hidden pb-20 md:pb-0 relative">
       <Navbar hideDashboardLinks={true} onSidebarToggle={() => setSidebarOpen(o => !o)} sidebarOpen={sidebarOpen}/>
-      <div className="flex flex-1 w-full pt-18 sm:pt-20 overflow-hidden">
+      <div className="flex flex-1 w-full pt-18 sm:pt-20 overflow-hidden px-4 md:px-5 lg:px-6 gap-4 lg:gap-6">
         <CustomerSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onToggle={() => setSidebarOpen(o => !o)}/>
-        <main className="flex-1 w-full overflow-y-auto min-w-0 px-4 sm:px-8 lg:px-12 xl:px-16 pb-24 md:pb-8">{children}</main>
+        <main className="flex-1 w-full overflow-y-auto min-w-0 pb-24 md:pb-8 m-0 p-0">{children}</main>
       </div>
 
       {/* Floating AI Picks Button — Bottom Right on Mobile */}

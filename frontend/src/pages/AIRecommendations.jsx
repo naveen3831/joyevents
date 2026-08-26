@@ -79,8 +79,8 @@ const AIRecommendations = () => {
     }, [token]);
     const imgSrc = (img) => !img ? "" : img.startsWith("http") ? img : `${API_URL}${img}`;
     return (<CustomerLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <div className="container mx-auto">
+      <section className="py-2 sm:py-6">
+        <div className="w-full">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
             <div className="flex items-center gap-3 mb-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground">

@@ -58,6 +58,7 @@ const TicketValidation = lazy(() => import("./pages/TicketValidation"));
 const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
 const AdminEarnings = lazy(() => import("./pages/admin/AdminEarnings"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminMerchantForm = lazy(() => import("./pages/admin/AdminMerchantForm"));
 const AdminUserDetail = lazy(() => import("./pages/admin/AdminUserDetail"));
 const AdminEvents = lazy(() => import("./pages/admin/AdminEvents"));
 const AdminEventDetail = lazy(() => import("./pages/admin/AdminEventDetail"));
@@ -93,6 +94,7 @@ const MyRequests = lazy(() => import("./pages/MyRequests"));
 const MerchantBookings = lazy(() => import("./pages/MerchantBookings"));
 const MerchantInbox = lazy(() => import("./pages/MerchantInbox"));
 const EarningsDashboard = lazy(() => import("./pages/EarningsDashboard"));
+const RequestWithdrawal = lazy(() => import("./pages/RequestWithdrawal"));
 const MarketingTools = lazy(() => import("./pages/MarketingTools"));
 const EventAnalytics = lazy(() => import("./pages/EventAnalytics"));
 const BlogDetail = lazy(() => import("./pages/BlogDetail"));
@@ -103,9 +105,11 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const QRCodeGenerator = lazy(() => import("./pages/QRCodeGenerator"));
 const AIRecommendations = lazy(() => import("./pages/AIRecommendations"));
+const RequestCustomServicePage = lazy(() => import("./pages/RequestCustomServicePage"));
 const MerchantRecommendations = lazy(() => import("./pages/MerchantRecommendations"));
 const AdminRecommendations = lazy(() => import("./pages/admin/AdminRecommendations"));
 const Cart = lazy(() => import("./pages/Cart"));
+const ContactOrganiserPage = lazy(() => import("./pages/ContactOrganiserPage"));
 const CustomerWallet = lazy(() => import("./pages/CustomerWallet"));
 const CustomerReferral = lazy(() => import("./pages/CustomerReferral"));
 const MerchantReferrals = lazy(() => import("./pages/MerchantReferrals"));
@@ -201,11 +205,20 @@ const AppRoutes = () => {
         <Route path="/customer-dashboard/cart" element={<ProtectedRoute allowedRoles={["customer"]}><Cart /></ProtectedRoute>}/>
         <Route path="/customer-dashboard/wallet" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerWallet /></ProtectedRoute>}/>
         <Route path="/customer-dashboard/referral" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerReferral /></ProtectedRoute>}/>
+        <Route path="/customer-dashboard/request-custom-service" element={<ProtectedRoute allowedRoles={["customer"]}><RequestCustomServicePage /></ProtectedRoute>}/>
+        <Route path="/customer-dashboard/contact-organiser" element={<ProtectedRoute allowedRoles={["customer"]}><ContactOrganiserPage /></ProtectedRoute>}/>
+        <Route path="/request-custom-service" element={<ProtectedRoute allowedRoles={["customer"]}><RequestCustomServicePage /></ProtectedRoute>}/>
         
         {/* Merchant Routes */}
         <Route path="/merchant-dashboard/events" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantEvents /></ProtectedRoute>}/>
+        <Route path="/merchant-dashboard/events/new" element={<ProtectedRoute allowedRoles={["merchant"]}><CreateEvent /></ProtectedRoute>}/>
+        <Route path="/merchant-dashboard/create-event" element={<ProtectedRoute allowedRoles={["merchant"]}><CreateEvent /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/live-events" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantLiveEvents /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/services" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantServices /></ProtectedRoute>}/>
+        <Route path="/merchant-dashboard/services/new" element={<ProtectedRoute allowedRoles={["merchant"]}><AdminServiceForm layout="merchant" /></ProtectedRoute>}/>
+        <Route path="/merchant-dashboard/services/:id/edit" element={<ProtectedRoute allowedRoles={["merchant"]}><AdminServiceForm layout="merchant" /></ProtectedRoute>}/>
+        <Route path="/merchant-dashboard/create-service" element={<ProtectedRoute allowedRoles={["merchant"]}><AdminServiceForm layout="merchant" /></ProtectedRoute>}/>
+        <Route path="/create-service" element={<ProtectedRoute allowedRoles={["merchant"]}><AdminServiceForm layout="merchant" /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/profile" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantProfile /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/ticket-validation" element={<ProtectedRoute allowedRoles={["merchant"]}><TicketValidation /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/analytics" element={<ProtectedRoute allowedRoles={["merchant"]}><EventAnalytics /></ProtectedRoute>}/>
@@ -213,6 +226,7 @@ const AppRoutes = () => {
         {/* Sidebar-aligned merchant routes */}
         <Route path="/merchant-dashboard/bookings" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantBookings /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/earnings" element={<ProtectedRoute allowedRoles={["merchant"]}><EarningsDashboard /></ProtectedRoute>}/>
+        <Route path="/merchant-dashboard/withdraw" element={<ProtectedRoute allowedRoles={["merchant"]}><RequestWithdrawal /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/marketing" element={<ProtectedRoute allowedRoles={["merchant"]}><MarketingTools /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/referrals" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantReferrals /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/qr-codes" element={<ProtectedRoute allowedRoles={["merchant"]}><QRCodeGenerator /></ProtectedRoute>}/>
@@ -224,13 +238,17 @@ const AppRoutes = () => {
         <Route path="/my-requests" element={<ProtectedRoute allowedRoles={["customer"]}><MyRequests /></ProtectedRoute>}/>
         <Route path="/merchant-bookings" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantBookings /></ProtectedRoute>}/>
         <Route path="/merchant-earnings" element={<ProtectedRoute allowedRoles={["merchant"]}><EarningsDashboard /></ProtectedRoute>}/>
+        <Route path="/merchant-withdraw" element={<ProtectedRoute allowedRoles={["merchant"]}><RequestWithdrawal /></ProtectedRoute>}/>
         <Route path="/merchant-marketing" element={<ProtectedRoute allowedRoles={["merchant"]}><MarketingTools /></ProtectedRoute>}/>
         
         {/* Admin Routes */}
         <Route path="/admin-dashboard/users" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUsers /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/users/create-merchant" element={<ProtectedRoute allowedRoles={["admin"]}><AdminMerchantForm /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/create-merchant" element={<ProtectedRoute allowedRoles={["admin"]}><AdminMerchantForm /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/users/:id" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUserDetail /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/events" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEvents /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/events/:id" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEventDetail /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/events/:id/edit" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEventForm /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/my-events" element={<ProtectedRoute allowedRoles={["admin"]}><AdminMyEvents /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/my-events/new" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEventForm /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/my-events/:id/edit" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEventForm /></ProtectedRoute>}/>

@@ -1,142 +1,330 @@
-import { formatCurrency } from "@/lib/utils";
-import { ImageIcon, Loader2, AlertCircle, Ticket, MapPin, CalendarDays, Store, Mail, Phone, Tag, Users2, ArrowLeft } from "lucide-react";
-import AdminLayout from "@/components/AdminLayout";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
+import {
+  ImageIcon,
+  Loader2,
+  AlertCircle,
+  Ticket,
+  MapPin,
+  CalendarDays,
+  Store,
+  Mail,
+  Phone,
+  Tag,
+  Users2,
+  ArrowLeft,
+  Pencil,
+  Activity,
+  DollarSign,
+} from "lucide-react";
+import AdminLayout from "@/components/AdminLayout";
+import PageHeader from "@/components/common/PageHeader";
+import StatusBadge from "@/components/common/table/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/utils";
 import { apiGetEventById } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 
-const imgSrc = (image) => !image ? "" : image.startsWith("http") ? image : `${API_URL}${image}`;
+const imgSrc = (image) =>
+  !image ? "" : image.startsWith("http") ? image : `${API_URL}${image}`;
 
-const getEventTickets = (ev) => ev.hasMultipleSessions
+const getEventTickets = (ev) =>
+  ev.hasMultipleSessions
     ? [...(ev.sessions?.day?.tickets || []), ...(ev.sessions?.night?.tickets || [])]
-    : (ev.tickets || []);
+    : ev.tickets || [];
 
 const getEventPriceLabel = (ev) => {
-    if (ev.eventType !== "ticketed")
-        return formatCurrency(ev.price);
-    const prices = getEventTickets(ev).map((t) => t.price).filter((p) => p > 0);
-    if (prices.length === 0)
-        return "Free";
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    return min === max ? formatCurrency(min) : `${formatCurrency(min)} – ${formatCurrency(max)}`;
-};
-
-const STATUS_STYLES = {
-    upcoming: "bg-blue-500/15 text-blue-400",
-    ongoing: "bg-green-500/15 text-green-400",
-    completed: "bg-gray-500/15 text-gray-400",
-    cancelled: "bg-red-500/15 text-red-400",
+  if (ev.eventType !== "ticketed") return formatCurrency(ev.price);
+  const prices = getEventTickets(ev)
+    .map((t) => t.price)
+    .filter((p) => p > 0);
+  if (prices.length === 0) return "Free";
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  return min === max ? formatCurrency(min) : `${formatCurrency(min)} – ${formatCurrency(max)}`;
 };
 
 const AdminEventDetail = () => {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const [event, setEvent] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-    useEffect(() => {
-        let cancelled = false;
-        setLoading(true);
-        apiGetEventById(id)
-            .then((res) => { if (!cancelled) setEvent(res.event || null); })
-            .catch((e) => { if (!cancelled) { setError(e?.message || "Failed to load event"); toast.error(e?.message || "Failed to load event"); } })
-            .finally(() => { if (!cancelled) setLoading(false); });
-        return () => { cancelled = true; };
-    }, [id]);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    apiGetEventById(id)
+      .then((res) => {
+        if (!cancelled) setEvent(res.event || null);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setError(e?.message || "Failed to load event");
+          toast.error(e?.message || "Failed to load event");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
-    return (<AdminLayout>
-      <section className="py-2 sm:py-8 lg:py-10 max-w-3xl mx-auto">
-        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors mb-4 sm:mb-6">
-          <ArrowLeft className="h-4 w-4"/> Back to Events
-        </button>
+  return (
+    <AdminLayout>
+      <div className="w-full max-w-[1150px] mx-auto space-y-5">
+        {/* Page Header with Back and Edit Action */}
+        <PageHeader
+          title={event?.title || "Event Details"}
+          subtitle="View and manage event specifications, ticketing, and organizer details."
+          breadcrumbs={[
+            { label: "Admin Portal", to: "/admin-dashboard" },
+            { label: "Events", to: "/admin-dashboard/events" },
+            { label: event?.title ? event.title : "Event Details" },
+          ]}
+          actions={
+            <div className="flex items-center gap-2.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/admin-dashboard/events")}
+                className="h-9 text-xs font-semibold rounded-lg gap-1.5"
+              >
+                <ArrowLeft className="h-4 w-4" /> Back to Events
+              </Button>
+              {event && (
+                <Button
+                  size="sm"
+                  onClick={() => navigate(`/admin-dashboard/events/${id}/edit`)}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-xs font-semibold h-9 px-4 gap-1.5 shadow-sm"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Edit Event
+                </Button>
+              )}
+            </div>
+          }
+        />
 
-        {loading ? (<div className="flex items-center justify-center py-24 text-muted-foreground gap-2">
-            <Loader2 className="h-5 w-5 animate-spin"/> Loading…
-          </div>) : error || !event ? (<div className="rounded-xl border border-border bg-card p-10 text-center text-muted-foreground">
-            <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-40"/>
-            {error || "Event not found."}
+        {loading ? (
+          <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" /> Loading event details...
+          </div>
+        ) : error || !event ? (
+          <div className="rounded-xl border border-border bg-card p-10 text-center text-muted-foreground">
+            <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-40 text-destructive" />
+            <p className="text-sm font-semibold text-foreground">{error || "Event not found."}</p>
             <div className="mt-4">
-              <Link to="/admin-dashboard/events" className="text-primary text-sm font-medium hover:underline">Go back to Events</Link>
+              <Link
+                to="/admin-dashboard/events"
+                className="text-primary text-xs font-semibold hover:underline"
+              >
+                Return to All Events
+              </Link>
             </div>
-          </div>) : (<div className="rounded-2xl border border-border bg-card overflow-hidden">
-            <div className="relative h-52 sm:h-72 w-full overflow-hidden bg-secondary">
-              {imgSrc(event.image) ? (<img src={imgSrc(event.image)} alt={event.title} className="h-full w-full object-cover"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
-                  <ImageIcon className="h-14 w-14 opacity-30"/>
-                </div>)}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"/>
-              <span className={`absolute top-4 right-4 rounded-full px-3 py-1 text-xs font-semibold capitalize backdrop-blur-sm ${STATUS_STYLES[event.status] || "bg-gray-500/15 text-gray-400"}`}>
-                {event.status}
-              </span>
-              <div className="absolute bottom-4 left-5 right-5">
-                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground mb-2">
-                  <Tag className="h-3 w-3"/> {event.category}
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {/* Compact Hero Banner Section */}
+            <div className="relative h-64 sm:h-72 lg:h-[300px] w-full rounded-2xl overflow-hidden bg-secondary border border-border/80 shadow-sm">
+              {imgSrc(event.image) ? (
+                <img
+                  src={imgSrc(event.image)}
+                  alt={event.title}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center bg-muted text-muted-foreground/30">
+                  <ImageIcon className="h-14 w-14 opacity-30" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+
+              {/* Status Badge Overlay */}
+              <div className="absolute top-4 right-4 flex items-center gap-2">
+                {event.live && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500 text-white shadow-md">
+                    <span className="h-2 w-2 rounded-full bg-white animate-ping" />
+                    LIVE STREAM
+                  </span>
+                )}
+                <StatusBadge status={event.status} className="shadow-md" />
+              </div>
+
+              {/* Title & Category Overlay */}
+              <div className="absolute bottom-4 left-5 right-5 space-y-1">
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/90 text-primary-foreground px-3 py-0.5 text-xs font-bold shadow-sm">
+                  <Tag className="h-3 w-3" /> {event.category || "General"}
                 </span>
-                <h1 className="font-display text-2xl sm:text-3xl font-bold text-white leading-tight">{event.title}</h1>
+                <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-bold text-white tracking-tight leading-tight truncate">
+                  {event.title}
+                </h1>
               </div>
             </div>
 
-            <div className="p-5 sm:p-8 space-y-6 text-sm">
-              {/* Organizer */}
-              <div className="rounded-xl border border-border bg-secondary/40 p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5">
-                  <Store className="h-3.5 w-3.5"/> Organized By
+            {/* Compact Organizer Info Card */}
+            <div className="rounded-xl border border-border/80 bg-card p-4 sm:px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                  <Store className="h-5 w-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+                    Organized By
+                  </span>
+                  <p className="font-semibold text-sm text-foreground">
+                    {event.createdBy?.name || "Merchant Partner"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60">
+                {event.createdBy?.email && (
+                  <span className="flex items-center gap-1.5 font-medium text-foreground/80">
+                    <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />{" "}
+                    {event.createdBy.email}
+                  </span>
+                )}
+                {event.createdBy?.mobile && (
+                  <span className="flex items-center gap-1.5 font-medium text-foreground/80">
+                    <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />{" "}
+                    {event.createdBy.mobile}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Event Description Card */}
+            {event.description && (
+              <div className="rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-sm space-y-1.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Description
+                </h3>
+                <p className="text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-line">
+                  {event.description}
                 </p>
-                <p className="font-semibold text-foreground text-base">{event.createdBy?.name || "Unknown merchant"}</p>
-                {event.createdBy?.email && (<p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5"><Mail className="h-3 w-3"/>{event.createdBy.email}</p>)}
-                {event.createdBy?.mobile && (<p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5"><Phone className="h-3 w-3"/>{event.createdBy.mobile}</p>)}
               </div>
+            )}
 
-              {event.description && (<div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1.5">Description</p>
-                  <p className="text-muted-foreground whitespace-pre-line leading-relaxed">{event.description}</p>
-                </div>)}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5"/>Location</p>
-                  <p className="text-foreground font-medium">{event.location}</p>
+            {/* Compact 2-Column Responsive Information Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Location Card */}
+              <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm flex items-start gap-3">
+                <div className="h-9 w-9 rounded-lg bg-muted border border-border/60 flex items-center justify-center text-muted-foreground shrink-0 mt-0.5">
+                  <MapPin className="h-4 w-4 text-primary" />
                 </div>
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5"/>Date & Time</p>
-                  <p className="text-foreground font-medium">{new Date(event.datetime).toLocaleString()}</p>
-                </div>
-                {typeof event.attendeesCount === "number" && (<div className="rounded-lg border border-border p-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-1.5"><Users2 className="h-3.5 w-3.5"/>Attendees</p>
-                    <p className="text-foreground font-medium">{event.attendeesCount}{event.maxAttendees ? ` / ${event.maxAttendees}` : ""}</p>
-                  </div>)}
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1">Price</p>
-                  <p className="text-primary font-bold">{getEventPriceLabel(event)}</p>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    Location
+                  </span>
+                  <p className="text-xs sm:text-sm font-semibold text-foreground mt-0.5 truncate">
+                    {event.location}
+                  </p>
                 </div>
               </div>
 
-              {/* Ticket tiers */}
-              {getEventTickets(event).length > 0 && (<div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5"><Ticket className="h-3.5 w-3.5"/>Ticket Tiers</p>
-                  <div className="space-y-1.5">
-                    {getEventTickets(event).map((ticket, idx) => {
-                        const remaining = (ticket.available || 0) - (ticket.sold || 0);
-                        const isSoldOut = remaining <= 0;
-                        return (<div key={`${ticket.type}-${idx}`} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-xs">
-                            <span className="capitalize font-medium text-foreground">{ticket.type}</span>
-                            <div className="flex items-center gap-3">
-                              <span className="text-primary font-semibold">{formatCurrency(ticket.price)}</span>
-                              <span className={isSoldOut ? "text-red-500 font-semibold" : "text-green-500 font-semibold"}>
-                                {isSoldOut ? "Sold Out" : `${remaining} left`}
-                              </span>
-                            </div>
-                          </div>);
+              {/* Date & Time Card */}
+              <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm flex items-start gap-3">
+                <div className="h-9 w-9 rounded-lg bg-muted border border-border/60 flex items-center justify-center text-muted-foreground shrink-0 mt-0.5">
+                  <CalendarDays className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    Date & Time
+                  </span>
+                  <p className="text-xs sm:text-sm font-semibold text-foreground mt-0.5">
+                    {new Date(event.datetime).toLocaleString([], {
+                      dateStyle: "medium",
+                      timeStyle: "short",
                     })}
-                  </div>
-                </div>)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Price / Pricing Card */}
+              <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm flex items-start gap-3">
+                <div className="h-9 w-9 rounded-lg bg-muted border border-border/60 flex items-center justify-center text-muted-foreground shrink-0 mt-0.5">
+                  <DollarSign className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    Pricing
+                  </span>
+                  <p className="text-xs sm:text-sm font-bold text-primary mt-0.5">
+                    {getEventPriceLabel(event)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Capacity & Attendees Card */}
+              <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm flex items-start gap-3">
+                <div className="h-9 w-9 rounded-lg bg-muted border border-border/60 flex items-center justify-center text-muted-foreground shrink-0 mt-0.5">
+                  <Users2 className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    Capacity & Attendees
+                  </span>
+                  <p className="text-xs sm:text-sm font-semibold text-foreground mt-0.5">
+                    {event.maxAttendees && event.maxAttendees > 0
+                      ? `${event.attendeesCount || 0} / ${event.maxAttendees} attendees`
+                      : `${event.attendeesCount || 0} registered (Unlimited)`}
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>)}
-      </section>
-    </AdminLayout>);
+
+            {/* Ticket Tiers Section (if ticketed event) */}
+            {getEventTickets(event).length > 0 && (
+              <div className="rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-sm space-y-3">
+                <div className="flex items-center gap-2">
+                  <Ticket className="h-4 w-4 text-primary" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    Ticket Tiers & Availability
+                  </h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {getEventTickets(event).map((ticket, idx) => {
+                    const remaining = (ticket.available || 0) - (ticket.sold || 0);
+                    const isSoldOut = remaining <= 0;
+                    return (
+                      <div
+                        key={`${ticket.type}-${idx}`}
+                        className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/30 px-3.5 py-2.5 text-xs"
+                      >
+                        <div>
+                          <span className="capitalize font-semibold text-foreground block">
+                            {ticket.type}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {ticket.sold || 0} sold
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-primary font-bold block">
+                            {formatCurrency(ticket.price)}
+                          </span>
+                          <span
+                            className={`text-[10px] font-semibold ${
+                              isSoldOut ? "text-rose-500" : "text-emerald-500"
+                            }`}
+                          >
+                            {isSoldOut ? "Sold Out" : `${remaining} available`}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </AdminLayout>
+  );
 };
 
 export default AdminEventDetail;

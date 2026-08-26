@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, TrendingUp, Users, Calendar, Loader2, AlertCircle, Eye } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
+import PageHeader from "@/components/common/PageHeader";
 import StatCard from "@/components/StatCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiGetMerchantRecommendationStats } from "@/lib/api";
@@ -27,19 +28,16 @@ const MerchantRecommendations = () => {
     const headerRef = useGsapReveal();
     const gridRef = useGsapStagger([loading, stats.length]);
     return (<MerchantLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <div className="container mx-auto">
-          <div ref={headerRef} className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 sm:mb-8">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shrink-0">
-              <Sparkles className="h-5 w-5"/>
-            </div>
-            <div>
-              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-                AI <span className="text-gradient">Recommendation Stats</span>
-              </h1>
-              <p className="text-sm text-muted-foreground">How your events perform in customer recommendations</p>
-            </div>
-          </div>
+      <div className="w-full min-w-0 space-y-5 font-sans">
+        <PageHeader
+          title="AI Reach Stats"
+          subtitle="Analyze how your events perform in customer AI recommendation feeds."
+          breadcrumbs={[
+            { label: "Merchant Portal", to: "/merchant-dashboard" },
+            { label: "Growth" },
+            { label: "AI Reach Stats" },
+          ]}
+        />
 
           {/* Summary cards */}
           <div ref={gridRef} className="grid gap-4 grid-cols-1 sm:grid-cols-3 mb-6 sm:mb-8">
@@ -101,8 +99,7 @@ const MerchantRecommendations = () => {
           <p className="mt-4 text-xs text-muted-foreground">
             * Estimated reach is based on booking history patterns and category popularity. Actual reach may vary.
           </p>
-        </div>
-      </section>
+      </div>
     </MerchantLayout>);
 };
 export default MerchantRecommendations;

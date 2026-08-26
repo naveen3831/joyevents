@@ -1,5 +1,6 @@
 import { ImageIcon, Loader2, AlertCircle, X, Upload, Plus, ArrowLeft } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
+import MerchantLayout from "@/components/MerchantLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
@@ -32,7 +33,9 @@ const validateImage = (file) => {
     return { isValid: true };
 };
 
-const AdminServiceForm = () => {
+const AdminServiceForm = ({ layout = "admin" } = {}) => {
+    const PageLayout = layout === "merchant" ? MerchantLayout : AdminLayout;
+    const redirectPath = layout === "merchant" ? "/merchant-dashboard/services" : "/admin-dashboard/my-services";
     const { token } = useAuth();
     const navigate = useNavigate();
     const { id: editingId } = useParams();
@@ -246,7 +249,7 @@ const AdminServiceForm = () => {
                 await apiCreateService(fd, token);
                 toast.success("Service created!");
             }
-            navigate("/admin-dashboard/my-services");
+            navigate(redirectPath);
         }
         catch (e) {
             toast.error(e?.message || "Failed to save service");
@@ -257,27 +260,27 @@ const AdminServiceForm = () => {
     };
 
     if (pageLoading) {
-        return (<AdminLayout>
+        return (<PageLayout>
         <section className="py-2 sm:py-8 lg:py-10 flex items-center justify-center py-24 text-muted-foreground gap-2">
           <Loader2 className="h-5 w-5 animate-spin"/> Loading…
         </section>
-      </AdminLayout>);
+      </PageLayout>);
     }
 
     if (loadError) {
-        return (<AdminLayout>
-        <section className="py-2 sm:py-8 lg:py-10">
+        return (<PageLayout>
+        <section className="py-6 sm:py-8 w-full">
           <div className="rounded-xl border border-border bg-card p-10 text-center text-muted-foreground">
             <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-40"/>
             {loadError}
           </div>
         </section>
-      </AdminLayout>);
+      </PageLayout>);
     }
 
-    return (<AdminLayout>
-      <section className="py-2 sm:py-8 lg:py-10 max-w-3xl mx-auto">
-        <button onClick={() => navigate("/admin-dashboard/my-services")} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors mb-4">
+    return (<PageLayout>
+      <section className="py-2 sm:py-6 w-full space-y-6">
+        <button onClick={() => navigate(redirectPath)} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors mb-4">
           <ArrowLeft className="h-4 w-4"/> Back to My Services
         </button>
 
@@ -423,15 +426,17 @@ const AdminServiceForm = () => {
             </div>
           </div>
 
-          <div className="flex gap-3 mt-5">
-            <Button type="submit" disabled={saving} className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90">
-              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Saving…</> : (isEdit ? "Update Service" : "Create Service")}
+          <div className="pt-6 mt-4 border-t border-border flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
+            <Button type="button" variant="outline" size="lg" className="w-full sm:w-auto min-h-[44px] px-6 rounded-xl font-semibold" onClick={() => navigate(redirectPath)} disabled={saving}>
+              Cancel
             </Button>
-            <Button type="button" variant="outline" onClick={() => navigate("/admin-dashboard/my-services")} disabled={saving}>Cancel</Button>
+            <Button type="submit" disabled={saving} className="w-full sm:w-auto bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow min-h-[44px] px-8 rounded-xl font-semibold" size="lg">
+              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Saving…</> : (isEdit ? "Update Service" : "Publish Service")}
+            </Button>
           </div>
         </form>
       </section>
-    </AdminLayout>);
+    </PageLayout>);
 };
 
 export default AdminServiceForm;

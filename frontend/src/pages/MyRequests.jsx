@@ -4,7 +4,7 @@ import { ArrowLeft, Ticket, AlertCircle, Star, FileText, CreditCard, Sparkles, C
 import QRCode from "qrcode";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiMyBookings, apiSubmitRating, apiRequestCancel, apiAcceptCancellationFee, apiGetMyCustomServiceRequests, apiPayCustomServiceQuote } from "@/lib/api";
@@ -13,7 +13,6 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import SimplePayment from "@/components/SimplePayment";
-import RequestCustomServiceModal from "@/components/RequestCustomServiceModal";
 import { useRealtimeEvent } from "@/hooks/useRealtimeEvent";
 import { StatusBadge } from "@/components/common/table/StatusBadge";
 import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
@@ -39,7 +38,11 @@ const STATUS_BADGE = {
 
 const MyRequests = () => {
     const { token, user } = useAuth();
-    const [activeTab, setActiveTab] = useState("bookings");
+    const navigate = useNavigate();
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const initialTab = queryParams.get("tab") === "custom" ? "custom" : "bookings";
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [bookingSubFilter, setBookingSubFilter] = useState("all");
     const [items, setItems] = useState([]);
     const [customRequests, setCustomRequests] = useState([]);
@@ -56,9 +59,6 @@ const MyRequests = () => {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentBooking, setPaymentBooking] = useState(null);
     const [cancellingId, setCancellingId] = useState(null);
-
-    // Custom request modal
-    const [showCreateCustomModal, setShowCreateCustomModal] = useState(false);
 
     // Custom quote payment state
     const [selectedCustomForPay, setSelectedCustomForPay] = useState(null);
@@ -328,13 +328,13 @@ const MyRequests = () => {
     };
 
     return (<CustomerLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <div className="container mx-auto">
+      <section className="py-2 sm:py-6">
+        <div className="w-full space-y-6">
           {/* Header */}
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
                   <Ticket className="h-5 w-5"/>
                 </div>
                 <div>
@@ -345,8 +345,8 @@ const MyRequests = () => {
                 </div>
               </div>
 
-              <Button onClick={() => setShowCreateCustomModal(true)} className="bg-gradient-primary text-white font-semibold shadow-sm">
-                <Sparkles className="h-4 w-4 mr-1.5" /> Request Custom Service
+              <Button onClick={() => navigate("/customer-dashboard/request-custom-service")} className="bg-gradient-primary text-white font-semibold shadow-glow min-h-[42px] rounded-xl px-5">
+                <Sparkles className="h-4 w-4 mr-2" /> Request Custom Service
               </Button>
             </div>
 
@@ -420,44 +420,55 @@ const MyRequests = () => {
                 {filteredBookings.length === 0 ? (
                   <TableEmptyState title={`No ${bookingSubFilter} bookings found`} description="Your booking requests will appear here." colSpan={5} />
                 ) : (
-                  <DataTable minWidth="650px">
+                  <DataTable minWidth="100%">
                     <TableHeader>
-                      <TableHeaderCell width="180px">Service / Event</TableHeaderCell>
-                      <TableHeaderCell width="100px">Price</TableHeaderCell>
-                      <TableHeaderCell width="120px">Date / Time</TableHeaderCell>
-                      <TableHeaderCell width="110px">Status</TableHeaderCell>
-                      <TableHeaderCell align="right" width="140px">Actions</TableHeaderCell>
+                      <TableHeaderCell width="28%">Service / Event</TableHeaderCell>
+                      <TableHeaderCell width="15%">Price</TableHeaderCell>
+                      <TableHeaderCell width="20%">Date / Time</TableHeaderCell>
+                      <TableHeaderCell width="17%">Status</TableHeaderCell>
+                      <TableHeaderCell align="right" width="20%">Actions</TableHeaderCell>
                     </TableHeader>
                     <TableBody>
                       {filteredBookings.map((b) => (
                         <TableRow key={b._id}>
                           <TableCell>
-                            <div className="text-xs font-semibold text-foreground">{b.event?.title || b.serviceName}</div>
-                            {b.event && (<span className="block text-[10px] text-primary font-medium mt-0.5">🎫 Event</span>)}
+                            <div className="text-xs font-semibold text-foreground truncate max-w-[220px]" title={b.event?.title || b.serviceName}>
+                              {b.event?.title || b.serviceName}
+                            </div>
+                            {b.event ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-primary font-medium mt-0.5">
+                                🎫 Event
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
+                                💼 Service
+                              </span>
+                            )}
                           </TableCell>
                           <TableCell className="font-bold text-xs text-primary">
-                            {formatCurrency(b.price)}
+                            {formatCurrency(b.price || 0)}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                            <div>{new Date(b.datetime).toLocaleDateString()}</div>
+                            <div className="font-medium text-foreground">{b.datetime ? new Date(b.datetime).toLocaleDateString() : "—"}</div>
+                            {b.datetime && <div className="text-[10px] text-muted-foreground">{new Date(b.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>}
                           </TableCell>
                           <TableCell>
                             <StatusBadge status={b.status} />
                           </TableCell>
                           <TableCell align="right">
-                            <div className="flex gap-1.5 flex-wrap items-center justify-end">
+                            <div className="flex gap-1.5 items-center justify-end flex-wrap">
                               {(b.status === "confirmed" || b.status === "paid" || b.status === "completed" || b.event || b.ticketId) && (
-                                <Button size="sm" variant="outline" className="gap-1 border-primary/40 text-primary hover:bg-primary/10 font-bold" onClick={() => downloadTicket(b)}>
+                                <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1 border-primary/40 text-primary hover:bg-primary/10 font-bold rounded-xl" onClick={() => downloadTicket(b)}>
                                   <Ticket className="h-3.5 w-3.5"/> Ticket
                                 </Button>
                               )}
                               {b.status === "completed" && (
-                                <Button size="sm" variant="outline" className="gap-1 border-purple-500/40 text-purple-400 hover:bg-purple-500/10" onClick={() => downloadInvoice(b)}>
+                                <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1 border-purple-500/40 text-purple-400 hover:bg-purple-500/10 rounded-xl" onClick={() => downloadInvoice(b)}>
                                   <FileText className="h-3.5 w-3.5"/> Invoice
                                 </Button>
                               )}
                               {b.status === "completed" && !b.rating?.score && (
-                                <Button size="sm" variant="outline" className="gap-1 text-amber-500 border-amber-500/40" onClick={() => openRatingModal(b)}>
+                                <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1 text-amber-500 border-amber-500/40 hover:bg-amber-500/10 rounded-xl" onClick={() => openRatingModal(b)}>
                                   <Star className="h-3.5 w-3.5"/> Rate
                                 </Button>
                               )}
@@ -476,7 +487,7 @@ const MyRequests = () => {
                   <Sparkles className="mx-auto mb-4 h-12 w-12 text-primary opacity-40 animate-pulse"/>
                   <p className="font-medium text-lg text-foreground">No Custom Service Enquiries Yet</p>
                   <p className="text-sm mt-1 text-muted-foreground">Can't find a service on Eventoza? Submit a custom service request!</p>
-                  <Button onClick={() => setShowCreateCustomModal(true)} className="mt-4 bg-gradient-primary text-white font-semibold">
+                  <Button onClick={() => navigate("/customer-dashboard/request-custom-service")} className="mt-4 bg-gradient-primary text-white font-semibold">
                     <Sparkles className="h-4 w-4 mr-1.5" /> Submit Custom Service Request
                   </Button>
                 </div>
@@ -647,16 +658,6 @@ const MyRequests = () => {
             </DialogContent>
           </Dialog>
         )}
-
-        {/* Create Custom Service Request Modal */}
-        <RequestCustomServiceModal
-          open={showCreateCustomModal}
-          onOpenChange={setShowCreateCustomModal}
-          onSuccess={() => {
-            loadCustom();
-            setActiveTab("custom");
-          }}
-        />
       </section>
     </CustomerLayout>);
 };

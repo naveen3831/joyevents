@@ -127,8 +127,12 @@ export const createUser = async (req, res) => {
     if (!name || !email || !password) {
       return badRequest(res, "name, email, and password are required");
     }
-    if (role === "merchant" && (!mobile || mobile.replace(/[^0-9]/g, "").length !== 12)) {
-      return badRequest(res, "Mobile number must be exactly 12 digits");
+    let cleanMobile = mobile ? String(mobile).replace(/[^0-9]/g, "") : "";
+    if (cleanMobile.length === 10) {
+      cleanMobile = "91" + cleanMobile;
+    }
+    if (role === "merchant" && (!cleanMobile || cleanMobile.length !== 12)) {
+      return badRequest(res, "Please enter a valid 10-digit mobile number");
     }
     const signupErr = validateSignupForm(email, password, { name });
     if (signupErr) return badRequest(res, signupErr);
@@ -144,7 +148,7 @@ export const createUser = async (req, res) => {
       email: normalizedEmail,
       passwordHash,
       role: assignedRole,
-      mobile,
+      mobile: cleanMobile || mobile,
       merchantStatus: assignedRole === "merchant" ? "details_pending" : undefined
     });
     const safeUser = toSafeUser(user);

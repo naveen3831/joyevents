@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Users, CheckCircle, AlertTriangle, Search, Filter, UserX, UserCheck, KeyRound, FileText, CheckCircle2, DollarSign, Sparkles, XCircle, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, Users, CheckCircle, AlertTriangle, Search, Filter, UserX, UserCheck, KeyRound, FileText, CheckCircle2, DollarSign, Sparkles, XCircle, Eye, Pencil, Trash2, MessageSquare, Download, X, MoreHorizontal } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { useGsapReveal } from "@/lib/gsapAnimations";
 import { Input } from "@/components/ui/input";
@@ -11,55 +11,346 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { apiCreateUser, apiListUsers, apiUpdateUser, apiDeleteUser, apiResetPassword, apiSendMerchantQuotation, apiActivateMerchant, apiGetTickets, apiSendTicketQuotation, apiApproveTicket, apiGetAdminCustomServiceRequests, apiSendCustomServiceQuote, apiRejectCustomServiceRequest } from "@/lib/api";
-import { sanitizeEmailInput, sanitizeNameInput, validateEmail, validateSignupForm, validateNewPasswordForm, EMAIL_HINT, PASSWORD_HINT, EMAIL_MAX_LENGTH, NAME_MAX_LENGTH } from "@/lib/validation";
+import { sanitizeEmailInput, sanitizeNameInput, validateEmail, validateSignupForm, validateNewPasswordForm, validateMobileNumber, formatMobileForApi, formatMobileForInput, EMAIL_HINT, PASSWORD_HINT, EMAIL_MAX_LENGTH, NAME_MAX_LENGTH } from "@/lib/validation";
 import { formatCurrency } from "@/lib/utils";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { StatusBadge } from "@/components/common/table/StatusBadge";
 import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
 import { TableEmptyState } from "@/components/common/table/TableEmptyState";
+import { TableToolbar } from "@/components/common/table/TableToolbar";
+import { TableSkeleton } from "@/components/common/table/TableSkeleton";
+import ActionMenu from "@/components/common/ActionMenu";
+import PageHeader from "@/components/common/PageHeader";
 
-const UsersTableBody = ({ list, emptyMessage, navigate }) => (
-  <DataTable minWidth="100%">
-    <TableHeader>
-      <TableHeaderCell className="w-[24%]">Name</TableHeaderCell>
-      <TableHeaderCell className="w-[28%]">Email</TableHeaderCell>
-      <TableHeaderCell className="w-[18%]">Mobile</TableHeaderCell>
-      <TableHeaderCell className="w-[12%]">Role</TableHeaderCell>
-      <TableHeaderCell className="w-[12%] whitespace-nowrap">Joined</TableHeaderCell>
-      <TableHeaderCell align="right" className="w-[6%]">Actions</TableHeaderCell>
-    </TableHeader>
-    <TableBody>
-      {list.map((u) => (
-        <TableRow key={u._id}>
-          <TableCell className="font-semibold text-foreground">{u.name}</TableCell>
-          <TableCell className="text-muted-foreground">{u.email}</TableCell>
-          <TableCell className="text-muted-foreground">{u.mobile || "—"}</TableCell>
-          <TableCell>
-            <StatusBadge status={u.role} />
-          </TableCell>
-          <TableCell className="text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</TableCell>
-          <TableCell align="right">
-            <div className="flex items-center justify-end gap-1.5">
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-foreground/80 hover:text-primary hover:bg-primary/10 hover:border-primary/30 transition-all rounded-lg shrink-0" onClick={() => {
-                navigate(`/admin-dashboard/users/${u._id}`);
-              }} title="View Details">
-                <Eye className="h-4 w-4"/>
-              </Button>
-            </div>
-          </TableCell>
-        </TableRow>
-      ))}
-      {list.length === 0 && (
-        <tr className="hover:bg-transparent">
-          <td colSpan={6} className="py-6">
-            <TableEmptyState title={emptyMessage} description="Try refining your search query or filters." />
-          </td>
-        </tr>
-      )}
-    </TableBody>
-  </DataTable>
-);
+const formatJoinedDate = (dateString) => {
+  if (!dateString) return "—";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = date.toLocaleDateString("en-GB", { month: "short" });
+  const year = date.getFullYear();
+  return `${day} ${month} ${year}`;
+};
+
+const renderRoleBadge = (role) => {
+  const r = (role || "user").toLowerCase();
+  if (r === "merchant") {
+    return (
+      <span className="h-6 px-2.5 rounded-md text-[11px] font-medium border inline-flex items-center justify-center bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40">
+        Merchant
+      </span>
+    );
+  }
+  if (r === "admin") {
+    return (
+      <span className="h-6 px-2.5 rounded-md text-[11px] font-medium border inline-flex items-center justify-center bg-purple-50 text-purple-700 border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/40">
+        Admin
+      </span>
+    );
+  }
+  return (
+    <span className="h-6 px-2.5 rounded-md text-[11px] font-medium border inline-flex items-center justify-center bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+      {r === "customer" ? "Customer" : "User"}
+    </span>
+  );
+};
+
+const renderStatusBadge = (status) => {
+  const s = (status || "active").toLowerCase();
+  if (s === "active") {
+    return (
+      <span className="h-6 px-2.5 rounded-md text-[11px] font-medium border inline-flex items-center justify-center bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40">
+        Active
+      </span>
+    );
+  }
+  if (s === "suspended") {
+    return (
+      <span className="h-6 px-2.5 rounded-md text-[11px] font-medium border inline-flex items-center justify-center bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40">
+        Suspended
+      </span>
+    );
+  }
+  if (s === "pending" || s === "details_submitted") {
+    return (
+      <span className="h-6 px-2.5 rounded-md text-[11px] font-medium border inline-flex items-center justify-center bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40">
+        Pending
+      </span>
+    );
+  }
+  return (
+    <span className="h-6 px-2.5 rounded-md text-[11px] font-medium border inline-flex items-center justify-center bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">
+      {s === "deactivated" ? "Deactivated" : "Inactive"}
+    </span>
+  );
+};
+
+const UsersTableBody = ({
+  list,
+  loading = false,
+  emptyMessage = "No users found",
+  navigate,
+  searchQuery,
+  setSearchQuery,
+  searchPlaceholder = "Search users by name or email...",
+  roleFilter,
+  setRoleFilter,
+  statusFilter,
+  setStatusFilter,
+}) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, roleFilter, statusFilter, list.length]);
+
+  const totalItems = list.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedList = list.slice(startIndex, endIndex);
+
+  const handleExportCSV = () => {
+    if (!list || list.length === 0) {
+      toast.info("No user records to export.");
+      return;
+    }
+    const headers = ["User ID", "Name", "Email", "Mobile", "Role", "Status", "Joined Date"];
+    const rows = list.map((u) => [
+      u._id,
+      `"${u.name || ""}"`,
+      `"${u.email || ""}"`,
+      `"${u.mobile || ""}"`,
+      u.role || "user",
+      u.status || "active",
+      formatJoinedDate(u.createdAt),
+    ]);
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `users_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Users exported successfully!");
+  };
+
+  return (
+    <div className="w-full space-y-4 font-sans">
+      {/* 1. Clean Table Toolbar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full">
+        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+          {/* Search Box */}
+          <div className="relative w-full sm:w-[340px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder={searchPlaceholder}
+              value={searchQuery || ""}
+              onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
+              className="pl-9 h-9 text-xs bg-card border-border/80 rounded-lg shadow-none focus-visible:ring-1 focus-visible:ring-primary"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery && setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Right Action: Export Button */}
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            className="h-9 px-3.5 text-xs gap-1.5 rounded-lg border-border/80 cursor-pointer"
+          >
+            <Download className="h-3.5 w-3.5" /> Export
+          </Button>
+        </div>
+      </div>
+
+      {/* Table Card Container */}
+      <div className="rounded-xl border border-border/80 overflow-hidden bg-card shadow-xs">
+        {loading ? (
+          <TableSkeleton columns={7} rows={6} minWidth="100%" />
+        ) : (
+          <>
+            <DataTable minWidth="100%">
+              <TableHeader className="bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-xs sticky top-0 z-10 border-b border-border/80">
+                <TableHeaderCell className="w-[25%] text-xs font-semibold text-muted-foreground tracking-wider uppercase py-3">
+                  User
+                </TableHeaderCell>
+                <TableHeaderCell className="w-[30%] text-xs font-semibold text-muted-foreground tracking-wider uppercase py-3">
+                  Contact
+                </TableHeaderCell>
+                <TableHeaderCell className="w-[11%] text-xs font-semibold text-muted-foreground tracking-wider uppercase py-3">
+                  Role
+                </TableHeaderCell>
+                <TableHeaderCell className="w-[11%] text-xs font-semibold text-muted-foreground tracking-wider uppercase py-3">
+                  Status
+                </TableHeaderCell>
+                <TableHeaderCell className="w-[15%] text-xs font-semibold text-muted-foreground tracking-wider uppercase py-3 whitespace-nowrap">
+                  Joined
+                </TableHeaderCell>
+                <TableHeaderCell align="right" className="w-[8%] text-xs font-semibold text-muted-foreground tracking-wider uppercase py-3">
+                  Actions
+                </TableHeaderCell>
+              </TableHeader>
+              <TableBody>
+                {paginatedList.map((u) => {
+                  const initials = (u.name || "User").slice(0, 2).toUpperCase();
+                  const shortId = u._id ? u._id.slice(-6) : "------";
+                  return (
+                    <TableRow
+                      key={u._id}
+                      className="hover:bg-[#F8FAFC] dark:hover:bg-slate-900/60 transition-colors h-[60px]"
+                    >
+                      {/* User Column */}
+                      <TableCell className="w-[25%] py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-lg bg-blue-50 text-blue-700 border border-blue-100/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40 flex items-center justify-center text-xs font-bold shrink-0 shadow-2xs">
+                            {initials}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-[14px] text-foreground truncate" title={u.name}>
+                              {u.name}
+                            </p>
+                            <p
+                              className="text-[11px] text-muted-foreground font-mono truncate cursor-help"
+                              title={`Full User ID: ${u._id}`}
+                            >
+                              ID: {shortId}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Contact Column (Email + Mobile if available) */}
+                      <TableCell className="w-[30%] py-3">
+                        <div className="min-w-0 space-y-0.5">
+                          <span
+                            className="text-[13px] font-medium text-slate-800 dark:text-slate-200 truncate block max-w-full"
+                            title={u.email}
+                          >
+                            {u.email}
+                          </span>
+                          {u.mobile && (
+                            <span className="text-[12px] text-slate-500 font-mono block truncate">
+                              {u.mobile}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      {/* Role Column */}
+                      <TableCell className="w-[11%] py-3">
+                        {renderRoleBadge(u.role)}
+                      </TableCell>
+
+                      {/* Status Column */}
+                      <TableCell className="w-[11%] py-3">
+                        {renderStatusBadge(u.status || "active")}
+                      </TableCell>
+
+                      {/* Joined Date Column */}
+                      <TableCell className="w-[15%] py-3 text-xs text-slate-500 whitespace-nowrap">
+                        {formatJoinedDate(u.createdAt)}
+                      </TableCell>
+
+                      {/* Actions Column */}
+                      <TableCell align="right" className="w-[8%] py-3">
+                        <ActionMenu
+                          items={[
+                            {
+                              label: "View Details",
+                              icon: Eye,
+                              onClick: () => navigate(`/admin-dashboard/users/${u._id}`),
+                            },
+                          ]}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+
+                {/* Empty State */}
+                {paginatedList.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-10 text-center">
+                      <TableEmptyState
+                        title="No users found"
+                        description="Try adjusting your search query or filters."
+                      />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </DataTable>
+
+            {/* Pagination Controls */}
+            {totalItems > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-border/70 text-xs text-muted-foreground bg-muted/20">
+                <div>
+                  Showing {startIndex + 1}–{Math.min(endIndex, totalItems)} of {totalItems} users
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    className="h-8 px-2.5 text-xs rounded-md cursor-pointer"
+                  >
+                    Previous
+                  </Button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .slice(
+                      Math.max(0, currentPage - 2),
+                      Math.min(totalPages, currentPage + 1)
+                    )
+                    .map((page) => (
+                      <Button
+                        key={page}
+                        variant={page === currentPage ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className={`h-8 w-8 p-0 text-xs rounded-md cursor-pointer ${
+                          page === currentPage
+                            ? "bg-primary text-primary-foreground font-semibold"
+                            : ""
+                        }`}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === totalPages || totalPages === 0}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    className="h-8 px-2.5 text-xs rounded-md cursor-pointer"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const AdminUsers = () => {
     const { token } = useAuth();
@@ -89,6 +380,9 @@ const AdminUsers = () => {
         }
     }, [location.search]);
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedRoleFilter, setSelectedRoleFilter] = useState("all");
+    const [selectedStatusFilter, setSelectedStatusFilter] = useState("all");
+    const [loadingUsers, setLoadingUsers] = useState(false);
     const [tickets, setTickets] = useState([]);
     const [loadingTickets, setLoadingTickets] = useState(false);
     const [selectedMerchantDetails, setSelectedMerchantDetails] = useState(null);
@@ -106,6 +400,7 @@ const AdminUsers = () => {
     const [ticketQuoteAmount, setTicketQuoteAmount] = useState("");
     const [isTicketQuoteDialogOpen, setIsTicketQuoteDialogOpen] = useState(false);
     const [sendingTicketQuote, setSendingTicketQuote] = useState(false);
+    const [selectedTicketMessage, setSelectedTicketMessage] = useState(null);
 
     // Custom Service Enquiry States
     const [customRequests, setCustomRequests] = useState([]);
@@ -126,28 +421,40 @@ const AdminUsers = () => {
 
     const filteredUsers = users.filter((u) => {
         const matchesSearch = searchQuery === "" ||
-            u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (u.name && u.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (u.email && u.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (u._id && u._id.toLowerCase().includes(searchQuery.toLowerCase())) ||
             (u.mobile && u.mobile.includes(searchQuery));
+
+        const role = (u.role || "user").toLowerCase();
+        const matchesRole = selectedRoleFilter === "all" || role === selectedRoleFilter.toLowerCase() || (selectedRoleFilter === "customer" && role !== "merchant" && role !== "admin");
+
+        const status = (u.status || "active").toLowerCase();
+        const matchesStatus = selectedStatusFilter === "all" || status === selectedStatusFilter.toLowerCase();
+
         if (activeTab === "registrations") {
-            return matchesSearch && u.role === "merchant" && (u.merchantStatus === "details_submitted" || u.merchantStatus === "paid");
+            return matchesSearch && matchesRole && matchesStatus && u.role === "merchant" && (u.merchantStatus === "details_submitted" || u.merchantStatus === "paid");
         }
         if (roleFilter === "merchant")
-            return matchesSearch && u.role === "merchant";
+            return matchesSearch && matchesRole && matchesStatus && u.role === "merchant";
         if (roleFilter === "customer")
-            return matchesSearch && u.role !== "merchant" && u.role !== "admin";
-        return matchesSearch && u.role !== "admin";
+            return matchesSearch && matchesRole && matchesStatus && u.role !== "merchant" && u.role !== "admin";
+        return matchesSearch && matchesRole && matchesStatus && u.role !== "admin";
     });
 
     const loadUsers = async () => {
         if (!token)
             return;
+        setLoadingUsers(true);
         try {
             const res = await apiListUsers(token);
             setUsers(res.users || []);
         }
         catch (e) {
             toast.error(e?.message || "Failed to load users");
+        }
+        finally {
+            setLoadingUsers(false);
         }
     };
 
@@ -214,7 +521,7 @@ const AdminUsers = () => {
     };
 
     const handleOpenEdit = (user) => {
-        setFormState({ id: user._id, name: user.name, email: user.email, password: "", role: user.role, mobile: user.mobile || "" });
+        setFormState({ id: user._id, name: user.name, email: user.email, password: "", role: user.role, mobile: formatMobileForInput(user.mobile) });
         setIsEditDialogOpen(true);
     };
 
@@ -227,12 +534,9 @@ const AdminUsers = () => {
             toast.error(emailErr);
             return;
         }
-        if (formState.role === "merchant" && (!formState.mobile || formState.mobile.length !== 12)) {
-            toast.error("Mobile number must be exactly 12 digits.");
-            return;
-        }
-        if (formState.mobile && formState.mobile.length !== 12) {
-            toast.error("Mobile number must be exactly 12 digits.");
+        const mobErr = validateMobileNumber(formState.mobile, formState.role === "merchant");
+        if (mobErr) {
+            toast.error(mobErr);
             return;
         }
         if (!formState.id) {
@@ -251,7 +555,7 @@ const AdminUsers = () => {
                     name: formState.name,
                     email: formState.email,
                     role: formState.role,
-                    mobile: formState.mobile
+                    mobile: formatMobileForApi(formState.mobile)
                 };
                 if (formState.password && formState.password.trim() !== "") {
                     const pwdErr = validateNewPasswordForm(formState.password);
@@ -270,7 +574,7 @@ const AdminUsers = () => {
                 setIsEditDialogOpen(false);
             }
             else {
-                await apiCreateUser({ name: formState.name, email: formState.email, password: formState.password, role: formState.role, mobile: formState.mobile }, token);
+                await apiCreateUser({ name: formState.name, email: formState.email, password: formState.password, role: formState.role, mobile: formatMobileForApi(formState.mobile) }, token);
                 toast.success("User created successfully!");
                 setIsDialogOpen(false);
             }
@@ -503,406 +807,586 @@ const AdminUsers = () => {
     };
 
     const userRowHandlers = {
-        navigate, setSelectedMerchantDetails, setIsDetailsModalOpen, setSelectedMerchantForQuote, setQuoteAmount,
-        setIsQuoteDialogOpen, setSelectedMerchantForActivation, setMaxEvents, setMaxServices,
-        setIsActivationDialogOpen, handleOpenResetPassword, handleToggleStatus, isTogglingStatus,
-        handleOpenEdit, handleDelete, isDeleting,
+      navigate,
+      setSelectedMerchantDetails,
+      setIsDetailsModalOpen,
+      setSelectedMerchantForQuote,
+      setQuoteAmount,
+      setIsQuoteDialogOpen,
+      setSelectedMerchantForActivation,
+      setMaxEvents,
+      setMaxServices,
+      setIsActivationDialogOpen,
     };
 
-    return (<AdminLayout>
-      <section className="py-4 sm:py-6 lg:py-8">
-        <div className="flex items-center justify-between mb-6 sm:mb-8">
-          <div>
-            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-              {roleFilter === "merchant" ? (<>Merchant <span className="text-gradient">Management</span></>) : roleFilter === "customer" ? (<>User <span className="text-gradient">Management</span></>) : (<>User <span className="text-gradient">Management</span></>)}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {roleFilter === "merchant" ? "Manage merchants, onboarding, and limit request tickets" : roleFilter === "customer" ? "Manage customer and admin accounts" : "Manage all platform users, merchants, onboarding, custom service requests, and limit request tickets"}
-            </p>
-          </div>
-          {roleFilter === "merchant" && (
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={handleOpenCreate} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
-                  <Users className="h-4 w-4 mr-2"/> Add Merchant
+    return (
+    <AdminLayout>
+      <PageHeader
+        title={roleFilter === "merchant" ? "Merchant Management" : "User Management"}
+        subtitle={
+          roleFilter === "merchant"
+            ? "Manage merchant accounts, onboarding requests, slot upgrades, and billing."
+            : "Manage platform users, merchants, onboarding, and system access."
+        }
+        breadcrumbs={[
+          { label: "Admin Portal", to: "/admin-dashboard" },
+          { label: "User Management" },
+          { label: roleFilter === "merchant" ? "Merchants" : "Users" },
+        ]}
+        actions={
+          roleFilter === "merchant" ? (
+            <Button
+              onClick={() => navigate("/admin-dashboard/users/create-merchant")}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold h-9 px-4 rounded-md gap-1.5"
+            >
+              <Plus className="h-4 w-4" /> Add Merchant
+            </Button>
+          ) : null
+        }
+      />
+
+      <div className="space-y-6">
+        {/* Edit User Modal */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit User Account</DialogTitle>
+              <DialogDescription>Modify user privileges or information.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4 py-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Full Name *</Label>
+                <Input maxLength={NAME_MAX_LENGTH} required value={formState.name} onChange={(e) => setFormState({ ...formState, name: sanitizeNameInput(e.target.value) })} className="h-9 text-xs rounded-md" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Mobile Number (Optional)</Label>
+                <Input type="text" maxLength={12} value={formState.mobile} onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9]/g, "");
+                  setFormState({ ...formState, mobile: val });
+                }} placeholder="Enter 12-digit mobile number" className="h-9 text-xs rounded-md" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Email Address *</Label>
+                <Input type="text" inputMode="email" maxLength={EMAIL_MAX_LENGTH} required value={formState.email} onChange={(e) => setFormState({ ...formState, email: sanitizeEmailInput(e.target.value) })} className="h-9 text-xs rounded-md" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">New Password (Optional)</Label>
+                <Input type="password" maxLength={30} value={formState.password} onChange={(e) => setFormState({ ...formState, password: e.target.value })} placeholder="Leave empty to keep current password" className="h-9 text-xs rounded-md" />
+              </div>
+              <DialogFooter className="pt-2">
+                <Button type="submit" disabled={isSubmitting} className="h-9 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md">
+                  {isSubmitting ? "Saving..." : "Save Changes"}
                 </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create Merchant</DialogTitle>
-                  <DialogDescription>Add a new merchant to the platform.</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>Name</Label>
-                    <Input maxLength={NAME_MAX_LENGTH} required value={formState.name} onChange={(e) => setFormState({ ...formState, name: sanitizeNameInput(e.target.value) })}/>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Mobile Number</Label>
-                    <Input type="text" required maxLength={12} value={formState.mobile} onChange={(e) => {
-              const val = e.target.value.replace(/[^0-9]/g, "");
-              setFormState({ ...formState, mobile: val });
-          }} placeholder="Enter 12-digit mobile number"/>
-                    <p className="text-xs text-muted-foreground">Exactly 12 numbers (digits only)</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input type="text" inputMode="email" maxLength={EMAIL_MAX_LENGTH} required value={formState.email} onChange={(e) => setFormState({ ...formState, email: sanitizeEmailInput(e.target.value) })}/>
-                    <p className="text-xs text-muted-foreground">{EMAIL_HINT}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Password</Label>
-                    <Input type="password" maxLength={30} required value={formState.password} onChange={(e) => setFormState({ ...formState, password: e.target.value })}/>
-                    <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Creating..." : "Create Account"}</Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          )}
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
-          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Edit User</DialogTitle>
-                <DialogDescription>Modify user privileges or information.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                  <Input maxLength={NAME_MAX_LENGTH} required value={formState.name} onChange={(e) => setFormState({ ...formState, name: sanitizeNameInput(e.target.value) })}/>
-                </div>
-                <div className="space-y-2">
-                  <Label>Mobile Number (Optional)</Label>
-                  <Input type="text" maxLength={12} value={formState.mobile} onChange={(e) => {
-            const val = e.target.value.replace(/[^0-9]/g, "");
-            setFormState({ ...formState, mobile: val });
-        }} placeholder="Enter 12-digit mobile number"/>
-                  <p className="text-xs text-muted-foreground">Exactly 12 numbers (digits only)</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="text" inputMode="email" maxLength={EMAIL_MAX_LENGTH} required value={formState.email} onChange={(e) => setFormState({ ...formState, email: sanitizeEmailInput(e.target.value) })}/>
-                  <p className="text-xs text-muted-foreground">{EMAIL_HINT}</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>New Password (Optional)</Label>
-                  <Input type="password" maxLength={30} value={formState.password} onChange={(e) => setFormState({ ...formState, password: e.target.value })} placeholder="Leave empty to keep current password"/>
-                  <p className="text-xs text-muted-foreground">
-                    {formState.password ? PASSWORD_HINT : "Leave empty to keep current password"}
-                  </p>
-                </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Saving..." : "Save Changes"}</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Tab Headers */}
+        {/* Clean Category Navigation Tabs Bar */}
         {roleFilter !== "customer" && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar mt-4">
-            <button onClick={() => setActiveTab("users")} className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "users" ? "bg-gradient-primary text-primary-foreground shadow-sm font-bold" : "bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
-              All Users & Onboarding
-            </button>
-            <button onClick={() => setActiveTab("registrations")} className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "registrations" ? "bg-gradient-primary text-primary-foreground shadow-sm font-bold" : "bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
-              Registration Requests ({users.filter(u => u.role === "merchant" && (u.merchantStatus === "details_submitted" || u.merchantStatus === "paid")).length})
-            </button>
-            <button onClick={() => {
-              setActiveTab("custom-services");
-              loadCustomRequests();
-          }} className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "custom-services" ? "bg-gradient-primary text-primary-foreground shadow-sm font-bold" : "bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
-              ✨ Custom Service Enquiries ({customRequests.filter(r => r.status === "pending").length})
-            </button>
-            <button onClick={() => {
-              setActiveTab("tickets");
-              loadTickets();
-          }} className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "tickets" ? "bg-gradient-primary text-primary-foreground shadow-sm font-bold" : "bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
-              Slots Upgrade Tickets
-            </button>
-            <button onClick={() => {
-              setActiveTab("billing");
-              loadUsers();
-              loadTickets();
-              loadCustomRequests();
-          }} className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "billing" ? "bg-gradient-primary text-primary-foreground shadow-sm font-bold" : "bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
-              Billing & Payments History
-            </button>
+          <div className="border-b border-border/70 w-full overflow-x-auto no-scrollbar">
+            <nav className="flex items-center gap-6 min-w-max">
+              <button
+                onClick={() => setActiveTab("users")}
+                className={`py-3 text-xs font-semibold transition-all border-b-2 ${
+                  activeTab === "users"
+                    ? "border-primary text-primary font-bold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                All Merchants
+              </button>
+              <button
+                onClick={() => setActiveTab("registrations")}
+                className={`py-3 text-xs font-semibold transition-all border-b-2 flex items-center gap-1.5 ${
+                  activeTab === "registrations"
+                    ? "border-primary text-primary font-bold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span>Registration Requests</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-muted font-bold text-muted-foreground">
+                  {users.filter((u) => u.role === "merchant" && (u.merchantStatus === "details_submitted" || u.merchantStatus === "paid")).length}
+                </span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("custom-services");
+                  loadCustomRequests();
+                }}
+                className={`py-3 text-xs font-semibold transition-all border-b-2 flex items-center gap-1.5 ${
+                  activeTab === "custom-services"
+                    ? "border-primary text-primary font-bold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span>Service Enquiries</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-muted font-bold text-muted-foreground">
+                  {customRequests.filter((r) => r.status === "pending").length}
+                </span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("tickets");
+                  loadTickets();
+                }}
+                className={`py-3 text-xs font-semibold transition-all border-b-2 flex items-center gap-1.5 ${
+                  activeTab === "tickets"
+                    ? "border-primary text-primary font-bold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span>Slot Upgrades</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-muted font-bold text-muted-foreground">
+                  {tickets.filter((t) => t.status === "pending" || t.status === "paid").length}
+                </span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("billing");
+                  loadUsers();
+                  loadTickets();
+                  loadCustomRequests();
+                }}
+                className={`py-3 text-xs font-semibold transition-all border-b-2 ${
+                  activeTab === "billing"
+                    ? "border-primary text-primary font-bold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Billing History
+              </button>
+            </nav>
           </div>
         )}
 
-        {activeTab === "users" || activeTab === "registrations" ? (<>
-            {/* Filters */}
-            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.1 }} className="mt-4 flex items-center justify-between gap-3 w-full">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
-                <Input placeholder="Search merchants by name or email..." maxLength={30} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 bg-card border-border rounded-xl text-xs sm:text-sm h-10 shadow-xs"/>
-              </div>
-              <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border shrink-0 hover:bg-secondary/80">
-                <Filter className="h-4 w-4"/>
-              </Button>
-            </motion.div>
+        {/* TAB CONTENT: USERS / REGISTRATIONS */}
+        {(activeTab === "users" || activeTab === "registrations") && (
+          <div className="space-y-4 font-sans">
+            <UsersTableBody
+              list={filteredUsers}
+              loading={loadingUsers}
+              emptyMessage={
+                activeTab === "registrations"
+                  ? "No pending registration requests found."
+                  : roleFilter === "merchant"
+                  ? "No merchants found."
+                  : "No users found."
+              }
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              searchPlaceholder={
+                roleFilter === "merchant"
+                  ? "Search merchants by name or email..."
+                  : "Search users by name or email..."
+              }
+              roleFilter={selectedRoleFilter}
+              setRoleFilter={setSelectedRoleFilter}
+              statusFilter={selectedStatusFilter}
+              setStatusFilter={setSelectedStatusFilter}
+              {...userRowHandlers}
+            />
+          </div>
+        )}
 
-            {/* Merchant Table Card */}
-            <div className="mt-4 w-full">
-              <UsersTableBody list={filteredUsers} emptyMessage={activeTab === "registrations" ? "No pending registration requests found" : roleFilter === "merchant" ? "No merchants found" : roleFilter === "customer" ? "No users found" : "No users found"} {...userRowHandlers}/>
-            </div>
-          </>) : activeTab === "custom-services" ? (<>
-            {/* Custom Service Enquiries Table */}
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 w-full">
-              <DataTable minWidth="100%">
-                <TableHeader>
-                  <TableHeaderCell className="w-[16%]">Customer</TableHeaderCell>
-                  <TableHeaderCell className="w-[20%]">Service Title & Category</TableHeaderCell>
-                  <TableHeaderCell className="w-[18%]">Date & Location</TableHeaderCell>
-                  <TableHeaderCell className="w-[20%]">Requirements / Details</TableHeaderCell>
-                  <TableHeaderCell className="w-[10%]">Status</TableHeaderCell>
-                  <TableHeaderCell className="w-[8%] whitespace-nowrap">Quote Amount</TableHeaderCell>
-                  <TableHeaderCell align="right" className="w-[8%]">Actions</TableHeaderCell>
-                </TableHeader>
-                <TableBody>
-                  {customRequests.map((r) => (<TableRow key={r._id}>
-                      <TableCell className="font-medium">
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-xs text-foreground">{r.user?.name || "Customer"}</span>
-                          <span className="text-[11px] text-muted-foreground truncate max-w-[140px]">{r.user?.email}</span>
-                          {r.user?.mobile && <span className="text-[10px] text-muted-foreground">📞 {r.user?.mobile}</span>}
+        {/* TAB CONTENT: CUSTOM SERVICES */}
+        {activeTab === "custom-services" && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+            <DataTable minWidth="100%">
+              <TableHeader>
+                <TableHeaderCell className="w-[20%]">Customer</TableHeaderCell>
+                <TableHeaderCell className="w-[18%]">Service Title</TableHeaderCell>
+                <TableHeaderCell className="w-[15%]">Event & Location</TableHeaderCell>
+                <TableHeaderCell className="w-[22%]">Description</TableHeaderCell>
+                <TableHeaderCell className="w-[12%]">Status</TableHeaderCell>
+                <TableHeaderCell className="w-[7%]">Quote / Budget</TableHeaderCell>
+                <TableHeaderCell align="right" className="w-[6%]">Actions</TableHeaderCell>
+              </TableHeader>
+              <TableBody>
+                {customRequests.map((r) => {
+                  const customerInitials = (r.user?.name || "Customer").slice(0, 2).toUpperCase();
+                  return (
+                    <TableRow key={r._id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                            {customerInitials}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-xs text-foreground truncate">{r.user?.name || "Customer"}</p>
+                            <p className="text-[10px] text-muted-foreground truncate font-mono">{r.user?.email}</p>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-xs text-foreground line-clamp-1">{r.serviceTitle}</span>
-                          <span className="text-[10px] text-muted-foreground">{r.category || "General"}</span>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-xs text-foreground truncate">{r.serviceTitle}</p>
+                          <p className="text-[10px] text-muted-foreground">{r.category || "General"}</p>
                         </div>
                       </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {r.eventDate && <p>📅 {new Date(r.eventDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>}
+                        {r.location && <p className="truncate max-w-[130px]">📍 {r.location}</p>}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        <p className="line-clamp-2 max-w-[200px]" title={r.description}>
+                          {r.description || "—"}
+                        </p>
+                      </TableCell>
                       <TableCell>
-                        <div className="flex flex-col text-xs text-muted-foreground">
-                          {r.eventDate && <span>📅 {new Date(r.eventDate).toLocaleDateString()}</span>}
-                          {r.location && <span className="truncate max-w-[140px]">📍 {r.location}</span>}
-                        </div>
+                        <StatusBadge
+                          status={
+                            r.status === "paid"
+                              ? "completed"
+                              : r.status === "quoted"
+                              ? "active"
+                              : r.status === "rejected"
+                              ? "cancelled"
+                              : "pending"
+                          }
+                          label={
+                            r.status === "paid"
+                              ? "Confirmed & Paid"
+                              : r.status === "quoted"
+                              ? "Quotation Sent"
+                              : r.status === "rejected"
+                              ? "Declined"
+                              : "Pending Review"
+                          }
+                        />
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        <p className="line-clamp-2 max-w-[200px]" title={r.description}>{r.description || "—"}</p>
-                      </TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${r.status === "paid" ? "bg-green-500/10 text-green-500 border-green-500/20"
-                    : r.status === "quoted" ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                        : r.status === "rejected" ? "bg-red-500/10 text-red-500 border-red-500/20"
-                            : "bg-yellow-500/10 text-yellow-600 border-yellow-500/20 animate-pulse"}`}>
-                          {r.status === "paid" ? "Paid & Confirmed"
-                    : r.status === "quoted" ? "Quoted (Awaiting Payment)"
-                        : r.status === "rejected" ? "Declined"
-                            : "Pending Review"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-semibold text-xs text-primary whitespace-nowrap">
-                        {r.quotationAmount > 0 ? formatCurrency(r.quotationAmount) : (r.budget > 0 ? `Budget: ${formatCurrency(r.budget)}` : "—")}
+                      <TableCell className="font-semibold text-xs text-foreground whitespace-nowrap">
+                        {r.quotationAmount > 0
+                          ? formatCurrency(r.quotationAmount)
+                          : r.budget > 0
+                          ? formatCurrency(r.budget)
+                          : "—"}
                       </TableCell>
                       <TableCell align="right">
-                        <div className="flex items-center justify-end gap-2">
-                          {r.status === "pending" && (<Button variant="outline" size="sm" className="text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 font-medium text-xs h-8 px-2" onClick={() => {
-                        setSelectedCustomForQuote(r);
-                        setCustomQuoteAmount(r.budget ? String(r.budget) : "");
-                        setCustomQuoteNote("");
-                        setIsCustomQuoteOpen(true);
-                    }}>
-                                <DollarSign className="h-3.5 w-3.5 mr-1"/> Send Quote
-                              </Button>)}
-                          {r.status === "pending" && (<Button variant="outline" size="sm" className="text-red-600 border-red-500/30 hover:bg-red-500/10 font-medium text-xs h-8 px-2" onClick={() => {
-                        setSelectedCustomForReject(r);
-                        setRejectionReason("");
-                        setIsRejectOpen(true);
-                    }}>
-                                <XCircle className="h-3.5 w-3.5 mr-1"/> Decline
-                              </Button>)}
-                          {r.status === "quoted" && (<span className="text-xs text-muted-foreground">Quote sent (₹{r.quotationAmount?.toLocaleString()})</span>)}
-                          {r.status === "rejected" && (<span className="text-xs text-red-500 italic truncate max-w-[120px]" title={r.rejectionReason}>Declined</span>)}
-                          {r.status === "paid" && (<span className="text-xs text-green-600 font-semibold flex items-center gap-1 justify-end">
-                              <CheckCircle2 className="h-3.5 w-3.5"/> Confirmed
-                            </span>)}
-                        </div>
+                        <ActionMenu
+                          items={[
+                            {
+                              label: "View Details",
+                              icon: Eye,
+                              onClick: () => {
+                                setSelectedCustomForDetails(r);
+                                setIsCustomDetailsOpen(true);
+                              },
+                            },
+                            ...(r.status === "pending"
+                              ? [
+                                  {
+                                    label: "Send Quote",
+                                    icon: DollarSign,
+                                    onClick: () => {
+                                      setSelectedCustomForQuote(r);
+                                      setCustomQuoteAmount(r.budget ? String(r.budget) : "");
+                                      setCustomQuoteNote("");
+                                      setIsCustomQuoteOpen(true);
+                                    },
+                                  },
+                                  {
+                                    label: "Decline Request",
+                                    icon: XCircle,
+                                    destructive: true,
+                                    onClick: () => {
+                                      setSelectedCustomForReject(r);
+                                      setRejectionReason("");
+                                      setIsRejectOpen(true);
+                                    },
+                                  },
+                                ]
+                              : []),
+                          ]}
+                        />
                       </TableCell>
-                    </TableRow>))}
-                  {customRequests.length === 0 && (<TableRow>
-                      <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
-                        {loadingCustomRequests ? "Loading custom service requests..." : "No custom service enquiries found."}
-                      </TableCell>
-                    </TableRow>)}
-                </TableBody>
-              </DataTable>
-            </motion.div>
-          </>) : activeTab === "tickets" ? (<>
-            {/* Tickets Table */}
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 w-full">
-              <DataTable minWidth="100%">
-                <TableHeader>
-                  <TableHeaderCell className="w-[18%]">Merchant</TableHeaderCell>
-                  <TableHeaderCell className="w-[16%]">Requested slots</TableHeaderCell>
-                  <TableHeaderCell className="w-[24%]">Explanation Message</TableHeaderCell>
-                  <TableHeaderCell className="w-[12%] whitespace-nowrap">Requested Date</TableHeaderCell>
-                  <TableHeaderCell className="w-[12%]">Ticket status</TableHeaderCell>
-                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Quotation Amount</TableHeaderCell>
-                  <TableHeaderCell align="right" className="w-[8%]">Actions</TableHeaderCell>
-                </TableHeader>
-                <TableBody>
-                  {tickets.map((t) => (<TableRow key={t._id}>
-                      <TableCell className="font-medium">
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-xs text-foreground">{t.merchant?.name}</span>
-                          <span className="text-[11px] text-muted-foreground truncate max-w-[140px]">{t.merchant?.email}</span>
-                          {t.merchant?.mobile && <span className="text-[10px] text-muted-foreground">📞 {t.merchant?.mobile}</span>}
-                        </div>
-                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {customRequests.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-6 text-center">
+                      <TableEmptyState
+                        title="No Custom Service Enquiries"
+                        description={loadingCustomRequests ? "Loading custom service requests..." : "There are currently no custom service enquiries."}
+                      />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </DataTable>
+          </motion.div>
+        )}
+
+        {/* TAB CONTENT: SLOT UPGRADE TICKETS (Exact Requirements Redesign) */}
+        {activeTab === "tickets" && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+            <DataTable minWidth="100%">
+              <TableHeader>
+                <TableHeaderCell className="w-[27%]">Merchant</TableHeaderCell>
+                <TableHeaderCell className="w-[22%]">Slot Request</TableHeaderCell>
+                <TableHeaderCell align="center" className="w-[100px] min-w-[100px] text-center">Message</TableHeaderCell>
+                <TableHeaderCell className="w-[13%] whitespace-nowrap">Requested On</TableHeaderCell>
+                <TableHeaderCell className="w-[11%]">Status</TableHeaderCell>
+                <TableHeaderCell className="w-[10%] whitespace-nowrap">Quote</TableHeaderCell>
+                <TableHeaderCell align="right" className="w-[7%]">Actions</TableHeaderCell>
+              </TableHeader>
+              <TableBody>
+                {tickets.map((t) => {
+                  const merchantName = t.merchant?.name || "Merchant";
+                  const merchantInitials = merchantName.slice(0, 2).toUpperCase();
+                  const formattedDate = t.createdAt
+                    ? new Date(t.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                    : "—";
+
+                  return (
+                    <TableRow key={t._id}>
+                      {/* Merchant Identity Cell */}
                       <TableCell>
-                        <div className="flex flex-col text-xs font-semibold">
-                          <span>+{t.requestedEvents} Event slots</span>
-                          <span>+{t.requestedServices} Service slots</span>
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-9 w-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                            {merchantInitials}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-xs text-foreground truncate">{merchantName}</p>
+                            <p className="text-[10px] text-muted-foreground truncate font-mono">{t.merchant?.email || "—"}</p>
+                          </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground italic text-xs max-w-[200px] truncate" title={t.message}>
-                        {t.message ? `"${t.message}"` : "—"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{new Date(t.createdAt).toLocaleDateString()}</TableCell>
+
+                      {/* Side-by-Side Compact Slot Request Cell */}
                       <TableCell>
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${t.status === "approved" ? "bg-green-500/10 text-green-500 border-green-500/20"
-                    : t.status === "paid" ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                        : t.status === "quotation_sent" ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
-                            : "bg-secondary text-muted-foreground border-border"}`}>
-                          {t.status === "approved" ? "Approved & Upgraded"
-                    : t.status === "paid" ? "Paid (Awaiting Approval)"
-                        : t.status === "quotation_sent" ? "Quotation Sent"
-                            : "Pending Review"}
-                        </span>
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          {t.requestedEvents > 0 && (
+                            <span className="inline-flex items-center h-6 px-2.5 rounded-md text-[11px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60 shrink-0">
+                              Events +{t.requestedEvents}
+                            </span>
+                          )}
+                          {t.requestedServices > 0 && (
+                            <span className="inline-flex items-center h-6 px-2.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60 shrink-0">
+                              Services +{t.requestedServices}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell className="font-semibold text-xs text-primary whitespace-nowrap">
+
+                      {/* Fixed Compact Centered Message Cell */}
+                      <TableCell align="center" className="w-[100px] min-w-[100px] text-center">
+                        <div className="flex items-center justify-center w-full">
+                          {t.message && t.message.trim() ? (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedTicketMessage(t)}
+                              className="h-8 w-8 rounded-md bg-background hover:bg-primary/10 text-muted-foreground hover:text-primary border border-border hover:border-primary/30 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer shadow-xs"
+                              title="View message"
+                              aria-label="View message"
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </button>
+                          ) : (
+                            <span className="text-muted-foreground text-xs font-medium text-center">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      {/* Requested Date Cell */}
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap font-medium">
+                        {formattedDate}
+                      </TableCell>
+
+                      {/* Compact Semantic Status Badge Cell */}
+                      <TableCell>
+                        <StatusBadge
+                          status={
+                            t.status === "approved"
+                              ? "completed"
+                              : t.status === "paid"
+                              ? "active"
+                              : t.status === "quotation_sent"
+                              ? "pending"
+                              : "inactive"
+                          }
+                          label={
+                            t.status === "approved"
+                              ? "Approved"
+                              : t.status === "paid"
+                              ? "Paid (Pending)"
+                              : t.status === "quotation_sent"
+                              ? "Quotation Sent"
+                              : "Pending Review"
+                          }
+                        />
+                      </TableCell>
+
+                      {/* Quotation Amount Cell */}
+                      <TableCell className="font-semibold text-xs text-foreground whitespace-nowrap">
                         {t.quotationAmount > 0 ? formatCurrency(t.quotationAmount) : "—"}
                       </TableCell>
+
+                      {/* Actions Column */}
                       <TableCell align="right">
-                        <div className="flex items-center justify-end gap-2">
-                          {t.status === "pending" && (<Button variant="outline" size="sm" className="text-yellow-600 border-yellow-500/30 hover:bg-yellow-500/10 text-xs h-8 px-2" onClick={() => {
-                        setSelectedTicketForQuote(t);
-                        setTicketQuoteAmount("");
-                        setIsTicketQuoteDialogOpen(true);
-                    }}>
-                                <DollarSign className="h-3.5 w-3.5 mr-1"/> Send Quote
-                            </Button>)}
-                          {t.status === "paid" && (<Button variant="outline" size="sm" className="text-green-600 border-green-500/30 hover:bg-green-500/10 font-bold text-xs h-8 px-2" onClick={() => handleApproveTicketClick(t._id)}>
-                               <CheckCircle2 className="h-3.5 w-3.5 mr-1"/> Approve & Upgrade
-                            </Button>)}
-                          {t.status === "quotation_sent" && (<span className="text-xs text-muted-foreground italic">Awaiting merchant payment</span>)}
-                          {t.status === "approved" && (<span className="text-xs text-green-600 font-semibold flex items-center gap-1 justify-end">
-                              <CheckCircle2 className="h-3 w-3"/> Completed
-                            </span>)}
-                        </div>
+                        <ActionMenu
+                          items={[
+                            ...(t.status === "pending"
+                              ? [
+                                  {
+                                    label: "Send Quote",
+                                    icon: DollarSign,
+                                    onClick: () => {
+                                      setSelectedTicketForQuote(t);
+                                      setTicketQuoteAmount("");
+                                      setIsTicketQuoteDialogOpen(true);
+                                    },
+                                  },
+                                ]
+                              : []),
+                            ...(t.status === "paid"
+                              ? [
+                                  {
+                                    label: "Approve & Upgrade",
+                                    icon: CheckCircle2,
+                                    onClick: () => handleApproveTicketClick(t._id),
+                                  },
+                                ]
+                              : []),
+                            {
+                              label: "View Merchant",
+                              icon: Eye,
+                              onClick: () => navigate(`/admin-dashboard/users/${t.merchant?._id}`),
+                            },
+                          ]}
+                        />
                       </TableCell>
-                    </TableRow>))}
-                  {tickets.length === 0 && (<TableRow>
-                      <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
-                        {loadingTickets ? "Loading tickets..." : "No upgrade request tickets found"}
-                      </TableCell>
-                    </TableRow>)}
-                </TableBody>
-              </DataTable>
-            </motion.div>
-          </>) : (<>
-            {/* Billing & Payments History Table */}
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 w-full">
-              <DataTable minWidth="100%">
-                <TableHeader>
-                  <TableHeaderCell className="w-[20%]">Payer</TableHeaderCell>
-                  <TableHeaderCell className="w-[35%]">Description</TableHeaderCell>
-                  <TableHeaderCell className="w-[20%] whitespace-nowrap">Payment Date</TableHeaderCell>
-                  <TableHeaderCell className="w-[15%] whitespace-nowrap">Amount Received</TableHeaderCell>
-                  <TableHeaderCell align="right" className="w-[10%]">Status</TableHeaderCell>
-                </TableHeader>
-                <TableBody>
-                  {(() => {
-                const billingHistory = [];
-                // 1. Setup payments
-                users.forEach(u => {
+                    </TableRow>
+                  );
+                })}
+                {tickets.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-6 text-center">
+                      <TableEmptyState
+                        title="No Slot Upgrade Tickets"
+                        description={loadingTickets ? "Loading upgrade tickets..." : "No limit upgrade request tickets found."}
+                      />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </DataTable>
+          </motion.div>
+        )}
+
+        {/* TAB CONTENT: BILLING & PAYMENTS HISTORY */}
+        {activeTab === "billing" && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+            <DataTable minWidth="100%">
+              <TableHeader>
+                <TableHeaderCell className="w-[22%]">Payer</TableHeaderCell>
+                <TableHeaderCell className="w-[35%]">Description</TableHeaderCell>
+                <TableHeaderCell className="w-[18%] whitespace-nowrap">Payment Date</TableHeaderCell>
+                <TableHeaderCell className="w-[13%] whitespace-nowrap">Amount</TableHeaderCell>
+                <TableHeaderCell align="right" className="w-[12%]">Status</TableHeaderCell>
+              </TableHeader>
+              <TableBody>
+                {(() => {
+                  const billingHistory = [];
+                  // 1. Setup payments
+                  users.forEach((u) => {
                     if (u.role === "merchant" && (u.merchantStatus === "active" || u.merchantStatus === "paid")) {
-                        billingHistory.push({
-                            id: `setup-${u._id}`,
-                            merchantName: u.name,
-                            merchantEmail: u.email,
-                            merchantMobile: u.mobile,
-                            description: "Onboarding Account Setup Fee",
-                            amount: u.quotationAmount || 0,
-                            date: u.updatedAt || u.createdAt,
-                            status: u.merchantStatus === "active" ? "Activated" : "Paid (Awaiting Activation)",
-                            statusColor: u.merchantStatus === "active" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-purple-500/10 text-purple-600 border-purple-500/20"
-                        });
+                      billingHistory.push({
+                        id: `setup-${u._id}`,
+                        merchantName: u.name,
+                        merchantEmail: u.email,
+                        description: "Onboarding Account Setup Fee",
+                        amount: u.quotationAmount || 0,
+                        date: u.updatedAt || u.createdAt,
+                        status: u.merchantStatus === "active" ? "Activated" : "Paid (Awaiting Activation)",
+                        statusType: u.merchantStatus === "active" ? "active" : "pending",
+                      });
                     }
-                });
-                // 2. Ticket payments
-                tickets.forEach(t => {
+                  });
+                  // 2. Ticket payments
+                  tickets.forEach((t) => {
                     if (t.status === "paid" || t.status === "approved") {
-                        billingHistory.push({
-                            id: t._id,
-                            merchantName: t.merchant?.name || "Merchant",
-                            merchantEmail: t.merchant?.email || "",
-                            merchantMobile: t.merchant?.mobile || "",
-                            description: `Limit Upgrade (+${t.requestedEvents} Events, +${t.requestedServices} Services)`,
-                            amount: t.quotationAmount || 0,
-                            date: t.updatedAt || t.createdAt,
-                            status: t.status === "approved" ? "Approved & Upgraded" : "Paid (Awaiting Approval)",
-                            statusColor: t.status === "approved" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                        });
+                      billingHistory.push({
+                        id: t._id,
+                        merchantName: t.merchant?.name || "Merchant",
+                        merchantEmail: t.merchant?.email || "",
+                        description: `Slot Limit Upgrade (+${t.requestedEvents} Events, +${t.requestedServices} Services)`,
+                        amount: t.quotationAmount || 0,
+                        date: t.updatedAt || t.createdAt,
+                        status: t.status === "approved" ? "Approved & Upgraded" : "Paid (Awaiting Approval)",
+                        statusType: t.status === "approved" ? "active" : "pending",
+                      });
                     }
-                });
-                // 3. Custom service payments
-                customRequests.forEach(r => {
+                  });
+                  // 3. Custom service payments
+                  customRequests.forEach((r) => {
                     if (r.status === "paid") {
-                        billingHistory.push({
-                            id: `custom-${r._id}`,
-                            merchantName: r.user?.name || "Customer",
-                            merchantEmail: r.user?.email || "",
-                            merchantMobile: r.user?.mobile || "",
-                            description: `Custom Service: ${r.serviceTitle}`,
-                            amount: r.quotationAmount || 0,
-                            date: r.paidAt || r.updatedAt || r.createdAt,
-                            status: "Paid & Confirmed",
-                            statusColor: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                        });
+                      billingHistory.push({
+                        id: `custom-${r._id}`,
+                        merchantName: r.user?.name || "Customer",
+                        merchantEmail: r.user?.email || "",
+                        description: `Custom Service: ${r.serviceTitle}`,
+                        amount: r.quotationAmount || 0,
+                        date: r.paidAt || r.updatedAt || r.createdAt,
+                        status: "Confirmed & Paid",
+                        statusType: "completed",
+                      });
                     }
-                });
-                // Sort descending
-                billingHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                if (billingHistory.length === 0) {
-                    return (<TableRow>
-                          <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">No payment history found</TableCell>
-                        </TableRow>);
-                }
-                return billingHistory.map(row => (<TableRow key={row.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-xs text-foreground">{row.merchantName}</span>
-                            <span className="text-[11px] text-muted-foreground truncate max-w-[140px]">{row.merchantEmail}</span>
-                            {row.merchantMobile && <span className="text-[10px] text-muted-foreground">📞 {row.merchantMobile}</span>}
+                  });
+
+                  billingHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                  if (billingHistory.length === 0) {
+                    return (
+                      <TableRow>
+                        <TableCell colSpan={5} className="py-6 text-center">
+                          <TableEmptyState title="No Billing History" description="No billing transactions or payment records found." />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+
+                  return billingHistory.map((row) => {
+                    const initials = (row.merchantName || "User").slice(0, 2).toUpperCase();
+                    const dateFormatted = new Date(row.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                    return (
+                      <TableRow key={row.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                              {initials}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-xs text-foreground truncate">{row.merchantName}</p>
+                              <p className="text-[10px] text-muted-foreground truncate font-mono">{row.merchantEmail}</p>
+                            </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">{row.description}</TableCell>
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {new Date(row.date).toLocaleDateString()} {new Date(row.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <TableCell className="text-xs text-muted-foreground">{row.description}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground font-medium whitespace-nowrap">
+                          {dateFormatted}
                         </TableCell>
-                        <TableCell className="font-bold text-xs text-primary whitespace-nowrap">{formatCurrency(row.amount)}</TableCell>
+                        <TableCell className="font-semibold text-xs text-foreground whitespace-nowrap">
+                          {formatCurrency(row.amount)}
+                        </TableCell>
                         <TableCell align="right">
-                          <StatusBadge status={row.status === "Paid & Confirmed" ? "active" : "pending"} label={row.status} />
+                          <StatusBadge status={row.statusType} label={row.status} />
                         </TableCell>
-                      </TableRow>));
-            })()}
-                </TableBody>
-              </DataTable>
-            </motion.div>
-          </>)}
+                      </TableRow>
+                    );
+                  });
+                })()}
+              </TableBody>
+            </DataTable>
+          </motion.div>
+        )}
+      </div>
 
-        {/* Custom Service Request Full Details Dialog */}
-        <Dialog open={isCustomDetailsOpen} onOpenChange={setIsCustomDetailsOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
-            <DialogHeader>
+      {/* Custom Service Details Modal */}
+      <Dialog open={isCustomDetailsOpen} onOpenChange={setIsCustomDetailsOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
+          <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl font-display font-bold">
                 <Sparkles className="h-5 w-5 text-primary shrink-0"/> Custom Service Request Details
               </DialogTitle>
@@ -1467,7 +1951,66 @@ const AdminUsers = () => {
           </DialogContent>
         </Dialog>
 
-      </section>
+        {/* Slot Upgrade Ticket Message View Modal */}
+        <Dialog open={!!selectedTicketMessage} onOpenChange={(open) => !open && setSelectedTicketMessage(null)}>
+          <DialogContent className="max-w-md w-full rounded-xl bg-card border border-border p-6 shadow-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+                <MessageSquare className="h-4.5 w-4.5 text-primary" />
+                <span>Request Message</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Explanation provided by merchant for limit upgrade request.
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedTicketMessage && (
+              <div className="space-y-4 py-3 text-xs">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/60">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Merchant</span>
+                    <p className="font-semibold text-sm text-foreground mt-0.5">{selectedTicketMessage.merchant?.name || "Merchant"}</p>
+                    <p className="text-[11px] text-muted-foreground font-mono">{selectedTicketMessage.merchant?.email || "—"}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block mb-1">Requested</span>
+                    <div className="flex items-center gap-1.5 justify-end">
+                      {selectedTicketMessage.requestedEvents > 0 && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">
+                          Events +{selectedTicketMessage.requestedEvents}
+                        </span>
+                      )}
+                      {selectedTicketMessage.requestedServices > 0 && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60">
+                          Services +{selectedTicketMessage.requestedServices}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-bold text-foreground uppercase tracking-wider">Message</span>
+                  <div className="p-3.5 rounded-lg bg-background border border-border/70 text-foreground text-xs leading-relaxed max-h-48 overflow-y-auto whitespace-pre-line">
+                    "{selectedTicketMessage.message}"
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedTicketMessage(null)}
+                className="w-full sm:w-auto h-9 text-xs font-semibold rounded-md"
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
     </AdminLayout>);
 };
 export default AdminUsers;

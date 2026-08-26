@@ -72,8 +72,8 @@ const CustomerReferral = () => {
     };
 
     return (<CustomerLayout>
-      <div className="min-h-screen px-4 sm:px-6 lg:px-12 py-8">
-        <div className="max-w-6xl mx-auto space-y-6">
+      <div className="w-full py-2 sm:py-6">
+        <div className="w-full space-y-6">
           <div className="mb-6 sm:mb-8">
             <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Referral</h1>
             <p className="text-sm text-muted-foreground mt-1">

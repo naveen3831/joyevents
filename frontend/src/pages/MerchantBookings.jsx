@@ -3,6 +3,7 @@ import { formatCurrency } from "@/lib/utils";
 import { ArrowLeft, Calendar, AlertCircle, MapPin, ExternalLink, Check, X, Loader2, CreditCard, Star, Search } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import AdminLayout from "@/components/AdminLayout";
+import PageHeader from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
@@ -211,31 +212,18 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
         }
     };
     return (<PageLayout>
-      <section className="py-2 sm:py-6 lg:py-8 w-full">
-        <div className="w-full space-y-6">
-          <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
-            <div className="flex items-center gap-3 mb-4">
-              <Link to="/merchant-dashboard">
-                <Button variant="ghost" size="sm" className="h-8 text-xs">
-                  <ArrowLeft className="h-3.5 w-3.5 mr-1.5"/> Back to Dashboard
-                </Button>
-              </Link>
-            </div>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shrink-0 shadow-xs">
-                  <Calendar className="h-5 w-5"/>
-                </div>
-                <div>
-                  <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-                    Assigned <span className="text-gradient">Bookings</span>
-                  </h1>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Manage your assigned bookings and track performance history</p>
-                </div>
-              </div>
-            </div>
+      <div className="w-full min-w-0 space-y-5 font-sans">
+        <PageHeader
+          title="Assigned Bookings"
+          subtitle="Manage your assigned customer bookings and track fulfillment history."
+          breadcrumbs={[
+            { label: "Merchant Portal", to: "/merchant-dashboard" },
+            { label: "Events & Services" },
+            { label: "Bookings" },
+          ]}
+        />
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full border-b border-border/80 pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full border-b border-border/80 pb-5">
               <div className="flex items-center gap-1.5 p-1 bg-secondary/60 rounded-xl border border-border/80 w-fit">
                 <button onClick={() => setTab("active")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${tab === "active" ? "bg-card text-foreground shadow-xs border border-border/60" : "text-muted-foreground hover:text-foreground"}`}>
                   Active ({activeItems.length})
@@ -278,7 +266,6 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
                 </select>
               </div>
             </div>
-          </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.15 }} className="w-full">
             {loading ? (
@@ -429,8 +416,6 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
               </div>
             )}
           </motion.div>
-        </div>
-      </section>
 
       {/* Approval Options Modal */}
       {approvalOptions.show && (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -566,6 +551,7 @@ const MerchantBookings = ({ layout = "merchant" } = {}) => {
             </form>
           </div>
         </div>)}
+      </div>
     </PageLayout>);
 };
 export default MerchantBookings;

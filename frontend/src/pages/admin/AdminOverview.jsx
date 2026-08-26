@@ -312,7 +312,7 @@ const AdminOverview = () => {
 
     return (
       <AdminLayout>
-        <section className="py-4 sm:py-8 lg:py-10 space-y-8">
+        <div className="w-full min-w-0 space-y-6 font-sans">
           
           {/* Header Banner - Clean White Hero Banner */}
           <motion.div 
@@ -712,7 +712,7 @@ const AdminOverview = () => {
             </DialogContent>
           </Dialog>
 
-        </section>
+        </div>
       </AdminLayout>
     );
 };

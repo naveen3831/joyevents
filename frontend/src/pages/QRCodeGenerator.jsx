@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import MerchantLayout from "@/components/MerchantLayout";
+import PageHeader from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -264,13 +265,16 @@ export default function QRCodeGenerator() {
       </MerchantLayout>);
     }
     return (<MerchantLayout>
-      <div className="space-y-6 sm:space-y-8 p-4 sm:p-6">
-        <div className="mb-6 sm:mb-8">
-          <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">QR Code Generator</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Create QR codes for your events and services. Anyone can scan to view details.
-          </p>
-        </div>
+      <div className="w-full min-w-0 space-y-5 font-sans">
+        <PageHeader
+          title="QR Code Generator"
+          subtitle="Generate and download custom QR codes for your event & service listings."
+          breadcrumbs={[
+            { label: "Merchant Portal", to: "/merchant-dashboard" },
+            { label: "Operations" },
+            { label: "QR Codes" },
+          ]}
+        />
 
         <Tabs defaultValue="events" className="w-full">
           <TabsList className="bg-secondary p-1 gap-1 h-auto rounded-full">

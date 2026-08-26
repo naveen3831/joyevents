@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
 import { Calendar, DollarSign, Users, TrendingUp, Plus, BarChart3, CheckCircle2, Clock, AlertCircle, Loader2, MapPin, ExternalLink, Store, Briefcase, Video, Star, CreditCard, ArrowRight, Ticket, AlertTriangle } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
+import PageHeader from "@/components/common/PageHeader";
 import StatCard from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -788,22 +789,15 @@ const MerchantDashboard = () => {
       </MerchantLayout>);
     }
     return (<MerchantLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <div className="w-full">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="mb-1 sm:mb-2">
-                <span className="text-muted-foreground text-sm sm:text-lg">Welcome back,</span>
-                <span className="font-display text-lg sm:text-2xl font-bold text-gradient ml-2">
-                  {user?.name || 'Merchant'}
-                </span>
-              </div>
-              <h1 className="font-display text-xl sm:text-3xl font-bold">
-                Merchant <span className="text-gradient">Dashboard</span>
-              </h1>
-              <p className="mt-1 text-muted-foreground">Manage your assigned bookings and track performance</p>
-            </div>
-          </motion.div>
+      <div className="w-full min-w-0 space-y-6 font-sans">
+        <PageHeader
+          title="Merchant Overview"
+          subtitle={`Welcome back, ${user?.name || 'Merchant'}! Track your bookings, listing slots, and earnings.`}
+          breadcrumbs={[
+            { label: "Merchant Portal", to: "/merchant-dashboard" },
+            { label: "Overview" },
+          ]}
+        />
 
           {/* Pending Upgrade Quotations Alert Banner */}
           {tickets.filter(t => t.status === "quotation_sent").map((ticket) => (<motion.div key={ticket._id} initial={{ opacity: 0, y: -10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="mt-6 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
@@ -1624,8 +1618,6 @@ const MerchantDashboard = () => {
               </TableBody>
             </DataTable>
           </motion.div>
-        </div>
-      </section>
 
       {/* Upgrade Slots Ticket Modal */}
       <Dialog open={isUpgradeModalOpen} onOpenChange={setIsUpgradeModalOpen}>
@@ -1802,13 +1794,14 @@ const MerchantDashboard = () => {
               <Button type="button" variant="outline" onClick={() => setCancellationModal(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={submittingCancelAction} className="bg-gradient-primary text-white">
+              <Button type="submit" disabled={submittingCancelAction} className="bg-primary text-primary-foreground">
                 {submittingCancelAction ? "Approving..." : "Approve Cancellation"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+      </div>
     </MerchantLayout>);
 };
 export default MerchantDashboard;

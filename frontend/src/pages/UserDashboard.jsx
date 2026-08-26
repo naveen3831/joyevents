@@ -18,7 +18,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import SimplePayment from "@/components/SimplePayment";
 import ContactMerchantModal from "@/components/ContactMerchantModal";
-import RequestCustomServiceModal from "@/components/RequestCustomServiceModal";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 
 const STATUS_BADGE = {
@@ -740,16 +739,6 @@ const UserDashboard = () => {
             </motion.div>
           </div>
         </div>
-
-        {/* Custom Service Request Modal */}
-        <RequestCustomServiceModal
-          open={showCustomServiceModal}
-          onOpenChange={setShowCustomServiceModal}
-          onSuccess={() => {
-            loadBookings();
-            navigate("/my-requests");
-          }}
-        />
 
         {/* Contact Merchant Modal */}
         {contactService && (

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Search, Loader2, CalendarDays, ArrowLeft, Mail, Star, ShoppingBag, Percent } from "lucide-react";
+import { Search, Loader2, CalendarDays, ArrowLeft, Mail, Star, ShoppingBag, Percent, MapPin } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import { useCart } from "@/contexts/CartContext";
 import { apiListEvents, apiGetFavorites, apiAddFavorite, apiRemoveFavorite, apiGetAllPromoCodes, apiValidatePromoCode } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
-import ContactMerchantModal from "@/components/ContactMerchantModal";
+
+import EventCard from "@/components/EventCard";
 import { Tag, Ticket } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useGsapStagger } from "@/lib/gsapAnimations";
@@ -23,6 +24,10 @@ const SORT_OPTIONS = [
     { value: "price-desc", label: "Price: High to Low" },
     { value: "name-asc", label: "Name: A–Z" },
 ];
+const toTitleCase = (str) => {
+    if (!str) return "";
+    return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
+};
 const EVENT_TYPES = ["All", "ticketed", "fullService"];
 const CustomerBrowseEvents = () => {
     const { isLoggedIn, token, role } = useAuth();
@@ -32,7 +37,7 @@ const CustomerBrowseEvents = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [favMap, setFavMap] = useState({});
-    const [contactEvent, setContactEvent] = useState(null);
+
     // Quick Add to Cart State
     const [selectedEventForCart, setSelectedEventForCart] = useState(null);
     const [cartSession, setCartSession] = useState("");
@@ -321,8 +326,8 @@ const CustomerBrowseEvents = () => {
     const imgSrc = (image) => image?.startsWith("http") ? image : image ? `${API_URL}${image}` : "";
     const gridRef = useGsapStagger([filtered.length, loading]);
     return (<CustomerLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <div className="container mx-auto">
+      <section className="py-2 sm:py-6">
+        <div className="w-full">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
             <div className="flex items-center gap-3 mb-6">
               <Link to="/customer-dashboard">
@@ -373,92 +378,27 @@ const CustomerBrowseEvents = () => {
               <p className="font-medium text-lg text-foreground">No events found</p>
               <p className="text-sm mt-1 text-muted-foreground">Try adjusting your search or filters</p>
               {activeFilterCount > 0 && (<Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>Clear Filters</Button>)}
-            </div>) : (<div ref={gridRef} className="grid grid-cols-1 gap-4 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filtered.map((event, idx) => (<motion.div key={event._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: idx * 0.04 }} onClick={() => goToDetail(event)} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors cursor-pointer">
-                  {/* Image */}
-                  <div onClick={() => goToDetail(event)} className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-52 cursor-pointer">
-                    {imgSrc(event.image) ? (<img src={imgSrc(event.image)} alt={event.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh"><CalendarDays className="h-12 w-12 opacity-20"/></div>)}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/>
-                    {event.category && (<span className="absolute top-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                        {event.category}
-                      </span>)}
-                    <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                      {(() => {
-                    // For ticketed events, show min ticket price
-                    if (event.eventType === "ticketed" && event.tickets?.length > 0) {
-                        const minPrice = Math.min(...event.tickets.map((t) => t.price || 0).filter((p) => p > 0));
-                        return minPrice > 0 ? `Starts from ${formatCurrency(minPrice)}` : `Starts from ${formatCurrency(event.price || 0)}`;
-                    }
-                    // For session events
-                    if (event.eventType === "ticketed" && event.hasMultipleSessions) {
-                        return `Starts from ${formatCurrency(event.price || 0)}`;
-                    }
-                    return event.price > 0 ? `Starts from ${formatCurrency(event.price)}` : `Starts from ${formatCurrency(0)}`;
-                })()}
-                    </span>
-                    {role === "customer" && (<button onClick={e => { e.stopPropagation(); handleToggleFavorite(event._id); }} className="absolute top-3 right-3 rounded-full bg-black/50 p-1.5 backdrop-blur-sm hover:bg-black/70 transition-colors">
-                        <svg className={`h-4 w-4 ${favMap[event._id] ? "fill-red-500 text-red-500" : "text-white"}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} fill="none">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                        </svg>
-                      </button>)}
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-2 sm:p-5 flex flex-col flex-1">
-                    <Link to={`/customer-dashboard/events/${event._id}`}>
-                      <h3 className="font-semibold text-xs sm:text-lg line-clamp-2 leading-tight group-hover:text-primary transition-colors cursor-pointer">
-                        {event.title}
-                      </h3>
-                    </Link>
-                    {/* Rating display */}
-                    {event.averageRating && event.averageRating > 0 ? (<div className="flex items-center gap-1 mt-1.5">
-                        <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0"/>
-                        <span className="text-xs font-semibold">
-                          {event.averageRating.toFixed(1)}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          ({event.ratingCount || 0})
-                        </span>
-                      </div>) : null}
-                    <ul className="mt-3 space-y-1">
-                      {event.category && (<li className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0"/>
-                          {event.category} event
-                        </li>)}
-                      {event.datetime && (<li className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0"/>
-                          {new Date(event.datetime).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                        </li>)}
-                      {event.location && (<li className="flex items-center gap-2 text-xs text-muted-foreground line-clamp-1">
-                          <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0"/>
-                          {event.location}
-                        </li>)}
-                    </ul>
-
-                    <div className="flex-1"/>
-
-                    <div className="mt-2 sm:mt-5 flex flex-col gap-1.5 sm:gap-2">
-                      <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10" onClick={() => goToDetail(event)}>
-                        View Details
-                      </Button>
-                      <Button className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 flex items-center justify-center gap-1.5" onClick={() => {
-                    setSelectedEventForCart(event);
-                    setCartSession("");
-                    setCartTickets({});
-                    setCartFullServiceQty(1);
-                }}>
-                        <ShoppingBag className="h-4 w-4"/> Add to Cart
-                      </Button>
-                      {event.createdBy && (<button onClick={() => setContactEvent(event)} className="w-full rounded-lg py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium border border-border hover:bg-secondary transition-all text-muted-foreground flex items-center justify-center gap-1">
-                          <Mail className="h-3.5 w-3.5"/> Contact Organiser
-                        </button>)}
-                    </div>
-                  </div>
-                </motion.div>))}
+            </div>) : filtered.length === 0 ? (<div className="rounded-xl border border-border bg-card p-10 text-center">
+              <CalendarDays className="mx-auto mb-4 h-12 w-12 opacity-30 text-muted-foreground"/>
+              <p className="font-medium text-lg text-foreground">No events found</p>
+              <p className="text-sm mt-1 text-muted-foreground">Try adjusting your search or filters</p>
+              {activeFilterCount > 0 && (<Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>Clear Filters</Button>)}
+            </div>) : (<div ref={gridRef} className="grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1400px]:grid-cols-4 gap-[20px] items-start w-full">
+              {filtered.map((event, idx) => (
+                <EventCard
+                  key={event._id}
+                  event={event}
+                  index={idx}
+                  isFavorited={favMap[event._id]}
+                  onToggleFavorite={() => handleToggleFavorite(event._id)}
+                  onViewDetails={() => goToDetail(event)}
+                  onBookNow={() => navigate(`/customer-dashboard/events/${event._id}`)}
+                />
+              ))}
             </div>)}
         </div>
       </section>
-      {contactEvent && (<ContactMerchantModal itemTitle={contactEvent.title} eventId={contactEvent._id} onClose={() => setContactEvent(null)}/>)}
+
       <Dialog open={!!selectedEventForCart} onOpenChange={(open) => { if (!open) {
         setSelectedEventForCart(null);
         setCartSession("");

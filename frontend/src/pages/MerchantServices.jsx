@@ -1,9 +1,11 @@
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
 import { useGsapStagger } from "@/lib/gsapAnimations";
 import { Briefcase, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Tag, Upload } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import AdminLayout from "@/components/AdminLayout";
+import PageHeader from "@/components/common/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
@@ -33,6 +35,7 @@ const validateImage = (file) => {
 const MerchantServices = ({ layout = "merchant" } = {}) => {
     const PageLayout = layout === "admin" ? AdminLayout : MerchantLayout;
     const { token } = useAuth();
+    const navigate = useNavigate();
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -103,45 +106,18 @@ const MerchantServices = ({ layout = "merchant" } = {}) => {
         }
     };
     const openCreate = () => {
-        setEditing(null);
-        setForm({ ...EMPTY_FORM });
-        setImageFile(null);
-        setImagePreview("");
-        setGalleryFiles([]);
-        setGalleryPreviews([]);
-        setAddOns([]);
-        setShowNewCatInput(false);
-        setNewCatName("");
-        setShowForm(true);
+        if (layout === "admin") {
+            navigate("/admin-dashboard/my-services/new");
+        } else {
+            navigate("/merchant-dashboard/services/new");
+        }
     };
     const openEdit = (svc) => {
-        setEditing(svc);
-        const cat = svc.category || "General";
-        // Ensure the service's category is in the dropdown list
-        setCategories(prev => {
-            if (cat && !prev.includes(cat)) {
-                return [...prev, cat];
-            }
-            return prev;
-        });
-        setForm({
-            name: svc.name,
-            description: svc.description || "",
-            price: String(svc.price),
-            category: cat,
-            highlights: (svc.highlights || []).join(", "),
-            active: svc.active !== false ? "true" : "false",
-            allowGuests: svc.allowGuests || false,
-            maxGuests: String(svc.maxGuests || 100),
-        });
-        setImageFile(null);
-        setImagePreview(imgSrc(svc.image));
-        setGalleryFiles([]);
-        setGalleryPreviews([]);
-        setAddOns((svc.addOns || []).map((a) => ({ name: a.name, price: String(a.price), maxQuantity: String(a.maxQuantity || 1), minQuantity: String(a.minQuantity || 1), guestLabel: a.guestLabel || "guests", showGuestCount: a.showGuestCount || false })));
-        setShowNewCatInput(false);
-        setNewCatName("");
-        setShowForm(true);
+        if (layout === "admin") {
+            navigate(`/admin-dashboard/my-services/${svc._id}/edit`);
+        } else {
+            navigate(`/merchant-dashboard/services/${svc._id}/edit`);
+        }
     };
     const handleImageChange = (e) => {
         const file = e.target.files?.[0];
@@ -296,194 +272,33 @@ const MerchantServices = ({ layout = "merchant" } = {}) => {
         }
     };
     return (<PageLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
-          <div>
-            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-              My <span className="text-gradient">Services</span>
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">Manage your own services - create, edit, and delete only what you own</p>
-          </div>
-          <Button onClick={openCreate} className="w-full sm:w-auto bg-gradient-primary text-primary-foreground hover:opacity-90 min-h-[44px]">
-            <Plus className="mr-2 h-4 w-4"/> New Service
-          </Button>
-        </motion.div>
-
-        {/* Create / Edit Modal */}
-        {showForm && (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-xl overflow-y-auto max-h-[90vh]">
-              <button onClick={() => setShowForm(false)} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
-                <X className="h-5 w-5"/>
-              </button>
-              <h2 className="font-display text-xl font-bold mb-4">{editing ? "Edit Service" : "Create Service"}</h2>
-
-              <div className="grid gap-3 md:grid-cols-2">
-                {/* Service Name */}
-                <div className="md:col-span-2">
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs font-medium text-muted-foreground">Service Name *</label>
-                    <span className="text-[10px] text-muted-foreground">{(form.name || "").length}/100</span>
-                  </div>
-                  <Input placeholder="Enter service name" maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required/>
-                </div>
-
-                {/* Price */}
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Price (min ₹1) *</label>
-                  <Input placeholder="Price (INR)" type="number" min="1" step="1" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required/>
-                </div>
-
-                {/* Category Selection */}
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Category</label>
-                  <select value={form.category} onChange={(e) => {
-                const val = e.target.value;
-                if (val === "__new__") {
-                    setShowNewCatInput(true);
-                    setForm({ ...form, category: "" });
-                }
-                else {
-                    setForm({ ...form, category: val });
-                    setShowNewCatInput(false);
-                }
-            }} className="h-10 w-full rounded-md border border-border bg-secondary px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary" required>
-                    <option value="">Select category...</option>
-                    {categories.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
-                    <option value="__new__" className="text-primary font-bold">+ Create New Category</option>
-                  </select>
-
-                  {showNewCatInput && (<div className="mt-2 flex gap-2">
-                      <Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="New category name" maxLength={50} className="flex-1"/>
-                      <Button type="button" onClick={handleCreateCategory} disabled={creatingCat} size="sm" className="bg-primary hover:bg-primary/95 text-primary-foreground">
-                        {creatingCat ? <Loader2 className="h-4 w-4 animate-spin"/> : "Add"}
-                      </Button>
-                      <Button type="button" onClick={() => {
-                    setShowNewCatInput(false);
-                    setNewCatName("");
-                    setForm({ ...form, category: categories[0] || "General" });
-                }} variant="outline" size="sm">
-                        Cancel
-                      </Button>
-                    </div>)}
-                </div>
-
-                {/* Description */}
-                <div className="md:col-span-2">
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs font-medium text-muted-foreground">Description</label>
-                    <span className="text-[10px] text-muted-foreground">{(form.description || "").length}/1000</span>
-                  </div>
-                  <textarea placeholder="Provide a detailed description of the service..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} maxLength={1000} className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"/>
-                </div>
-
-                {/* Highlights */}
-                <div className="md:col-span-2">
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs font-medium text-muted-foreground">Highlights (comma-separated)</label>
-                    <span className="text-[10px] text-muted-foreground">{(form.highlights || "").length}/200</span>
-                  </div>
-                  <Input placeholder="e.g. Fast delivery, 24/7 support, Premium equipment" maxLength={200} value={form.highlights} onChange={(e) => setForm({ ...form, highlights: e.target.value })}/>
-                </div>
-
-                {/* Add-ons */}
-                <div className="md:col-span-2">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-medium text-muted-foreground">Add-ons (optional)</label>
-                    <button type="button" onClick={() => setAddOns(prev => [...prev, { name: "", price: "", maxQuantity: "10", minQuantity: "1", guestLabel: "guests", showGuestCount: false }])} className="flex items-center gap-1 text-xs text-primary hover:underline">
-                      <Plus className="h-3 w-3"/> Add option
-                    </button>
-                  </div>
-                  {addOns.length === 0 && (<p className="text-xs text-muted-foreground italic">No add-ons yet. Click "Add option" to add photography, decoration, catering, etc.</p>)}
-                  <div className="space-y-3">
-                    {addOns.map((addon, idx) => (<div key={idx} className="rounded-xl border border-border bg-secondary/20 p-3 space-y-2">
-                        {/* Row 1: Name + Price + Delete */}
-                        <div className="flex gap-2 items-center">
-                          <div className="flex-1">
-                            <Input placeholder="Add-on name (e.g. Catering)" maxLength={100} value={addon.name} onChange={(e) => setAddOns(prev => prev.map((a, i) => i === idx ? { ...a, name: e.target.value } : a))}/>
-                          </div>
-                          <div>
-                            <Input placeholder="Price (min ₹1)" type="number" min="1" step="1" value={addon.price} onChange={(e) => setAddOns(prev => prev.map((a, i) => i === idx ? { ...a, price: e.target.value } : a))} className="w-32"/>
-                          </div>
-                          <button type="button" onClick={() => setAddOns(prev => prev.filter((_, i) => i !== idx))} className="text-muted-foreground hover:text-red-400 transition-colors shrink-0">
-                            <X className="h-4 w-4"/>
-                          </button>
-                        </div>
-
-                        {/* Row 2: Guest Count toggle */}
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
-                          <input type="checkbox" checked={addon.showGuestCount} onChange={(e) => setAddOns(prev => prev.map((a, i) => i === idx ? { ...a, showGuestCount: e.target.checked } : a))} className="w-4 h-4 accent-primary"/>
-                          <span className="text-xs font-medium text-muted-foreground">Enable Guest Count for this add-on</span>
-                        </label>
-
-                        {/* Guest customization — only when enabled */}
-                        {addon.showGuestCount && (<div className="pt-1">
-                            <label className="text-[10px] text-muted-foreground mb-1 block">Guest Label (e.g. guests, plates, persons)</label>
-                            <Input placeholder="guests, plates…" maxLength={50} value={addon.guestLabel} onChange={(e) => setAddOns(prev => prev.map((a, i) => i === idx ? { ...a, guestLabel: e.target.value } : a))} className="h-8 text-xs"/>
-                          </div>)}
-                      </div>))}
-                    {addOns.length > 0 && (<p className="text-xs text-muted-foreground">Enable Guest Count to let customers specify quantity (e.g. number of plates, persons)</p>)}
-                  </div>
-                </div>
-
-                {/* Status / Active */}
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Status</label>
-                  <select value={form.active} onChange={(e) => setForm({ ...form, active: e.target.value })} className="h-10 w-full rounded-md border border-border bg-secondary px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                    <option value="true">Active</option>
-                    <option value="false">Inactive</option>
-                  </select>
-                </div>
-
-                {/* Image upload */}
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Service Cover Image (optional)</label>
-                  <div className="relative flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-secondary/40 p-4 cursor-pointer hover:bg-secondary/70 transition-colors" onClick={() => fileRef.current?.click()}>
-                    {imagePreview ? (<img src={imagePreview} alt="preview" className="h-36 w-full object-cover rounded-md"/>) : (<div className="flex flex-col items-center gap-1 text-muted-foreground py-6">
-                        <ImageIcon className="h-10 w-10 opacity-40"/>
-                        <span className="text-sm font-medium">Click to upload cover image</span>
-                        <span className="text-xs opacity-60">JPG, JPEG, PNG, WEBP up to 5MB</span>
-                      </div>)}
-                    <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={handleImageChange}/>
-                  </div>
-                </div>
-
-                {/* Gallery upload */}
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Gallery Images (optional)</label>
-                  <div className="flex flex-wrap gap-2">
-                    {galleryPreviews.map((preview, index) => (<div key={index} className="relative w-24 h-24 rounded-lg overflow-hidden">
-                        <img src={preview} alt={`gallery-${index}`} className="w-full h-full object-cover"/>
-                        <button onClick={() => removeGalleryImage(index)} className="absolute top-1 right-1 bg-white rounded-full p-1 text-red-500 hover:text-red-700">
-                          <X className="h-3 w-3"/>
-                        </button>
-                      </div>))}
-                    <div className="relative flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-secondary/40 p-4 cursor-pointer hover:bg-secondary/70 transition-colors" onClick={() => galleryRef.current?.click()}>
-                      <Upload className="h-10 w-10 opacity-40"/>
-                      <span className="text-sm font-medium">Click to upload gallery images</span>
-                      <span className="text-xs opacity-60">JPG, JPEG, PNG, WEBP up to 5MB each (Max 4 images)</span>
-                      <input ref={galleryRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" multiple onChange={handleGalleryUpload}/>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-5">
-                <Button onClick={handleSubmit} disabled={saving} className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90">
-                  {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Saving…</> : (editing ? "Update Service" : "Create Service")}
-                </Button>
-                <Button variant="outline" onClick={() => setShowForm(false)} disabled={saving}>Cancel</Button>
-              </div>
-            </motion.div>
-          </div>)}
+      <div className="w-full min-w-0 space-y-5 font-sans">
+        <PageHeader
+          title="My Services"
+          subtitle="Manage your service catalog listings — create, edit, and update service details."
+          breadcrumbs={[
+            { label: "Merchant Portal", to: "/merchant-dashboard" },
+            { label: "Events & Services" },
+            { label: "My Services" },
+          ]}
+          actions={
+            <Button onClick={openCreate} className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-xs font-semibold h-9 px-3.5">
+              <Plus className="mr-1.5 h-4 w-4"/> New Service
+            </Button>
+          }
+        />
 
         {/* Services List */}
         <div className="mt-8">
           {loading ? (<div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
               <Loader2 className="h-5 w-5 animate-spin"/> Loading services…
-            </div>) : services.length === 0 ? (<div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground">
+            </div>) : services.length === 0 ? (<div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground flex flex-col items-center">
               <AlertCircle className="mx-auto mb-3 h-10 w-10 opacity-30"/>
               <p className="font-medium">No services yet</p>
-              <p className="text-xs mt-1">Click "New Service" to create your first service. Only your services are shown here.</p>
+              <p className="text-xs mt-1 mb-4">Click "New Service" to create your first service. Only your services are shown here.</p>
+              <Button onClick={openCreate} className="bg-gradient-primary text-primary-foreground hover:opacity-90 min-h-[44px]">
+                <Plus className="mr-2 h-4 w-4"/> New Service
+              </Button>
             </div>) : (<div ref={gridRef} className="grid grid-cols-2 gap-3 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
               {services.map((svc) => (<div key={svc._id} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
                   {/* Image */}
@@ -537,7 +352,7 @@ const MerchantServices = ({ layout = "merchant" } = {}) => {
                 </div>))}
             </div>)}
         </div>
-      </section>
+      </div>
     </PageLayout>);
 };
 export default MerchantServices;

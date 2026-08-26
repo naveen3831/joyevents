@@ -189,9 +189,8 @@ const Cart = () => {
     };
 
     return (<CustomerLayout>
-      {/* ... layout components ... */}
-      <div className="min-h-screen px-4 sm:px-6 lg:px-12 py-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="w-full py-2 sm:py-6">
+        <div className="w-full">
           {/* Header */}
           <div className="flex items-center justify-between mb-6 sm:mb-8">
             <div>

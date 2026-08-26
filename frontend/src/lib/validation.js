@@ -9,17 +9,51 @@ const NAME_PATTERN = /^[A-Za-z ]+$/;
 const SUBJECT_PATTERN = /^[A-Za-z ]+$/;
 const MESSAGE_PATTERN = /^[A-Za-z0-9\s]+$/;
 const PASSWORD_SPECIAL = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/;
+export const INDIAN_MOBILE_PATTERN = /^[6-9][0-9]{9}$/;
+
 export const EMAIL_HINT = "3–40 characters, no spaces, letters and numbers only (e.g. user@gmail.com)";
 export const NAME_HINT = "Up to 40 letters and spaces only, no special characters";
 export const SUBJECT_HINT = "Up to 40 letters and spaces only, no special characters";
 export const MESSAGE_HINT = "Up to 500 letters, numbers, and spaces only, no special characters";
 export const PASSWORD_HINT = "8–30 characters, including one uppercase letter, one number, and one special character.";
+export const MOBILE_HINT = "Enter a 10-digit mobile number";
+
 /** Strip spaces and cap length while typing */
 export function sanitizeEmailInput(value) {
     return value.replace(/\s/g, "").slice(0, EMAIL_MAX_LENGTH);
 }
 export function sanitizeNameInput(value) {
     return value.replace(/[^A-Za-z\s]/g, "").slice(0, NAME_MAX_LENGTH);
+}
+export function sanitizeMobileInput(value) {
+    if (!value) return "";
+    let clean = String(value).replace(/[^0-9]/g, "");
+    if (clean.length === 12 && clean.startsWith("91")) {
+        clean = clean.slice(2);
+    }
+    return clean.slice(0, 10);
+}
+export function formatMobileForInput(mobile) {
+    return sanitizeMobileInput(mobile);
+}
+export function formatMobileForApi(mobile) {
+    if (!mobile) return "";
+    const clean = String(mobile).replace(/[^0-9]/g, "");
+    if (clean.length === 10) {
+        return `91${clean}`;
+    }
+    return clean;
+}
+export function validateMobileNumber(mobile, required = true) {
+    if (!mobile || mobile.trim() === "") {
+        if (required) return "Please enter a valid 10-digit mobile number.";
+        return null;
+    }
+    const clean = mobile.replace(/[^0-9]/g, "");
+    if (!INDIAN_MOBILE_PATTERN.test(clean)) {
+        return "Please enter a valid 10-digit mobile number.";
+    }
+    return null;
 }
 export function sanitizeSubjectInput(value) {
     return value.replace(/[^A-Za-z\s]/g, "").slice(0, SUBJECT_MAX_LENGTH);

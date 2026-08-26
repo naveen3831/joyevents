@@ -1,200 +1,332 @@
 import { formatCurrency } from "@/lib/utils";
-import { ImageIcon, Loader2, AlertCircle, Ticket, MapPin, CalendarDays, Store, Search, Filter, RotateCcw } from "lucide-react";
+import {
+  ImageIcon,
+  Loader2,
+  AlertCircle,
+  Ticket,
+  MapPin,
+  CalendarDays,
+  Store,
+  Eye,
+  Plus,
+  ToggleLeft,
+  ToggleRight,
+  Video,
+} from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
+import PageHeader from "@/components/common/PageHeader";
+import ActionMenu from "@/components/common/ActionMenu";
+import TableToolbar from "@/components/common/table/TableToolbar";
+import StatusBadge from "@/components/common/table/StatusBadge";
+import DataTable, { TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import TableEmptyState from "@/components/common/table/TableEmptyState";
+import TableSkeleton from "@/components/common/table/TableSkeleton";
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { apiListEvents } from "@/lib/api";
+import { apiListEvents, apiUpdateEvent } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
-import { useGsapStagger } from "@/lib/gsapAnimations";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
-const imgSrc = (image) => !image ? "" : image.startsWith("http") ? image : `${API_URL}${image}`;
+const imgSrc = (image) => (!image ? "" : image.startsWith("http") ? image : `${API_URL}${image}`);
 
-const getEventTickets = (ev) => ev.hasMultipleSessions
+const getEventTickets = (ev) =>
+  ev.hasMultipleSessions
     ? [...(ev.sessions?.day?.tickets || []), ...(ev.sessions?.night?.tickets || [])]
-    : (ev.tickets || []);
+    : ev.tickets || [];
 
 const getEventPriceLabel = (ev) => {
-    if (ev.eventType !== "ticketed")
-        return formatCurrency(ev.price);
-    const prices = getEventTickets(ev).map((t) => t.price).filter((p) => p > 0);
-    if (prices.length === 0)
-        return "Free";
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    return min === max ? formatCurrency(min) : `${formatCurrency(min)} – ${formatCurrency(max)}`;
-};
-
-const STATUS_STYLES = {
-    upcoming: "bg-blue-500/15 text-blue-400",
-    ongoing: "bg-green-500/15 text-green-400",
-    completed: "bg-gray-500/15 text-gray-400",
-    cancelled: "bg-red-500/15 text-red-400",
+  if (ev.eventType !== "ticketed") return formatCurrency(ev.price);
+  const prices = getEventTickets(ev)
+    .map((t) => t.price)
+    .filter((p) => p > 0);
+  if (prices.length === 0) return "Free";
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  return min === max ? formatCurrency(min) : `${formatCurrency(min)} – ${formatCurrency(max)}`;
 };
 
 const AdminEvents = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const queryParams = new URLSearchParams(location.search);
-    const initialFilter = queryParams.get("filter") || queryParams.get("status") || (queryParams.get("live") === "true" ? "live" : "all");
+  const { token } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const initialFilter =
+    queryParams.get("filter") ||
+    queryParams.get("status") ||
+    (queryParams.get("live") === "true" ? "live" : "all");
 
-    const [events, setEvents] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState("");
-    const [filter, setFilter] = useState(initialFilter);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState(initialFilter);
+  const [togglingLiveId, setTogglingLiveId] = useState(null);
 
-    useEffect(() => {
-        const params = new URLSearchParams(location.search);
-        const f = params.get("filter") || params.get("status") || (params.get("live") === "true" ? "live" : "all");
-        if (f) setFilter(f);
-    }, [location.search]);
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const f =
+      params.get("filter") ||
+      params.get("status") ||
+      (params.get("live") === "true" ? "live" : "all");
+    if (f) setFilter(f);
+  }, [location.search]);
 
-    const loadEvents = async () => {
-        try {
-            const eventsRes = await apiListEvents().catch(() => ({ events: [] }));
-            setEvents(eventsRes.events || []);
-        }
-        catch {
-            toast.error("Failed to load events");
-        }
-        finally {
-            setLoading(false);
-        }
-    };
+  const loadEvents = async () => {
+    try {
+      const eventsRes = await apiListEvents().catch(() => ({ events: [] }));
+      setEvents(eventsRes.events || []);
+    } catch {
+      toast.error("Failed to load events");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    useEffect(() => { loadEvents(); }, []);
+  useEffect(() => {
+    loadEvents();
+  }, []);
 
-    const filteredEvents = events.filter((ev) => {
-        const title = ev.title || "";
-        const locationStr = ev.location || "";
-        const category = ev.category || "";
-        const merchant = ev.createdBy?.name || ev.createdBy?.email || "";
-        const matchSearch = [title, locationStr, category, merchant].some(s => s.toLowerCase().includes(search.toLowerCase()));
+  const handleToggleLive = async (ev) => {
+    if (!token) {
+      toast.error("Authentication required");
+      return;
+    }
+    const newLiveState = !ev.live;
+    setTogglingLiveId(ev._id);
+    try {
+      await apiUpdateEvent(ev._id, { live: newLiveState }, token);
+      setEvents((prev) =>
+        prev.map((item) =>
+          item._id === ev._id ? { ...item, live: newLiveState } : item
+        )
+      );
+      if (newLiveState) {
+        toast.success("Event is now Live");
+      } else {
+        toast.success("Event removed from Live Events");
+      }
+    } catch (err) {
+      toast.error(err?.message || "Failed to update Live status");
+    } finally {
+      setTogglingLiveId(null);
+    }
+  };
 
-        let matchFilter = true;
-        if (filter === "live") {
-            matchFilter = ev.live === true;
-        } else if (filter !== "all") {
-            matchFilter = ev.status === filter;
-        }
+  const filteredEvents = events.filter((ev) => {
+    const title = ev.title || "";
+    const locationStr = ev.location || "";
+    const category = ev.category || "";
+    const merchant = ev.createdBy?.name || ev.createdBy?.email || "";
+    const matchSearch = [title, locationStr, category, merchant].some((s) =>
+      s.toLowerCase().includes(search.toLowerCase())
+    );
 
-        return matchSearch && matchFilter;
-    });
+    let matchFilter = true;
+    if (filter === "live") {
+      matchFilter = ev.live === true;
+    } else if (filter !== "all") {
+      matchFilter = ev.status === filter;
+    }
 
-    const gridRef = useGsapStagger([loading, filteredEvents.length]);
-    const hasActiveFilters = filter !== "all" || search.trim() !== "";
+    return matchSearch && matchFilter;
+  });
 
-    return (<AdminLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <div>
-            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground truncate">
-              {filter === "live" ? "🔴 Live Events" : "Events"}
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              {filter === "live" ? "Showing events currently broadcasted live by merchants" : "View all events across every merchant on the platform"}
-            </p>
-          </div>
-        </div>
+  const hasActiveFilters = filter !== "all" || search.trim() !== "";
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-6">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-            <Input
-              placeholder="Search by title, location, category, merchant..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-9 bg-card"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground"/>
-            <select
-              value={filter}
-              onChange={e => setFilter(e.target.value)}
-              className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
+  return (
+    <AdminLayout>
+      <div className="w-full min-w-0 space-y-5">
+        <PageHeader
+          title={filter === "live" ? "Live Event Streams" : "All Platform Events"}
+          subtitle="Monitor, filter, and manage events published by merchants across the platform."
+          breadcrumbs={[{ label: "Admin Portal" }, { label: "Events" }]}
+          actions={
+            <Button
+              size="sm"
+              onClick={() => navigate("/admin-dashboard/my-events/new")}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-xs font-semibold h-9 px-3.5"
             >
-              <option value="all">All Events</option>
-              <option value="live">🔴 Live Events Only</option>
-              <option value="upcoming">Upcoming</option>
-              <option value="ongoing">Ongoing</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+              <Plus className="h-4 w-4 mr-1.5" /> Create Event
+            </Button>
+          }
+        />
+
+        <TableToolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search by title, location, merchant..."
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={() => {
+            setFilter("all");
+            setSearch("");
+          }}
+          filters={
+            <div className="flex items-center gap-2">
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary h-9"
+              >
+                <option value="all">All Statuses</option>
+                <option value="live">🔴 Live Now</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="ongoing">Ongoing</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          }
+        />
+
+        {loading ? (
+          <TableSkeleton columns={7} rows={6} minWidth="100%" />
+        ) : filteredEvents.length === 0 ? (
+          <DataTable minWidth="100%">
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={7}>
+                  <TableEmptyState
+                    title="No events found"
+                    description="No events match your current filter or search criteria."
+                    actionLabel="Clear Filters"
+                    onAction={() => {
+                      setFilter("all");
+                      setSearch("");
+                    }}
+                  />
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </DataTable>
+        ) : (
+          <div className="rounded-xl border border-border/70 bg-card shadow-xs overflow-hidden w-full">
+            <div className="overflow-x-auto md:overflow-x-hidden w-full no-scrollbar">
+              <table className="w-full text-xs border-collapse min-w-[780px] md:min-w-full" style={{ tableLayout: "fixed" }}>
+                <thead>
+                  <tr className="bg-muted/40 border-b border-border/70">
+                    <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "25%" }}>Event</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "12%" }}>Category</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "15%" }}>Organizer</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "11%" }}>Price</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "20%" }}>Date & Location</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "11%" }}>Status</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-center align-middle" style={{ width: "6%" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {filteredEvents.map((ev) => {
+                    const image = imgSrc(ev.image);
+                    const isToggling = togglingLiveId === ev._id;
+                    return (
+                      <tr key={ev._id} className="hover:bg-muted/30 transition-colors" style={{ height: "72px" }}>
+                        {/* Event */}
+                        <td className="px-4 py-3 align-middle">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-11 w-14 rounded-lg bg-muted overflow-hidden shrink-0 border border-border/60 flex items-center justify-center">
+                              {image ? (
+                                <img src={image} alt={ev.title} className="h-full w-full object-cover" />
+                              ) : (
+                                <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-xs text-foreground truncate" title={ev.title}>
+                                {ev.title}
+                              </p>
+                              {ev.live && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping" />
+                                  LIVE NOW
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Category */}
+                        <td className="px-4 py-3 align-middle">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-muted-foreground text-xs font-medium border border-border/40 whitespace-nowrap max-w-full truncate">
+                            {ev.category || "General"}
+                          </span>
+                        </td>
+
+                        {/* Organizer */}
+                        <td className="px-4 py-3 align-middle">
+                          <div className="flex items-center gap-1.5 text-xs text-foreground font-medium min-w-0">
+                            <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="truncate">{ev.createdBy?.name || "Merchant"}</span>
+                          </div>
+                        </td>
+
+                        {/* Price */}
+                        <td className="px-4 py-3 align-middle">
+                          <span className="text-xs font-semibold text-foreground whitespace-nowrap">
+                            {getEventPriceLabel(ev)}
+                          </span>
+                        </td>
+
+                        {/* Date & Location */}
+                        <td className="px-4 py-3 align-middle">
+                          <div className="space-y-1 text-xs text-muted-foreground min-w-0">
+                            <p className="flex items-center gap-1.5 min-w-0">
+                              <MapPin className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{ev.location || "—"}</span>
+                            </p>
+                            <p className="flex items-center gap-1.5 min-w-0">
+                              <CalendarDays className="h-3 w-3 shrink-0" />
+                              <span className="whitespace-nowrap">
+                                {ev.datetime
+                                  ? new Date(ev.datetime).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                                  : "—"}
+                              </span>
+                            </p>
+                          </div>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-4 py-3 align-middle">
+                          <StatusBadge
+                            status={ev.live ? "live" : ev.status}
+                            className="w-[88px] min-w-[88px] h-[28px] px-0"
+                          />
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-4 py-3 align-middle text-center">
+                          <div className="flex items-center justify-center">
+                            <ActionMenu
+                              items={[
+                                {
+                                  label: "View Event",
+                                  icon: Eye,
+                                  onClick: () => navigate(`/admin-dashboard/events/${ev._id}`),
+                                },
+                                {
+                                  label: isToggling
+                                    ? "Updating..."
+                                    : ev.live
+                                    ? "Remove from Live"
+                                    : "Go Live",
+                                  icon: ev.live ? ToggleRight : ToggleLeft,
+                                  disabled: isToggling,
+                                  onClick: () => handleToggleLive(ev),
+                                },
+                              ]}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={() => { setFilter("all"); setSearch(""); }}
-              className="flex items-center gap-1 text-xs text-primary hover:underline self-center font-medium px-2 py-1.5 rounded-lg border border-primary/20 bg-primary/5"
-            >
-              <RotateCcw className="h-3 w-3"/> Clear Filters
-            </button>
-          )}
-          <div className="flex items-center text-sm text-muted-foreground bg-secondary px-3 py-2 rounded-lg">
-            {filteredEvents.length} event{filteredEvents.length !== 1 ? "s" : ""}
-          </div>
-        </div>
-
-        {loading ? (<div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-            <Loader2 className="h-5 w-5 animate-spin"/> Loading…
-          </div>) : filteredEvents.length === 0 ? (<div className="rounded-xl border border-border bg-card p-10 text-center text-muted-foreground">
-            <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-40"/>
-            No events match your current filter.
-          </div>) : (<div ref={gridRef} className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-3 items-stretch">
-            {filteredEvents.map((ev) => {
-                const allTickets = getEventTickets(ev);
-                return (<button key={ev._id} type="button" onClick={() => navigate(`/admin-dashboard/events/${ev._id}`)} className="group text-left rounded-2xl border border-border bg-card overflow-hidden hover-lift flex flex-col h-full cursor-pointer transition-shadow hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                {/* Image - fixed height */}
-                <div className="relative h-40 sm:h-44 flex-shrink-0 overflow-hidden bg-secondary">
-                  {imgSrc(ev.image) ? (<img src={imgSrc(ev.image)} alt={ev.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
-                      <ImageIcon className="h-12 w-12 opacity-30"/>
-                    </div>)}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"/>
-                  <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                    {ev.category}
-                  </span>
-                  {ev.live && (
-                    <span className="absolute top-3 left-3 rounded-full bg-red-600 px-2.5 py-1 text-xs font-bold text-white animate-pulse">
-                      🔴 LIVE
-                    </span>
-                  )}
-                  <span className={`absolute top-3 right-3 rounded-full px-2.5 py-1 text-xs font-semibold capitalize backdrop-blur-sm ${STATUS_STYLES[ev.status] || "bg-gray-500/15 text-gray-400"}`}>
-                    {ev.status}
-                  </span>
-                </div>
-
-                {/* Info - flex-grow so all cards stretch to same height */}
-                <div className="p-3.5 sm:p-4 flex flex-col flex-1">
-                  <h3 className="font-display font-semibold text-sm sm:text-base leading-tight line-clamp-2">{ev.title}</h3>
-
-                  <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Store className="h-3 w-3 shrink-0"/>
-                    <span className="truncate">{ev.createdBy?.name || "Unknown merchant"}</span>
-                  </div>
-
-                  {allTickets.length > 0 && (<div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Ticket className="h-3 w-3 shrink-0"/>
-                      <span>{allTickets.length} ticket tier{allTickets.length > 1 ? "s" : ""}</span>
-                    </div>)}
-
-                  {/* Spacer pushes footer to bottom */}
-                  <div className="flex-1 flex flex-col justify-end mt-2 gap-0.5">
-                    <p className="text-xs text-muted-foreground truncate flex items-center gap-1"><MapPin className="h-3 w-3 shrink-0"/>{ev.location}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1"><CalendarDays className="h-3 w-3 shrink-0"/>{new Date(ev.datetime).toLocaleString()}</p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-sm font-semibold text-primary">{getEventPriceLabel(ev)}</span>
-                      <span className="text-xs font-medium text-primary/80 opacity-0 group-hover:opacity-100 transition-opacity">View details →</span>
-                    </div>
-                  </div>
-                </div>
-              </button>);
-            })}
-          </div>)}
-      </section>
-    </AdminLayout>);
+        )}
+      </div>
+    </AdminLayout>
+  );
 };
 
 export default AdminEvents;

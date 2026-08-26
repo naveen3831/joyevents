@@ -78,7 +78,7 @@ const AdminReferrals = () => {
     };
 
     return (<AdminLayout>
-      <section className="py-2 sm:py-8 lg:py-10 space-y-6">
+      <div className="w-full min-w-0 space-y-6 font-sans">
         <div>
           <div className="flex items-center gap-3">
             <Gift className="h-7 w-7 sm:h-8 sm:w-8 text-primary shrink-0"/>
@@ -192,7 +192,7 @@ const AdminReferrals = () => {
               </CardContent>
             </Card>
           </>)}
-      </section>
+      </div>
     </AdminLayout>);
 };
 

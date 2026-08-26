@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Gift, Loader2, Save, Wallet, Users, Coins } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
+import PageHeader from "@/components/common/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,18 +83,16 @@ const MerchantReferrals = () => {
     };
 
     return (<MerchantLayout>
-      <section className="py-2 sm:py-8 lg:py-10 space-y-6">
-        <div className="flex items-center gap-3 mb-6 sm:mb-8">
-          <div className="tint-chip h-10 w-10 bg-tint-pink text-tint-pink-fg shrink-0">
-            <Gift className="h-5 w-5"/>
-          </div>
-          <div>
-            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Referral Management</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Manage referral discounts and review referral bookings for your events and services.
-            </p>
-          </div>
-        </div>
+      <div className="w-full min-w-0 space-y-5 font-sans">
+        <PageHeader
+          title="Referral Management"
+          subtitle="Configure merchant referral rewards and track customer referral conversions."
+          breadcrumbs={[
+            { label: "Merchant Portal", to: "/merchant-dashboard" },
+            { label: "Growth" },
+            { label: "Referrals" },
+          ]}
+        />
 
         {loading ? (<Card>
             <CardContent className="p-12 flex justify-center items-center gap-2 text-muted-foreground">
@@ -182,7 +181,7 @@ const MerchantReferrals = () => {
               )}
             </div>
           </>)}
-      </section>
+      </div>
     </MerchantLayout>);
 };
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, Trash2, MailOpen, Loader2, Inbox, RefreshCw, Send, ChevronDown, ChevronUp } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
+import PageHeader from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiGetInbox, apiMarkMessageRead, apiDeleteMessage, apiReplyToMessage } from "@/lib/api";
@@ -83,22 +84,21 @@ const MerchantInbox = () => {
     const unread = messages.filter(m => !m.read).length;
     const listRef = useGsapStagger([messages], { y: 14, stagger: 0.05 });
     return (<MerchantLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
-            <div>
-              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
-                <Inbox className="h-6 w-6 text-primary"/> Customer <span className="text-gradient">Inbox</span>
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Messages from customers about your events & services
-                {unread > 0 && <span className="ml-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded-full">{unread} unread</span>}
-              </p>
-            </div>
-            <Button variant="outline" size="sm" onClick={load} className="gap-2 w-full sm:w-auto min-h-[44px]">
-              <RefreshCw className="h-4 w-4"/> Refresh
+      <div className="w-full min-w-0 space-y-5 font-sans">
+        <PageHeader
+          title="Customer Inbox"
+          subtitle="View and reply to customer inquiries and event booking messages."
+          breadcrumbs={[
+            { label: "Merchant Portal", to: "/merchant-dashboard" },
+            { label: "Operations" },
+            { label: "Inbox" },
+          ]}
+          actions={
+            <Button variant="outline" size="sm" onClick={load} className="h-9 text-xs">
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5"/> Refresh
             </Button>
-          </div>
+          }
+        />
 
           {loading ? (<div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
               <Loader2 className="h-5 w-5 animate-spin"/> Loading messages…
@@ -185,8 +185,7 @@ const MerchantInbox = () => {
                     </div>)}
                 </motion.div>))}
             </div>)}
-        </motion.div>
-      </section>
+      </div>
     </MerchantLayout>);
 };
 export default MerchantInbox;
