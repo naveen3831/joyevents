@@ -70,9 +70,10 @@ export function createRealtimeClient(token, { onMessage, onStatus } = {}) {
     clearReconnect();
     setStatus("connecting");
 
+    const wsUrl = getRealtimeUrl(token);
     console.log("[Realtime] token present:", Boolean(token));
-    console.log("[Realtime] token length:", token?.length);
-    console.log("[Realtime] connecting path:", "/ws");
+    console.log("[Realtime] token length:", token?.length || 0);
+    console.log("[Realtime] path includes token:", wsUrl.includes("token="));
 
     if (socket) {
       socket.onopen = null;
@@ -85,7 +86,7 @@ export function createRealtimeClient(token, { onMessage, onStatus } = {}) {
       socket = null;
     }
 
-    const ws = new WebSocket(getRealtimeUrl(token));
+    const ws = new WebSocket(wsUrl);
     socket = ws;
 
     ws.onopen = () => {
