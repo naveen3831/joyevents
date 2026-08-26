@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
-import { ArrowLeft, Ticket, AlertCircle, Star, FileText, CreditCard, Sparkles, CheckCircle2, Clock, DollarSign } from "lucide-react";
+import { ArrowLeft, Ticket, AlertCircle, Star, FileText, CreditCard, Sparkles, CheckCircle2, Clock, DollarSign, MoreHorizontal } from "lucide-react";
 import QRCode from "qrcode";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { StatusBadge } from "@/components/common/table/StatusBadge";
 import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
 import { TableSkeleton } from "@/components/common/table/TableSkeleton";
 import { TableEmptyState } from "@/components/common/table/TableEmptyState";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const STATUS_BADGE = {
     pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
@@ -38,6 +39,10 @@ const STATUS_BADGE = {
 
 const MyRequests = () => {
     const { token, user } = useAuth();
+    const STATUS_CLASS = "w-[132px] min-w-[132px] h-[34px] px-3 justify-center text-center text-[11px] font-semibold whitespace-nowrap inline-flex items-center rounded-full border";
+    const ACTION_BTN_CLASS = "h-[38px] min-h-[38px] text-[11px] font-bold rounded-full flex items-center justify-center whitespace-nowrap transition-all shadow-sm";
+    const PRIMARY_ACTION_CLASS = `${ACTION_BTN_CLASS} w-[108px] min-w-[108px] px-0`;
+    const MORE_ACTION_CLASS = `${ACTION_BTN_CLASS} w-[38px] min-w-[38px] p-0`;
     const navigate = useNavigate();
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
@@ -422,11 +427,11 @@ const MyRequests = () => {
                 ) : (
                   <DataTable minWidth="100%">
                     <TableHeader>
-                      <TableHeaderCell width="28%">Service / Event</TableHeaderCell>
+                      <TableHeaderCell width="25%">Service / Event</TableHeaderCell>
                       <TableHeaderCell width="15%">Price</TableHeaderCell>
-                      <TableHeaderCell width="20%">Date / Time</TableHeaderCell>
-                      <TableHeaderCell width="17%">Status</TableHeaderCell>
-                      <TableHeaderCell align="right" width="20%">Actions</TableHeaderCell>
+                      <TableHeaderCell width="18%">Date / Time</TableHeaderCell>
+                      <TableHeaderCell width="18%">Status</TableHeaderCell>
+                      <TableHeaderCell align="center" width="24%">Actions</TableHeaderCell>
                     </TableHeader>
                     <TableBody>
                       {filteredBookings.map((b) => (
@@ -452,25 +457,42 @@ const MyRequests = () => {
                             <div className="font-medium text-foreground">{b.datetime ? new Date(b.datetime).toLocaleDateString() : "—"}</div>
                             {b.datetime && <div className="text-[10px] text-muted-foreground">{new Date(b.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>}
                           </TableCell>
-                          <TableCell>
-                            <StatusBadge status={b.status} />
+                           <TableCell>
+                            <StatusBadge status={b.status} className={STATUS_CLASS} />
                           </TableCell>
-                          <TableCell align="right">
-                            <div className="flex gap-1.5 items-center justify-end flex-wrap">
-                              {(b.status === "confirmed" || b.status === "paid" || b.status === "completed" || b.event || b.ticketId) && (
-                                <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1 border-primary/40 text-primary hover:bg-primary/10 font-bold rounded-xl" onClick={() => downloadTicket(b)}>
-                                  <Ticket className="h-3.5 w-3.5"/> Ticket
+                          <TableCell align="center">
+                            <div className="flex gap-2 items-center justify-center w-[155px] min-w-[155px]">
+                              {(b.status === "awaiting_payment" || b.status === "awaiting_final_payment") && (
+                                <Button size="sm" className={`${PRIMARY_ACTION_CLASS} bg-gradient-primary text-white animate-pulse gap-1.5`} onClick={() => openPaymentModal(b)}>
+                                  <CreditCard className="h-4 w-4 shrink-0"/> Pay Now
+                                </Button>
+                              )}
+                              {((b.status === "confirmed" || b.status === "paid" || b.status === "completed" || b.event || b.ticketId) && 
+                                b.status !== "awaiting_payment" && 
+                                b.status !== "awaiting_final_payment" &&
+                                (b.event || b.ticketId)) && (
+                                <Button size="sm" variant="outline" className={`${PRIMARY_ACTION_CLASS} border-primary/40 text-primary hover:bg-primary/10 gap-1.5`} onClick={() => downloadTicket(b)}>
+                                  <Ticket className="h-4 w-4 shrink-0"/> Ticket
                                 </Button>
                               )}
                               {b.status === "completed" && (
-                                <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1 border-purple-500/40 text-purple-400 hover:bg-purple-500/10 rounded-xl" onClick={() => downloadInvoice(b)}>
-                                  <FileText className="h-3.5 w-3.5"/> Invoice
-                                </Button>
-                              )}
-                              {b.status === "completed" && !b.rating?.score && (
-                                <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1 text-amber-500 border-amber-500/40 hover:bg-amber-500/10 rounded-xl" onClick={() => openRatingModal(b)}>
-                                  <Star className="h-3.5 w-3.5"/> Rate
-                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm" className={`${MORE_ACTION_CLASS} border-border text-muted-foreground hover:text-foreground hover:bg-muted/80 cursor-pointer`}>
+                                      <MoreHorizontal className="h-4 w-4 shrink-0" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-44 text-xs font-semibold">
+                                    <DropdownMenuItem className="cursor-pointer flex items-center gap-2" onClick={() => downloadInvoice(b)}>
+                                      <FileText className="h-3.5 w-3.5" /> View Invoice
+                                    </DropdownMenuItem>
+                                    {!b.rating?.score && (
+                                      <DropdownMenuItem className="cursor-pointer flex items-center gap-2 text-amber-500 hover:text-amber-600" onClick={() => openRatingModal(b)}>
+                                        <Star className="h-3.5 w-3.5" /> Rate Experience
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               )}
                             </div>
                           </TableCell>
@@ -613,18 +635,35 @@ const MyRequests = () => {
         </Dialog>
 
         {/* Standard Booking Payment Modal */}
-        {paymentBooking && (
-          <Dialog open={showPaymentModal} onOpenChange={(open) => !open && setShowPaymentModal(false)}>
-            <DialogContent className="sm:max-w-[500px] bg-card border-border">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-display font-bold">Complete Payment</DialogTitle>
-              </DialogHeader>
-              <div className="mt-4">
-                <SimplePayment amount={paymentBooking.price} bookingId={paymentBooking._id} onSuccess={handlePaymentSuccess} onClose={() => setShowPaymentModal(false)}/>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
+        {paymentBooking && (() => {
+          const { amount, paymentType } = (() => {
+            if (paymentBooking.status === "awaiting_final_payment") {
+              return { amount: paymentBooking.remainingAmount || 0, paymentType: "remaining" };
+            }
+            if (paymentBooking.status === "awaiting_payment" && paymentBooking.paymentType === "advance" && !paymentBooking.isAdvancePaid) {
+              return { amount: paymentBooking.advanceAmount || 0, paymentType: "advance" };
+            }
+            return { amount: paymentBooking.price || 0, paymentType: "full" };
+          })();
+          return (
+            <Dialog open={showPaymentModal} onOpenChange={(open) => !open && setShowPaymentModal(false)}>
+              <DialogContent className="sm:max-w-[500px] bg-card border-border">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-display font-bold">Complete Payment</DialogTitle>
+                </DialogHeader>
+                <div className="mt-4">
+                  <SimplePayment 
+                    amount={amount} 
+                    bookingId={paymentBooking._id} 
+                    bookingData={{ paymentType }}
+                    onSuccess={handlePaymentSuccess} 
+                    onClose={() => setShowPaymentModal(false)}
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
 
         {/* Custom Quote Payment Modal */}
         {selectedCustomForPay && (

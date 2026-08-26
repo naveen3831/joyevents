@@ -66,18 +66,45 @@ function leaveRoom(socket, roomName) {
 async function authenticateSocket(request) {
   const url = new URL(request.url, "http://localhost");
   const token = url.searchParams.get("token");
-  if (!token || !process.env.JWT_SECRET) return null;
+  
+  console.log("[WebSocket Auth Info] Request URL pathname:", url.pathname);
+  console.log("[WebSocket Auth Info] Token present:", !!token);
+  console.log("[WebSocket Auth Info] JWT_SECRET length:", process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0);
+
+  if (!token) {
+    console.warn("[WebSocket Auth Error] No token found in search parameters");
+    return null;
+  }
+  if (!process.env.JWT_SECRET) {
+    console.warn("[WebSocket Auth Error] JWT_SECRET environment variable is missing");
+    return null;
+  }
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const userId = payload.sub || payload.id || payload._id;
-    if (!userId) return null;
+    
+    console.log("[WebSocket Auth Info] JWT verification succeeded. Payload sub/id:", userId);
+    
+    if (!userId) {
+      console.warn("[WebSocket Auth Error] Payload does not contain a user sub/id");
+      return null;
+    }
 
     const user = await User.findById(userId).select("_id name email role status");
-    if (!user || user.status === "deactivated") return null;
+    if (!user) {
+      console.warn("[WebSocket Auth Error] User not found in database for ID:", userId);
+      return null;
+    }
+    if (user.status === "deactivated") {
+      console.warn("[WebSocket Auth Error] User is deactivated in database:", userId);
+      return null;
+    }
+    
+    console.log("[WebSocket Auth Info] User authenticated successfully:", user.email);
     return user;
   } catch (err) {
-    console.error("[WebSocket Auth Error]:", err.message);
+    console.error("[WebSocket Auth Error] JWT verification failed:", err.message);
     return null;
   }
 }

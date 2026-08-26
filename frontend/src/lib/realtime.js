@@ -39,30 +39,44 @@ export function createRealtimeClient({ token, onMessage, onStatus }) {
     clearReconnect();
     setStatus("connecting");
 
-    socket = new WebSocket(getRealtimeUrl(token));
+    if (socket) {
+      socket.onopen = null;
+      socket.onmessage = null;
+      socket.onclose = null;
+      socket.onerror = null;
+      try {
+        socket.close();
+      } catch (e) {}
+      socket = null;
+    }
 
-    socket.addEventListener("open", () => {
+    const ws = new WebSocket(getRealtimeUrl(token));
+    socket = ws;
+
+    ws.onopen = () => {
       reconnectAttempt = 0;
       setStatus("open");
-    });
+    };
 
-    socket.addEventListener("message", (event) => {
+    ws.onmessage = (event) => {
       try {
         onMessage?.(JSON.parse(event.data));
       } catch {
         // Ignore malformed server frames.
       }
-    });
+    };
 
-    socket.addEventListener("close", () => {
+    ws.onclose = () => {
       setStatus("closed");
       scheduleReconnect();
-    });
+    };
 
-    socket.addEventListener("error", () => {
+    ws.onerror = () => {
       setStatus("error");
-      socket?.close();
-    });
+      try {
+        ws.close();
+      } catch (e) {}
+    };
   }
 
   connect();
