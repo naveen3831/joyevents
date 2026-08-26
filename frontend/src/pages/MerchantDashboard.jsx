@@ -1,17 +1,18 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
-import { Calendar, DollarSign, Users, TrendingUp, Plus, BarChart3, CheckCircle2, Clock, AlertCircle, Loader2, MapPin, ExternalLink, Store, Briefcase, Video, Star, CreditCard, ArrowRight, Ticket, AlertTriangle } from "lucide-react";
+import { Calendar, DollarSign, Users, TrendingUp, Plus, BarChart3, CheckCircle2, Clock, AlertCircle, Loader2, MapPin, ExternalLink, Store, Briefcase, Video, Star, CreditCard, ArrowRight, Ticket, AlertTriangle, MoreHorizontal } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import PageHeader from "@/components/common/PageHeader";
 import StatCard from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiAssignedBookings, apiCompleteBooking, apiRejectBooking, apiListMyEvents, apiListMyServices, apiAssignLegacyEvents, apiAssignLegacyServices, apiUpdateBookingStatus, apiGetNotifications, apiFixServiceBookings, apiGetEarningsDashboard, apiUpdateMerchantDetails, apiPayMerchantQuotation, apiRaiseTicket, apiGetTickets, apiPayTicketQuotation, apiVerifyToken, apiApproveCancel, apiRejectCancel, apiProcessRefund } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +42,7 @@ const STATUS_BADGE = {
 };
 const MerchantDashboard = () => {
     const { token, user, updateUser } = useAuth();
+    const navigate = useNavigate();
     const onboardingStepReveal = useGsapReveal();
     const quotationCardReveal = useGsapReveal();
     const accountLimitsReveal = useGsapReveal();
@@ -86,13 +88,8 @@ const MerchantDashboard = () => {
     const [paymentLoading, setPaymentLoading] = useState(false);
     // Limit upgrade tickets state
     const [tickets, setTickets] = useState([]);
-    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
     const [isPayTicketModalOpen, setIsPayTicketModalOpen] = useState(false);
     const [selectedTicketForPayment, setSelectedTicketForPayment] = useState(null);
-    const [requestedEvents, setRequestedEvents] = useState(5);
-    const [requestedServices, setRequestedServices] = useState(5);
-    const [ticketMessage, setTicketMessage] = useState("");
-    const [submittingTicket, setSubmittingTicket] = useState(false);
     const loadBookings = async () => {
         if (!token)
             return;
@@ -413,45 +410,6 @@ const MerchantDashboard = () => {
         }
         finally {
             setFixingBookings(false);
-        }
-    };
-    const handleRaiseTicketSubmit = async (e) => {
-        e.preventDefault();
-        if (!token)
-            return;
-        const reqEv = Number(requestedEvents) || 0;
-        const reqSe = Number(requestedServices) || 0;
-        if (reqEv < 0 || reqEv > 100 || reqSe < 0 || reqSe > 100) {
-            toast.error("Requested slot increases must be between 0 and 100.");
-            return;
-        }
-        if (reqEv === 0 && reqSe === 0) {
-            toast.error("Please request at least one slot upgrade increase.");
-            return;
-        }
-        if (ticketMessage.trim().length > 300) {
-            toast.error("Explanation message cannot exceed 300 characters.");
-            return;
-        }
-        setSubmittingTicket(true);
-        try {
-            await apiRaiseTicket({
-                requestedEvents: reqEv,
-                requestedServices: reqSe,
-                message: ticketMessage.trim()
-            }, token);
-            toast.success("Upgrade ticket request raised successfully!");
-            setIsUpgradeModalOpen(false);
-            setRequestedEvents(5);
-            setRequestedServices(5);
-            setTicketMessage("");
-            loadBookings();
-        }
-        catch (err) {
-            toast.error(err?.message || "Failed to raise ticket");
-        }
-        finally {
-            setSubmittingTicket(false);
         }
     };
     const handlePayTicketSubmit = async (e) => {
@@ -841,12 +799,7 @@ const MerchantDashboard = () => {
                   </div>
                 </div>
               </div>
-              <Button onClick={() => {
-            setRequestedEvents(5);
-            setRequestedServices(5);
-            setTicketMessage("");
-            setIsUpgradeModalOpen(true);
-        }} className="bg-gradient-primary text-primary-foreground hover:opacity-90 self-start sm:self-center">
+              <Button onClick={() => navigate("/merchant-dashboard/upgrade-slots")} className="bg-gradient-primary text-primary-foreground hover:opacity-90 self-start sm:self-center">
                 Raise Slots Upgrade Ticket
               </Button>
             </div>
@@ -858,8 +811,7 @@ const MerchantDashboard = () => {
             <StatCard title="Active Bookings" value={loading ? "…" : activeBookings.length} icon={<TrendingUp className="h-5 w-5"/>} index={1} to="/merchant-dashboard/bookings"/>
             <StatCard title="Completed" value={loading ? "…" : completedBookings.length} icon={<CheckCircle2 className="h-5 w-5"/>} index={2} to="/merchant-dashboard/bookings"/>
           </div>
-
-          {/* Stats — Row 2 */}
+{/* Stats — Row 2 */}
           <div className="mt-3 sm:mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
             <StatCard title="My Events" value={loading ? "…" : events.length} icon={<Calendar className="h-5 w-5"/>} index={3} to="/merchant-dashboard/events"/>
             <StatCard title="My Services" value={loading ? "…" : services.length} icon={<Briefcase className="h-5 w-5"/>} index={4} to="/merchant-dashboard/services"/>
@@ -867,12 +819,12 @@ const MerchantDashboard = () => {
           </div>
 
           {/* Bookings Table with tabs */}
-          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.3 }} className="mt-12">
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.3 }} className="mt-12 w-full">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
               <h2 className="font-display text-sm sm:text-2xl font-bold flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-primary"/> Bookings
               </h2>
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
                 <button onClick={() => setTab("active")} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${tab === "active" ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
                   Active ({activeBookings.length})
                 </button>
@@ -910,142 +862,178 @@ const MerchantDashboard = () => {
                     <p className="font-medium mb-2">No cancelled bookings.</p>
                     <p className="text-sm">Rejected or cancelled bookings will appear here.</p>
                   </div>)}
-              </div>) : (<>
-              <DataTable minWidth="700px">
-                <TableHeader>
-                  <TableHeaderCell width="40px">#</TableHeaderCell>
-                  <TableHeaderCell width="180px">Service / Event</TableHeaderCell>
-                  <TableHeaderCell width="150px">Customer</TableHeaderCell>
-                  <TableHeaderCell width="180px">Location</TableHeaderCell>
-                  <TableHeaderCell width="100px">Price</TableHeaderCell>
-                  <TableHeaderCell width="120px">Event Date</TableHeaderCell>
-                  <TableHeaderCell width="120px">Assigned On</TableHeaderCell>
-                  {(tab === "completed" || tab === "cancelled") && (
-                    <TableHeaderCell width="120px">
-                      {tab === "completed" ? "Completed On" : "Cancelled On"}
-                    </TableHeaderCell>
-                  )}
-                  <TableHeaderCell width="110px">Status</TableHeaderCell>
-                  <TableHeaderCell width="100px">Rating</TableHeaderCell>
-                  {tab === "active" && <TableHeaderCell align="right" width="130px">Action</TableHeaderCell>}
-                </TableHeader>
-                <TableBody>
-                  {displayBookings.slice(0, 5).map((b, idx) => (
-                    <TableRow key={b._id}>
-                      <TableCell className="text-muted-foreground text-xs font-medium">{idx + 1}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-semibold text-xs text-foreground">{b.service?.name || b.event?.title || b.serviceName}</div>
-                          <div className="mt-1">
-                            {b.service ? (
-                              <StatusBadge status="service" label="Service" />
-                            ) : b.event ? (
-                              <StatusBadge status="event" label="Event" className="bg-purple-500/15 text-purple-600 border-purple-500/30" />
-                            ) : null}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        <div className="font-medium text-foreground">{b.customer?.name || "—"}</div>
-                        {b.customer?.email && <span className="block text-[10px] text-muted-foreground">{b.customer.email}</span>}
-                      </TableCell>
-                      <TableCell className="max-w-[250px]">
-                        {b.customerLocation && b.customerLocation.address ? (
-                          <div className="space-y-1">
-                            <div className="flex items-start gap-1">
-                              <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0"/>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs leading-relaxed line-clamp-2 text-foreground/90">{b.customerLocation.address}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ) : b.event?.location ? (
-                          <div className="flex items-start gap-1">
-                            <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0"/>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs leading-relaxed line-clamp-2 text-foreground/90">{b.event.location}</p>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-bold text-xs text-foreground">{formatCurrency(b.price)}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{new Date(b.datetime).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                        {b.assignedAt ? new Date(b.assignedAt).toLocaleDateString() : new Date(b.updatedAt).toLocaleDateString()}
-                      </TableCell>
+              </div>) : (
+              <>
+              <div className="bookings-table-wrapper w-full max-w-full overflow-x-auto md:overflow-x-hidden no-scrollbar rounded-2xl border border-border/80 bg-card shadow-xs">
+                <table className="bookings-table w-full min-w-[780px] md:min-w-full table-fixed text-xs sm:text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-border/80 bg-muted/30 text-left font-semibold text-muted-foreground text-xs uppercase tracking-wider">
+                      <th className="p-[14px_12px] align-middle w-[4%]">#</th>
+                      <th className="p-[14px_12px] align-middle w-[17%]">Service / Event</th>
+                      <th className="p-[14px_12px] align-middle w-[15%]">Customer</th>
+                      {tab === "active" ? (
+                        <th className="p-[14px_12px] align-middle w-[14%]">Location</th>
+                      ) : (
+                        <th className="p-[14px_12px] align-middle w-[10%]">Location</th>
+                      )}
+                      <th className="p-[14px_12px] align-middle w-[9%]">Price</th>
+                      <th className="p-[14px_12px] align-middle w-[9%]">Event Date</th>
+                      <th className="p-[14px_12px] align-middle w-[9%]">Assigned On</th>
                       {(tab === "completed" || tab === "cancelled") && (
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {tab === "completed" && b.completedAt ? new Date(b.completedAt).toLocaleDateString() :
-                           tab === "cancelled" && b.rejectedAt ? new Date(b.rejectedAt).toLocaleDateString() : "—"}
-                        </TableCell>
+                        <th className="p-[14px_12px] align-middle w-[9%]">
+                          {tab === "completed" ? "Completed On" : "Cancelled On"}
+                        </th>
                       )}
-                      <TableCell>
-                        <StatusBadge status={b.status} />
-                      </TableCell>
-                      <TableCell>
-                        {b.rating?.score ? (
-                          <div className="flex items-center gap-1">
-                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400"/>
-                            <span className="text-xs font-bold text-foreground">{b.rating.score}/5</span>
+                      <th className="p-[14px_12px] align-middle w-[13%] text-center">Status</th>
+                      <th className="p-[14px_12px] align-middle w-[5%] text-center whitespace-nowrap">Rating</th>
+                      {tab === "active" && <th className="p-[14px_12px] align-middle w-[5%] text-center whitespace-nowrap">Actions</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayBookings.slice(0, 5).map((b, idx) => (
+                      <tr
+                        key={b._id}
+                        style={{ height: "88px" }}
+                        className="border-b border-border/70 hover:bg-muted/30 transition-colors"
+                      >
+                        <td className="p-[14px_12px] align-middle text-muted-foreground text-xs font-semibold">{idx + 1}</td>
+                        <td className="p-[14px_12px] align-middle">
+                          <div className="space-y-1.5 min-w-0">
+                            <div className="font-semibold text-xs text-foreground line-clamp-2 leading-snug" title={b.service?.name || b.event?.title || b.serviceName}>
+                              {b.service?.name || b.event?.title || b.serviceName}
+                            </div>
+                            <div>
+                              {b.service ? (
+                                <StatusBadge status="service" label="Service" />
+                              ) : b.event ? (
+                                <StatusBadge status="event" label="Event" className="bg-purple-500/15 text-purple-600 border-purple-500/30" />
+                              ) : null}
+                            </div>
                           </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                        </td>
+                        <td className="p-[14px_12px] align-middle">
+                          <div className="min-w-0 space-y-1 text-xs">
+                            <div className="font-semibold text-foreground truncate" title={b.customer?.name}>{b.customer?.name || "—"}</div>
+                            {b.customer?.email && <span className="block text-[10px] text-muted-foreground truncate" title={b.customer.email}>{b.customer.email}</span>}
+                          </div>
+                        </td>
+                        <td className="p-[14px_12px] align-middle">
+                          {(() => {
+                            const address = b.customerLocation?.address || b.event?.location;
+                            const lat = b.customerLocation?.latitude;
+                            const lng = b.customerLocation?.longitude;
+                            if (!address) return <span className="text-xs text-muted-foreground">—</span>;
+                            return (
+                              <div className="flex items-center gap-1 text-xs text-foreground/90 truncate max-w-full" title={address}>
+                                <MapPin className="h-3.5 w-3.5 text-primary shrink-0"/>
+                                {lat && lng ? (
+                                  <a
+                                    href={`https://www.google.com/maps?q=${lat},${lng}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:underline truncate"
+                                  >
+                                    {address}
+                                  </a>
+                                ) : (
+                                  <span className="truncate">{address}</span>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </td>
+                        <td className="p-[14px_12px] align-middle font-bold text-xs text-foreground whitespace-nowrap text-left">{formatCurrency(b.price)}</td>
+                        <td className="p-[14px_12px] align-middle text-muted-foreground text-xs whitespace-nowrap">{new Date(b.datetime).toLocaleDateString()}</td>
+                        <td className="p-[14px_12px] align-middle text-muted-foreground text-xs whitespace-nowrap">
+                          {b.assignedAt ? new Date(b.assignedAt).toLocaleDateString() : new Date(b.createdAt || b.updatedAt).toLocaleDateString()}
+                        </td>
+                        {(tab === "completed" || tab === "cancelled") && (
+                          <td className="p-[14px_12px] align-middle text-muted-foreground text-xs whitespace-nowrap">
+                            {tab === "completed" && b.completedAt ? new Date(b.completedAt).toLocaleDateString() :
+                             tab === "cancelled" && b.rejectedAt ? new Date(b.rejectedAt).toLocaleDateString() : "—"}
+                          </td>
                         )}
-                      </TableCell>
-                      {tab === "active" && (
-                        <TableCell align="right">
-                          <div className="flex gap-1.5 flex-wrap items-center justify-end">
-                            {b.service && (b.status === "pending" || b.status === "pending_approval") && !b.approvedAt && (
-                              <>
-                                <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-semibold" disabled={approving === b._id} onClick={() => setApprovalOptions({ id: b._id, show: true })}>
-                                  {approving === b._id ? "…" : "Approve"}
+                        <td className="p-[14px_12px] align-middle text-center">
+                          <StatusBadge status={b.status} className="w-[124px] min-w-[124px] h-[36px] px-0 justify-center" />
+                        </td>
+                        <td className="p-[14px_12px] align-middle text-center">
+                          {b.rating?.score ? (
+                            <span className="text-xs font-bold text-foreground inline-flex items-center gap-0.5 justify-center"><Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0"/>{b.rating.score}</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        {tab === "active" && (
+                          <td className="p-[14px_12px] align-middle text-center">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer">
+                                  <MoreHorizontal className="h-4 w-4" />
                                 </Button>
-                                <Button size="sm" variant="destructive" className="text-xs font-semibold" onClick={() => setRejecting({ id: b._id, show: true })}>
-                                  Reject
-                                </Button>
-                              </>
-                            )}
-                            {b.service && (b.status === "paid" || b.status === "confirmed" || b.status === "awaiting_payment" || b.status === "approved" || b.status === "assigned" || b.status === "accepted" || b.status === "processing" || ((b.status === "pending" || b.status === "pending_approval") && b.approvedAt)) && (
-                              <>
-                                {b.status !== "completed" && (
-                                  <Button size="sm" variant="outline" onClick={() => setStatusUpdate({ id: b._id, show: true, currentStatus: b.status })} className="text-xs">
-                                    Update
-                                  </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48 text-xs font-medium">
+                                {/* Approve / Reject Booking */}
+                                {b.service && (b.status === "pending" || b.status === "pending_approval") && !b.approvedAt && (
+                                  <>
+                                    <DropdownMenuItem className="text-emerald-500 cursor-pointer font-semibold" onClick={() => setApprovalOptions({ id: b._id, show: true })}>
+                                      Approve Booking
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-rose-500 cursor-pointer font-semibold" onClick={() => setRejecting({ id: b._id, show: true })}>
+                                      Reject Booking
+                                    </DropdownMenuItem>
+                                  </>
                                 )}
-                                {b.status !== "completed" && (
-                                  <Button size="sm" className="bg-gradient-primary text-primary-foreground hover:opacity-90 text-xs font-semibold" disabled={completing === b._id} onClick={() => handleComplete(b._id)}>
-                                    {completing === b._id ? "…" : "Complete"}
-                                  </Button>
+                                
+                                {/* Update / Complete Booking */}
+                                {b.service && (b.status === "paid" || b.status === "confirmed" || b.status === "awaiting_payment" || b.status === "approved" || b.status === "assigned" || b.status === "accepted" || b.status === "processing" || ((b.status === "pending" || b.status === "pending_approval") && b.approvedAt)) && (
+                                  <>
+                                    {b.status !== "completed" && (
+                                      <DropdownMenuItem className="cursor-pointer" onClick={() => setStatusUpdate({ id: b._id, show: true, currentStatus: b.status })}>
+                                        Update Status
+                                      </DropdownMenuItem>
+                                    )}
+                                    {b.status !== "completed" && (
+                                      <DropdownMenuItem className="text-primary cursor-pointer font-semibold" onClick={() => handleComplete(b._id)}>
+                                        Complete Booking
+                                      </DropdownMenuItem>
+                                    )}
+                                  </>
                                 )}
-                              </>
-                            )}
-                            {!b.service && !["cancellation_requested", "cancellation_fee_proposed", "refund_pending", "refunded"].includes(b.status) && (
-                              <span className="text-xs text-muted-foreground italic capitalize">{b.status}</span>
-                            )}
-                            {b.status === "cancellation_requested" && (
-                              <>
-                                <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700 text-xs font-semibold" onClick={() => { setSelectedCancelBooking(b); setCancellationModal(true); }}>
-                                  Approve Cancel
-                                </Button>
-                                <Button size="sm" variant="outline" className="text-rose-500 border-rose-500/30 hover:bg-rose-500/10 text-xs font-semibold" onClick={() => handleRejectCancel(b._id)}>
-                                  Reject Cancel
-                                </Button>
-                              </>
-                            )}
-                            {b.status === "refund_pending" && (
-                              <Button size="sm" className="bg-purple-600 text-white hover:bg-purple-700 text-xs font-semibold" onClick={() => handleProcessRefund(b._id)}>
-                                Refund ({formatCurrency(b.price - (b.cancellationFee || 0))})
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </DataTable>
+
+                                {/* Cancellation Requested */}
+                                {b.status === "cancellation_requested" && (
+                                  <>
+                                    <DropdownMenuItem className="text-amber-500 cursor-pointer font-semibold" onClick={() => { setSelectedCancelBooking(b); setCancellationModal(true); }}>
+                                      Approve Cancel
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-rose-500 cursor-pointer font-semibold" onClick={() => handleRejectCancel(b._id)}>
+                                      Reject Cancel
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {/* Refund Pending */}
+                                {b.status === "refund_pending" && (
+                                  <DropdownMenuItem className="text-purple-500 cursor-pointer font-semibold" onClick={() => handleProcessRefund(b._id)}>
+                                    Process Refund ({formatCurrency(b.price - (b.cancellationFee || 0))})
+                                  </DropdownMenuItem>
+                                )}
+
+                                {/* Fallback if no actions are available */}
+                                {!b.service && !["cancellation_requested", "cancellation_fee_proposed", "refund_pending", "refunded"].includes(b.status) && (
+                                  <DropdownMenuItem disabled className="italic">
+                                    No actions ({b.status})
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               {/* View All button — show when more than 5 bookings */}
               {displayBookings.length > 5 && (<div className="mt-3 text-center">
                   <Link to="/merchant-dashboard/bookings">
@@ -1054,7 +1042,8 @@ const MerchantDashboard = () => {
                     </Button>
                   </Link>
                 </div>)}
-              </>)}
+              </>
+            )}
           </motion.div>
 
           {/* Live Events Section */}
@@ -1619,52 +1608,7 @@ const MerchantDashboard = () => {
             </DataTable>
           </motion.div>
 
-      {/* Upgrade Slots Ticket Modal */}
-      <Dialog open={isUpgradeModalOpen} onOpenChange={setIsUpgradeModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Ticket className="h-5 w-5 text-indigo-500"/> Raise Upgrade Ticket
-            </DialogTitle>
-            <DialogDescription>
-              Request additional slots for events and services from the platform administrator.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleRaiseTicketSubmit} className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="reqEvents">Additional Event Slots</Label>
-                <Input id="reqEvents" type="text" required value={requestedEvents} onChange={(e) => {
-            const val = e.target.value.replace(/[^0-9]/g, "");
-            setRequestedEvents(Number(val.slice(0, 3))); // max 3 digits
-        }}/>
-                <p className="text-[10px] text-muted-foreground">Up to 100 slots</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="reqServices">Additional Service Slots</Label>
-                <Input id="reqServices" type="text" required value={requestedServices} onChange={(e) => {
-            const val = e.target.value.replace(/[^0-9]/g, "");
-            setRequestedServices(Number(val.slice(0, 3))); // max 3 digits
-        }}/>
-                <p className="text-[10px] text-muted-foreground">Up to 100 slots</p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ticketMsg">Explanation Message (Optional)</Label>
-              <Textarea id="ticketMsg" maxLength={300} placeholder="Why do you need more slots? e.g. Scaling up, high season demand." value={ticketMessage} onChange={(e) => setTicketMessage(e.target.value)}/>
-              <p className="text-[10px] text-muted-foreground text-right">{ticketMessage.length}/300 characters</p>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsUpgradeModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={submittingTicket} className="bg-gradient-primary text-white">
-                {submittingTicket ? "Raising Ticket..." : "Submit Upgrade Request"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+
 
       {/* Pay Ticket Modal */}
       <Dialog open={isPayTicketModalOpen} onOpenChange={setIsPayTicketModalOpen}>

@@ -51,6 +51,7 @@ const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
 const MerchantDashboard = lazy(() => import("./pages/MerchantDashboard"));
+const MerchantUpgradeSlots = lazy(() => import("./pages/MerchantUpgradeSlots"));
 const MerchantEvents = lazy(() => import("./pages/MerchantEvents"));
 const MerchantServices = lazy(() => import("./pages/MerchantServices"));
 const MerchantLiveEvents = lazy(() => import("./pages/MerchantLiveEvents"));
@@ -81,6 +82,7 @@ const AdminHomepageSettings = lazy(() => import("./pages/admin/AdminHomepageSett
 const AdminRefunds = lazy(() => import("./pages/admin/AdminRefunds"));
 const AdminPayouts = lazy(() => import("./pages/admin/AdminPayouts"));
 const AdminBookings = lazy(() => import("./pages/admin/AdminBookings"));
+const AdminBookingDetail = lazy(() => import("./pages/admin/AdminBookingDetail"));
 const MerchantProfile = lazy(() => import("./pages/MerchantProfile"));
 const CustomerProfile = lazy(() => import("./pages/CustomerProfile"));
 const MerchantSettings = lazy(() => import("./pages/MerchantSettings"));
@@ -231,6 +233,7 @@ const AppRoutes = () => {
         <Route path="/merchant-dashboard/referrals" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantReferrals /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/qr-codes" element={<ProtectedRoute allowedRoles={["merchant"]}><QRCodeGenerator /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/settings" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantSettings /></ProtectedRoute>}/>
+        <Route path="/merchant-dashboard/upgrade-slots" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantUpgradeSlots /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/ai-recommendations" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantRecommendations /></ProtectedRoute>}/>
         {/* Legacy merchant routes (kept for backwards compat) */}
         <Route path="/merchant-settings" element={<ProtectedRoute allowedRoles={["merchant", "admin"]}><MerchantSettings /></ProtectedRoute>}/>
@@ -268,6 +271,7 @@ const AppRoutes = () => {
         <Route path="/admin-dashboard/refunds" element={<ProtectedRoute allowedRoles={["admin"]}><AdminRefunds /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/payouts" element={<ProtectedRoute allowedRoles={["admin"]}><AdminPayouts /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/bookings" element={<ProtectedRoute allowedRoles={["admin"]}><AdminBookings /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/bookings/:id" element={<ProtectedRoute allowedRoles={["admin"]}><AdminBookingDetail /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/my-bookings" element={<ProtectedRoute allowedRoles={["admin"]}><MerchantBookings layout="admin" /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/earnings" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEarnings /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/reports" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReports /></ProtectedRoute>}/>

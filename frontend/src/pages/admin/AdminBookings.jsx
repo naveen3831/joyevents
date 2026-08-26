@@ -8,7 +8,7 @@ import { apiListBookings } from "@/lib/api";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { StatusBadge } from "@/components/common/table/StatusBadge";
 import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
 import { TableSkeleton } from "@/components/common/table/TableSkeleton";
@@ -76,6 +76,7 @@ const isThisMonth = (dateStr) => {
 const AdminBookings = () => {
     const { token, user } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
     const queryParams = new URLSearchParams(location.search);
     const initialDate = queryParams.get("date") || queryParams.get("filter") || "all";
     const initialStatus = queryParams.get("status") || "all";
@@ -87,7 +88,6 @@ const AdminBookings = () => {
     const [dateFilter, setDateFilter] = useState(initialDate);
     const [bookingView, setBookingView] = useState("all");
     const [merchantFilter, setMerchantFilter] = useState("all");
-    const [selectedBooking, setSelectedBooking] = useState(null);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -240,7 +240,7 @@ const AdminBookings = () => {
               </TableHeader>
               <TableBody>
                 {filtered.map((b, idx) => (
-                  <TableRow key={b._id} onClick={() => setSelectedBooking(b)}>
+                  <TableRow key={b._id} onClick={() => navigate(`/admin-dashboard/bookings/${b._id}`)}>
                     <TableCell align="center" className="text-muted-foreground text-xs font-medium">{idx + 1}</TableCell>
                     <TableCell>
                       <div className="font-semibold text-xs text-foreground truncate max-w-[180px]" title={b.service?.name || b.event?.title || b.serviceName}>
@@ -309,74 +309,6 @@ const AdminBookings = () => {
             </DataTable>
           )}
         </motion.div>
-
-        {/* Booking Detail Dialog */}
-        <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-            {selectedBooking && (<div className="space-y-4 text-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize mb-2 ${STATUS_COLORS[selectedBooking.status] || "bg-secondary text-muted-foreground"}`}>
-                      {STATUS_LABELS[selectedBooking.status] || selectedBooking.status}
-                    </span>
-                    <h2 className="font-display text-lg font-bold leading-tight">
-                      {selectedBooking.service?.name || selectedBooking.event?.title || selectedBooking.serviceName || "Booking"}
-                    </h2>
-                  </div>
-                  <button onClick={() => setSelectedBooking(null)} className="text-muted-foreground hover:text-foreground shrink-0">
-                    <X className="h-5 w-5"/>
-                  </button>
-                </div>
-
-                <div className="rounded-xl border border-border bg-secondary/40 p-4">
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5">
-                    <User className="h-3.5 w-3.5"/> Customer
-                  </p>
-                  <p className="font-semibold">{selectedBooking.customer?.name || "—"}</p>
-                  {selectedBooking.customer?.email && <p className="text-xs text-muted-foreground mt-0.5">{selectedBooking.customer.email}</p>}
-                </div>
-
-                <div className="rounded-xl border border-border bg-secondary/40 p-4">
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5">
-                    <Store className="h-3.5 w-3.5"/> Assigned Merchant
-                  </p>
-                  {selectedBooking.assignedTo ? (<>
-                      <p className="font-semibold">{selectedBooking.assignedTo.name}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{selectedBooking.assignedTo.email}</p>
-                    </>) : <p className="text-xs italic text-muted-foreground">Unassigned</p>}
-                </div>
-
-                {(selectedBooking.customerLocation?.address || selectedBooking.event?.location) && (<div className="rounded-lg border border-border p-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5"/>Location</p>
-                    <p className="text-foreground">{selectedBooking.customerLocation?.address || selectedBooking.event?.location}</p>
-                    {selectedBooking.customerLocation?.latitude && (<a href={`https://www.google.com/maps?q=${selectedBooking.customerLocation.latitude},${selectedBooking.customerLocation.longitude}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1">
-                        View on Maps <ExternalLink className="h-3 w-3"/>
-                      </a>)}
-                  </div>)}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-lg border border-border p-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5"/>Date & Time</p>
-                    <p className="text-foreground font-medium">{new Date(selectedBooking.datetime).toLocaleString()}</p>
-                  </div>
-                  <div className="rounded-lg border border-border p-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5"/>Payment</p>
-                    <p className="text-foreground font-medium capitalize">{selectedBooking.paymentStatus}</p>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-border p-3 w-fit">
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1">Price</p>
-                  <p className="text-primary font-bold text-base">{formatCurrency(selectedBooking.price)}</p>
-                </div>
-
-                {selectedBooking.rating?.score && (<div className="rounded-lg border border-border p-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1">Rating</p>
-                    <p className="text-foreground font-medium">{selectedBooking.rating.score}/5{selectedBooking.rating.comment ? ` — "${selectedBooking.rating.comment}"` : ""}</p>
-                  </div>)}
-              </div>)}
-          </DialogContent>
-        </Dialog>
       </div>
     </AdminLayout>);
 };
