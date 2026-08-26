@@ -19,8 +19,8 @@ const AvailablePromoCodes = ({ onApply, appliedCode, eventId, serviceId, merchan
             if (merchantId) {
                 relevant = relevant.filter((p) => {
                     const pMerchantId = (p.merchant?._id || p.merchant || "").toString();
-                    const targetMerchantId = merchantId.toString();
-                    return pMerchantId === targetMerchantId;
+                    const targetMerchantId = (typeof merchantId === "object" ? (merchantId?._id || "") : (merchantId || "")).toString();
+                    return targetMerchantId && pMerchantId === targetMerchantId;
                 });
             }
             if (context === "service") {

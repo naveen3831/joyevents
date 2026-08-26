@@ -265,32 +265,9 @@
     box-shadow: var(--shadow-elevated);
   }
 
-  /* Custom premium scrollbar styling across all modern browsers */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
+  /* Hide scrollbars on dashboard containers and utility classes only — never on html/body */
 
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--border) / 0.8);
-    border-radius: 9999px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.8);
-  }
-
-  /* Firefox scrollbar compatibility */
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--border) / 0.8) transparent;
-  }
-
-  /* Hide scrollbars for side navigation bars while preserving scroll capability */
+  /* Utility class to hide scrollbars */
   .no-scrollbar::-webkit-scrollbar,
   .custom-scrollbar::-webkit-scrollbar {
     display: none !important;

@@ -1,88 +1,197 @@
 import { formatCurrency } from "@/lib/utils";
-import { Briefcase, Loader2, AlertCircle, Tag, Store } from "lucide-react";
+import { Briefcase, Eye, Store, Tag, Plus } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
+import PageHeader from "@/components/common/PageHeader";
+import ActionMenu from "@/components/common/ActionMenu";
+import TableToolbar from "@/components/common/table/TableToolbar";
+import StatusBadge from "@/components/common/table/StatusBadge";
+import DataTable, { TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
+import TableEmptyState from "@/components/common/table/TableEmptyState";
+import TableSkeleton from "@/components/common/table/TableSkeleton";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiListServices } from "@/lib/api";
 import { API_URL } from "@/lib/config";
-import { useGsapStagger } from "@/lib/gsapAnimations";
+import { Button } from "@/components/ui/button";
 
-const imgSrc = (image) => !image ? "" : image.startsWith("http") ? image : `${API_URL}${image}`;
+const imgSrc = (image) => (!image ? "" : image.startsWith("http") ? image : `${API_URL}${image}`);
 
 const AdminServices = () => {
-    const { token } = useAuth();
-    const navigate = useNavigate();
-    const [services, setServices] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const gridRef = useGsapStagger([services, loading]);
+  const { token } = useAuth();
+  const navigate = useNavigate();
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
-    const load = async () => {
-        try {
-            const servicesRes = await apiListServices(token).catch(() => ({ services: [] }));
-            setServices(servicesRes.services || []);
+  const load = async () => {
+    try {
+      const servicesRes = await apiListServices(token).catch(() => ({ services: [] }));
+      setServices(servicesRes.services || []);
+    } catch {
+      /* silent */
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const categories = Array.from(new Set(services.map((s) => s.category).filter(Boolean)));
+
+  const filteredServices = services.filter((svc) => {
+    const matchesSearch =
+      search === "" ||
+      svc.name.toLowerCase().includes(search.toLowerCase()) ||
+      (svc.createdBy?.name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (svc.category || "").toLowerCase().includes(search.toLowerCase());
+
+    const matchesCategory = categoryFilter === "all" || svc.category === categoryFilter;
+
+    return matchesSearch && matchesCategory;
+  });
+
+  const hasActiveFilters = search.trim() !== "" || categoryFilter !== "all";
+
+  return (
+    <AdminLayout>
+      <PageHeader
+        title="All Platform Services"
+        subtitle="Manage services and availability listed by merchants on the platform."
+        breadcrumbs={[{ label: "Admin Portal" }, { label: "Services" }]}
+        actions={
+          <Button
+            size="sm"
+            onClick={() => navigate("/admin-dashboard/my-services/new")}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-xs font-semibold h-9 px-3.5"
+          >
+            <Plus className="h-4 w-4 mr-1.5" /> Add Service
+          </Button>
         }
-        catch { /* silent */ }
-        finally {
-            setLoading(false);
+      />
+
+      <TableToolbar
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by service name, category, provider..."
+        hasActiveFilters={hasActiveFilters}
+        onClearFilters={() => {
+          setSearch("");
+          setCategoryFilter("all");
+        }}
+        filters={
+          categories.length > 0 && (
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary h-9"
+            >
+              <option value="all">All Categories</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          )
         }
-    };
+      />
 
-    useEffect(() => { load(); }, []);
-
-    return (<AdminLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <div className="mb-6 sm:mb-8">
-          <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-            View <span className="text-gradient">Services</span>
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">View all services across every merchant on the platform</p>
-        </div>
-
-        {/* Services List */}
-        <div>
-          {loading ? (<div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
-              <Loader2 className="h-5 w-5 animate-spin"/> Loading services…
-            </div>) : services.length === 0 ? (<div className="rounded-xl border border-border bg-card p-10 text-center">
-              <AlertCircle className="mx-auto mb-3 h-10 w-10 opacity-30 text-muted-foreground"/>
-              <p className="text-muted-foreground">No services found</p>
-            </div>) : (<div ref={gridRef} className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {services.map((svc) => {
-                return (<button key={svc._id} type="button" onClick={() => navigate(`/admin-dashboard/services/${svc._id}`)} className="group text-left rounded-2xl border border-border bg-card overflow-hidden hover-lift flex flex-col cursor-pointer transition-shadow hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                  {/* Image */}
-                  <div className="relative h-36 sm:h-40 bg-secondary overflow-hidden flex-shrink-0">
-                    {svc.image ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
-                        <Briefcase className="h-10 w-10 opacity-30"/>
-                      </div>)}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"/>
-                    <span className={`absolute top-2.5 right-2.5 rounded-full px-2.5 py-0.5 text-xs font-semibold backdrop-blur-sm ${svc.active !== false
-                    ? "bg-tint-mint text-tint-mint-fg"
-                    : "bg-destructive/15 text-destructive"}`}>
-                      {svc.active !== false ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-
-                  {/* Info */}
-                  <div className="p-3.5 sm:p-4 flex flex-col gap-1 flex-1">
-                    <p className="font-display font-semibold text-sm sm:text-base line-clamp-1">{svc.name}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Tag className="h-3 w-3 shrink-0"/> {svc.category} · <span className="text-foreground font-medium">{formatCurrency(svc.price)}</span>
-                    </p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                      <Store className="h-3 w-3 shrink-0"/>
-                      <span className="truncate">{svc.createdBy?.name || "Unknown merchant"}</span>
-                    </p>
-                    {svc.description && (<p className="text-xs text-muted-foreground mt-1 line-clamp-2">{svc.description}</p>)}
-                    <div className="mt-auto pt-2 flex justify-end">
-                      <span className="text-xs font-medium text-primary/80 opacity-0 group-hover:opacity-100 transition-opacity">View details →</span>
+      {loading ? (
+        <TableSkeleton columns={6} rows={6} />
+      ) : filteredServices.length === 0 ? (
+        <DataTable minWidth="100%">
+          <TableBody>
+            <TableRow>
+              <TableCell colSpan={6}>
+                <TableEmptyState
+                  title="No services found"
+                  description="No services match your current filter or search criteria."
+                  actionLabel="Clear Filters"
+                  onAction={() => {
+                    setSearch("");
+                    setCategoryFilter("all");
+                  }}
+                />
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </DataTable>
+      ) : (
+        <DataTable minWidth="100%">
+          <TableHeader>
+            <TableHeaderCell className="w-[32%]">Service</TableHeaderCell>
+            <TableHeaderCell className="w-[20%]">Category</TableHeaderCell>
+            <TableHeaderCell className="w-[20%]">Merchant Provider</TableHeaderCell>
+            <TableHeaderCell className="w-[14%]">Price</TableHeaderCell>
+            <TableHeaderCell className="w-[10%]">Status</TableHeaderCell>
+            <TableHeaderCell align="right" className="w-[4%]">Actions</TableHeaderCell>
+          </TableHeader>
+          <TableBody>
+            {filteredServices.map((svc) => {
+              const image = imgSrc(svc.image);
+              return (
+                <TableRow key={svc._id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-muted overflow-hidden shrink-0 border border-border/60 flex items-center justify-center">
+                        {image ? (
+                          <img src={image} alt={svc.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <Briefcase className="h-4 w-4 text-muted-foreground/50" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-xs text-foreground truncate max-w-[240px]">
+                          {svc.name}
+                        </p>
+                        {svc.description && (
+                          <p className="text-[10px] text-muted-foreground truncate max-w-[240px]">
+                            {svc.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </button>);
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted text-muted-foreground font-medium border border-border/40">
+                      <Tag className="h-3 w-3 opacity-60" /> {svc.category || "General"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    <div className="flex items-center gap-1.5 text-foreground font-medium">
+                      <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="truncate max-w-[150px]">{svc.createdBy?.name || "Merchant"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-xs font-semibold text-foreground">
+                    {formatCurrency(svc.price)}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={svc.active !== false ? "active" : "inactive"} />
+                  </TableCell>
+                  <TableCell align="right">
+                    <ActionMenu
+                      items={[
+                        {
+                          label: "View Service",
+                          icon: Eye,
+                          onClick: () => navigate(`/admin-dashboard/services/${svc._id}`),
+                        },
+                      ]}
+                    />
+                  </TableCell>
+                </TableRow>
+              );
             })}
-            </div>)}
-        </div>
-      </section>
-    </AdminLayout>);
+          </TableBody>
+        </DataTable>
+      )}
+    </AdminLayout>
+  );
 };
 
 export default AdminServices;

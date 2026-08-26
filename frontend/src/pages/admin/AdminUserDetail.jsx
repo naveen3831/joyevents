@@ -8,19 +8,17 @@ import {
   Users,
   FileText,
   CheckCircle2,
-  AlertTriangle,
   KeyRound,
   Pencil,
   Trash2,
   UserCheck,
   UserX,
   DollarSign,
-  Phone,
   Mail,
-  Calendar,
-  Shield,
-  Building,
-  Sparkles
+  Copy,
+  Check,
+  AlertTriangle,
+  Shield
 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,12 +43,15 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
+import { StatusBadge } from "@/components/common/table/StatusBadge";
 import {
   sanitizeEmailInput,
   sanitizeNameInput,
   validateEmail,
-  validateSignupForm,
   validateNewPasswordForm,
+  validateMobileNumber,
+  formatMobileForApi,
+  formatMobileForInput,
   EMAIL_HINT,
   PASSWORD_HINT,
   EMAIL_MAX_LENGTH,
@@ -65,10 +66,12 @@ const AdminUserDetail = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [copiedId, setCopiedId] = useState(false);
 
   // Modals & Action States
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isActivationDialogOpen, setIsActivationDialogOpen] = useState(false);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
 
@@ -108,6 +111,14 @@ const AdminUserDetail = () => {
     loadUserDetail();
   }, [id, token]);
 
+  const handleCopyId = () => {
+    if (!user?._id) return;
+    navigator.clipboard.writeText(user._id);
+    setCopiedId(true);
+    toast.success("User ID copied to clipboard!");
+    setTimeout(() => setCopiedId(false), 2000);
+  };
+
   const handleOpenEdit = () => {
     if (!user) return;
     setFormState({
@@ -116,7 +127,7 @@ const AdminUserDetail = () => {
       email: user.email,
       password: "",
       role: user.role,
-      mobile: user.mobile || ""
+      mobile: formatMobileForInput(user.mobile)
     });
     setIsEditDialogOpen(true);
   };
@@ -130,9 +141,12 @@ const AdminUserDetail = () => {
       toast.error(emailErr);
       return;
     }
-    if (formState.mobile && formState.mobile.length !== 12) {
-      toast.error("Mobile number must be exactly 12 digits.");
-      return;
+    if (formState.mobile) {
+      const mobErr = validateMobileNumber(formState.mobile, formState.role === "merchant");
+      if (mobErr) {
+        toast.error(mobErr);
+        return;
+      }
     }
 
     try {
@@ -141,7 +155,7 @@ const AdminUserDetail = () => {
         name: formState.name,
         email: formState.email,
         role: formState.role,
-        mobile: formState.mobile
+        mobile: formatMobileForApi(formState.mobile)
       };
 
       if (formState.password && formState.password.trim() !== "") {
@@ -233,24 +247,22 @@ const AdminUserDetail = () => {
     if (!token || !user) return;
     const newStatus = user.status === "active" ? "deactivated" : "active";
     const action = newStatus === "deactivated" ? "deactivate" : "activate";
-    if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
+    if (!window.confirm(`Are you sure you want to ${action} this account?`)) return;
 
     try {
       setIsTogglingStatus(true);
       await apiUpdateUser(user._id, { status: newStatus }, token);
-      toast.success(`User ${action}d successfully`);
+      toast.success(`Account ${action}d successfully`);
       loadUserDetail();
     } catch (err) {
-      toast.error(err?.message || `Failed to ${action} user`);
+      toast.error(err?.message || `Failed to ${action} account`);
     } finally {
       setIsTogglingStatus(false);
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteConfirm = async () => {
     if (!token || !user) return;
-    if (!window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;
-
     try {
       setIsDeleting(true);
       await apiDeleteUser(user._id, token);
@@ -262,65 +274,66 @@ const AdminUserDetail = () => {
     }
   };
 
+  const isAdmin = user?.role === "admin";
+
   return (
     <AdminLayout>
-      <section className="py-4 sm:py-6 lg:py-8 max-w-4xl mx-auto space-y-6">
-        {/* Navigation / Back Button */}
+      <div className="w-full min-w-0 space-y-4 font-sans">
+        {/* Back Navigation */}
         <div className="flex items-center justify-between">
           <button
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors"
+            onClick={() => navigate("/admin-dashboard/users")}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
-            <ArrowLeft className="h-4 w-4" /> Back to Users
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to Users & Merchants
           </button>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-24 text-muted-foreground gap-2">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" /> Loading user profile details...
+          <div className="flex items-center justify-center py-20 text-muted-foreground text-xs gap-2">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" /> Loading user profile details...
           </div>
         ) : error || !user ? (
-          <div className="rounded-2xl border border-border bg-card p-10 text-center text-muted-foreground shadow-sm">
-            <AlertCircle className="mx-auto mb-3 h-10 w-10 text-muted-foreground/60" />
-            <h3 className="text-lg font-bold text-foreground mb-1">{error || "User Not Found"}</h3>
-            <p className="text-xs text-muted-foreground mb-4">The requested user profile does not exist or has been removed.</p>
-            <Link to="/admin-dashboard/users" className="text-primary font-semibold text-sm hover:underline">
+          <div className="rounded-xl border border-border/70 bg-card p-8 text-center text-muted-foreground shadow-xs">
+            <AlertCircle className="mx-auto mb-2.5 h-9 w-9 text-muted-foreground/60" />
+            <h3 className="text-base font-bold text-foreground mb-1">{error || "User Not Found"}</h3>
+            <p className="text-xs text-muted-foreground mb-3">The requested user profile does not exist or has been removed.</p>
+            <Link to="/admin-dashboard/users" className="text-primary font-semibold text-xs hover:underline">
               Return to User Management
             </Link>
           </div>
         ) : (
-          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            {/* User Profile Header Banner */}
-            <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm relative overflow-hidden">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border pb-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded-2xl bg-gradient-primary flex items-center justify-center text-2xl font-bold text-white shadow-glow shrink-0">
-                    {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            {/* Main User Card with Profile Header */}
+            <div className="rounded-xl border border-border/70 bg-card p-5 sm:p-6 shadow-xs space-y-5">
+              {/* Profile Header */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="h-14 w-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-xl font-bold shrink-0">
+                    {user.name ? user.name.slice(0, 2).toUpperCase() : "U"}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">{user.name}</h1>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        user.role === 'admin' ? 'bg-primary/20 text-primary' :
-                        user.role === 'merchant' ? 'bg-tint-blue text-tint-blue-fg' :
-                        'bg-secondary text-foreground'
-                      }`}>
-                        {user.role}
-                      </span>
-                      <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
-                        user.status === "deactivated" ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-green-500/10 text-green-600 border-green-500/20"
-                      }`}>
-                        {user.status === "deactivated" ? "Deactivated" : "Active"}
-                      </span>
+                      <h1 className="font-semibold text-lg text-foreground leading-tight truncate">{user.name}</h1>
+                      <StatusBadge status={user.role} />
+                      <StatusBadge status={user.status || "active"} />
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
-                      <Mail className="h-3.5 w-3.5 shrink-0" /> {user.email}
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                      <Mail className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                      <span className="truncate">{user.email}</span>
+                      {user.mobile && (
+                        <>
+                          <span className="text-muted-foreground/40">•</span>
+                          <span>{user.mobile}</span>
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>
 
-                {/* Top Quick Actions Bar */}
-                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                {/* Primary Actions Bar */}
+                <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
+                  {/* Merchant-specific contextual actions */}
                   {user.role === "merchant" && user.merchantStatus !== "active" && user.merchantStatus !== "paid" && (
                     <Button
                       variant="outline"
@@ -329,10 +342,10 @@ const AdminUserDetail = () => {
                         setQuoteAmount(user.quotationAmount?.toString() || "");
                         setIsQuoteDialogOpen(true);
                       }}
-                      className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 border-yellow-500/30"
+                      className="h-9 px-3 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800/60 rounded-md"
                       title="Send Onboarding Quotation"
                     >
-                      <DollarSign className="h-4 w-4 mr-1.5" /> Quote
+                      <DollarSign className="h-3.5 w-3.5 mr-1" /> Quote
                     </Button>
                   )}
 
@@ -345,25 +358,12 @@ const AdminUserDetail = () => {
                         setMaxServices(user.maxServices?.toString() || "5");
                         setIsActivationDialogOpen(true);
                       }}
-                      className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 border-purple-500/30"
+                      className="h-9 px-3 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-800/60 rounded-md"
                       title="Activate Merchant"
                     >
-                      <CheckCircle2 className="h-4 w-4 mr-1.5" /> Activate
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Activate
                     </Button>
                   )}
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setResetPassword("");
-                      setIsResetPasswordDialogOpen(true);
-                    }}
-                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-500/30"
-                    title="Reset Password"
-                  >
-                    <KeyRound className="h-4 w-4 mr-1.5" /> Reset Password
-                  </Button>
 
                   {user.role === "merchant" && (
                     <Button
@@ -374,91 +374,70 @@ const AdminUserDetail = () => {
                         setMaxServices(user.maxServices?.toString() || "5");
                         setIsActivationDialogOpen(true);
                       }}
-                      className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-500/30"
-                      title="Set Slot Limits"
+                      className="h-9 px-3 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60 rounded-md"
+                      title="Configure Slot Limits"
                     >
-                      <CheckCircle2 className="h-4 w-4 mr-1.5" /> Limits
-                    </Button>
-                  )}
-
-                  <Button variant="outline" size="sm" onClick={handleOpenEdit}>
-                    <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
-                  </Button>
-
-                  {user.role !== "admin" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={isTogglingStatus}
-                      onClick={handleToggleStatus}
-                      className={user.status === "deactivated" ? "text-green-600 hover:text-green-700 hover:bg-green-50 border-green-500/30" : "text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-500/30"}
-                    >
-                      {isTogglingStatus ? "..." : user.status === "deactivated" ? (
-                        <>
-                          <UserCheck className="h-3.5 w-3.5 mr-1.5" /> Activate
-                        </>
-                      ) : (
-                        <>
-                          <UserX className="h-3.5 w-3.5 mr-1.5" /> Deactivate
-                        </>
-                      )}
-                    </Button>
-                  )}
-
-                  {user.role !== "admin" && (
-                    <Button variant="destructive" size="sm" disabled={isDeleting} onClick={handleDelete}>
-                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                      {isDeleting ? "Deleting..." : "Delete"}
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Limits
                     </Button>
                   )}
                 </div>
               </div>
 
-              {/* Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                {/* Contact Info Card */}
-                <div className="p-4 bg-secondary/20 rounded-xl border border-border/60 space-y-3">
+              {/* Information Cards Side-by-Side Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Account & Contact Info Card */}
+                <div className="p-4 bg-muted/30 rounded-lg border border-border/60 space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                    <Users className="h-4 w-4" /> Account & Contact Info
+                    <Users className="h-3.5 w-3.5" /> Account & Contact Info
                   </h3>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between py-1 border-b border-border/40">
-                      <span className="text-muted-foreground font-medium">Account Name:</span>
+                      <span className="text-muted-foreground font-medium">Account Name</span>
                       <span className="font-semibold text-foreground">{user.name}</span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-border/40">
-                      <span className="text-muted-foreground font-medium">Email:</span>
-                      <span className="font-semibold text-foreground">{user.email}</span>
+                      <span className="text-muted-foreground font-medium">Email Address</span>
+                      <span className="font-semibold text-foreground truncate max-w-[180px]" title={user.email}>{user.email}</span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-border/40">
-                      <span className="text-muted-foreground font-medium">Mobile:</span>
-                      <span className="font-semibold text-foreground">{user.mobile || "Not provided"}</span>
+                      <span className="text-muted-foreground font-medium">Mobile Number</span>
+                      <span className="font-semibold text-foreground">{user.mobile || "—"}</span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-border/40">
-                      <span className="text-muted-foreground font-medium">Joined Date:</span>
-                      <span className="font-semibold text-foreground">{new Date(user.createdAt).toLocaleDateString()}</span>
+                      <span className="text-muted-foreground font-medium">Joined Date</span>
+                      <span className="font-semibold text-foreground">{new Date(user.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                     </div>
-                    <div className="flex justify-between py-1">
-                      <span className="text-muted-foreground font-medium">User ID:</span>
-                      <span className="font-mono text-[11px] text-foreground/80">{user._id}</span>
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-muted-foreground font-medium">User ID</span>
+                      <div className="flex items-center gap-1">
+                        <span className="font-mono text-[11px] text-foreground/80">{user._id.slice(0, 8)}...{user._id.slice(-6)}</span>
+                        <button
+                          type="button"
+                          onClick={handleCopyId}
+                          className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                          title="Copy User ID"
+                        >
+                          {copiedId ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Onboarding & Limits Card */}
-                <div className="p-4 bg-secondary/20 rounded-xl border border-border/60 space-y-3">
+                {/* Onboarding & Status Card */}
+                <div className="p-4 bg-muted/30 rounded-lg border border-border/60 space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4" /> Onboarding & Account Status
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Onboarding & Account Status
                   </h3>
-                  <div className="space-y-2.5 text-xs">
+                  <div className="space-y-2 text-xs">
                     <div className="flex justify-between items-center py-1 border-b border-border/40">
-                      <span className="text-muted-foreground font-medium">Onboarding Status:</span>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                        user.merchantStatus === "active" ? "bg-tint-mint text-tint-mint-fg" :
-                        user.merchantStatus === "paid" ? "bg-tint-violet text-tint-violet-fg" :
-                        user.merchantStatus === "quotation_sent" ? "bg-tint-orange text-tint-orange-fg" :
-                        user.merchantStatus === "details_submitted" ? "bg-tint-orange text-tint-orange-fg" :
-                        "bg-secondary text-muted-foreground"
+                      <span className="text-muted-foreground font-medium">Onboarding Status</span>
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                        user.merchantStatus === "active" ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" :
+                        user.merchantStatus === "paid" ? "bg-purple-500/10 text-purple-600 border border-purple-500/20" :
+                        user.merchantStatus === "quotation_sent" ? "bg-amber-500/10 text-amber-600 border border-amber-500/20" :
+                        user.merchantStatus === "details_submitted" ? "bg-amber-500/10 text-amber-600 border border-amber-500/20" :
+                        "bg-muted text-muted-foreground"
                       }`}>
                         {user.merchantStatus === "active" ? "Activated" :
                          user.merchantStatus === "paid" ? "Paid (Awaiting Activation)" :
@@ -469,23 +448,21 @@ const AdminUserDetail = () => {
                     </div>
                     {user.role === "merchant" && (
                       <div className="flex justify-between items-center py-1 border-b border-border/40">
-                        <span className="text-muted-foreground font-medium">Slot Limits:</span>
-                        <span className="font-bold text-foreground">
+                        <span className="text-muted-foreground font-medium">Slot Limits</span>
+                        <span className="font-semibold text-foreground">
                           {user.maxEvents || 5} Events / {user.maxServices || 5} Services
                         </span>
                       </div>
                     )}
                     {user.quotationAmount > 0 && (
                       <div className="flex justify-between items-center py-1 border-b border-border/40">
-                        <span className="text-muted-foreground font-medium">Quotation Fee:</span>
-                        <span className="font-bold text-primary">{formatCurrency(user.quotationAmount)}</span>
+                        <span className="text-muted-foreground font-medium">Quotation Fee</span>
+                        <span className="font-semibold text-foreground">{formatCurrency(user.quotationAmount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between items-center py-1">
-                      <span className="text-muted-foreground font-medium">Account Status:</span>
-                      <span className={`font-semibold ${user.status === "deactivated" ? "text-red-500" : "text-green-600"}`}>
-                        {user.status === "deactivated" ? "Deactivated" : "Active"}
-                      </span>
+                      <span className="text-muted-foreground font-medium">Account Status</span>
+                      <StatusBadge status={user.status || "active"} />
                     </div>
                   </div>
                 </div>
@@ -493,43 +470,43 @@ const AdminUserDetail = () => {
 
               {/* Merchant Business Profile (If Applicable) */}
               {user.role === "merchant" && (
-                <div className="p-5 bg-secondary/20 rounded-xl border border-border/60 space-y-4 mt-4">
+                <div className="p-4 bg-muted/30 rounded-lg border border-border/60 space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                    <FileText className="h-4 w-4" /> Business Profile & Overview
+                    <FileText className="h-3.5 w-3.5" /> Business Profile & Overview
                   </h3>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                     <div>
                       <span className="text-muted-foreground font-medium uppercase text-[10px]">Business Name</span>
-                      <p className="font-semibold text-sm mt-0.5 text-foreground">{user.merchantDetails?.businessName || "—"}</p>
+                      <p className="font-semibold text-xs mt-0.5 text-foreground">{user.merchantDetails?.businessName || "—"}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground font-medium uppercase text-[10px]">Experience</span>
-                      <p className="font-semibold text-sm mt-0.5 text-foreground">
+                      <p className="font-semibold text-xs mt-0.5 text-foreground">
                         {user.merchantDetails?.experienceYears ? `${user.merchantDetails.experienceYears} years` : "—"}
                       </p>
                     </div>
                     <div>
                       <span className="text-muted-foreground font-medium uppercase text-[10px]">Business Location</span>
-                      <p className="font-semibold text-sm mt-0.5 text-foreground">{user.merchantDetails?.address || "—"}</p>
+                      <p className="font-semibold text-xs mt-0.5 text-foreground truncate">{user.merchantDetails?.address || "—"}</p>
                     </div>
                   </div>
 
                   {user.merchantDetails?.businessDescription && (
-                    <div>
+                    <div className="pt-1">
                       <span className="text-muted-foreground font-medium uppercase text-[10px]">Business Description</span>
-                      <p className="mt-1 text-xs text-foreground/90 leading-relaxed bg-background/50 p-3 rounded-lg border border-border/40 whitespace-pre-line">
+                      <p className="mt-1 text-xs text-foreground/90 leading-relaxed bg-background p-3 rounded-md border border-border/50 whitespace-pre-line max-h-32 overflow-y-auto">
                         {user.merchantDetails.businessDescription}
                       </p>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
                       <span className="text-muted-foreground font-medium uppercase text-[10px]">Event Types Handled</span>
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      <div className="flex flex-wrap gap-1.5 mt-1">
                         {user.merchantDetails?.eventTypes?.map((t) => (
-                          <span key={t} className="text-xs bg-secondary text-foreground px-2.5 py-0.5 rounded-full border border-border font-medium">
+                          <span key={t} className="text-[11px] bg-background text-foreground px-2.5 py-0.5 rounded-md border border-border/60 font-medium">
                             {t}
                           </span>
                         )) || <span className="text-xs text-muted-foreground italic">None specified</span>}
@@ -537,9 +514,9 @@ const AdminUserDetail = () => {
                     </div>
                     <div>
                       <span className="text-muted-foreground font-medium uppercase text-[10px]">Services Offered</span>
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      <div className="flex flex-wrap gap-1.5 mt-1">
                         {user.merchantDetails?.serviceTypes?.map((t) => (
-                          <span key={t} className="text-xs bg-secondary text-foreground px-2.5 py-0.5 rounded-full border border-border font-medium">
+                          <span key={t} className="text-[11px] bg-background text-foreground px-2.5 py-0.5 rounded-md border border-border/60 font-medium">
                             {t}
                           </span>
                         )) || <span className="text-xs text-muted-foreground italic">None specified</span>}
@@ -549,6 +526,80 @@ const AdminUserDetail = () => {
                 </div>
               )}
             </div>
+
+            {/* Account Actions Section */}
+            {!isAdmin && (
+              <div className="rounded-xl border border-border/70 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                  <Shield className="h-3.5 w-3.5 text-primary" /> Account Actions
+                </h3>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleOpenEdit}
+                    className="h-9 px-4 text-xs font-semibold border-border rounded-md"
+                  >
+                    <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit User
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setResetPassword("");
+                      setIsResetPasswordDialogOpen(true);
+                    }}
+                    className="h-9 px-4 text-xs font-semibold border-border rounded-md"
+                  >
+                    <KeyRound className="h-3.5 w-3.5 mr-1.5" /> Reset Password
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isTogglingStatus}
+                    onClick={handleToggleStatus}
+                    className={`h-9 px-4 text-xs font-semibold rounded-md ${
+                      user.status === "deactivated"
+                        ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60"
+                        : "text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/60"
+                    }`}
+                  >
+                    {user.status === "deactivated" ? (
+                      <><UserCheck className="h-3.5 w-3.5 mr-1.5" /> {isTogglingStatus ? "Activating..." : "Activate Account"}</>
+                    ) : (
+                      <><UserX className="h-3.5 w-3.5 mr-1.5" /> {isTogglingStatus ? "Deactivating..." : "Deactivate Account"}</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Danger Zone */}
+            {!isAdmin && (
+              <div className="rounded-xl border border-rose-200 dark:border-rose-900/60 bg-card p-5 sm:p-6 shadow-xs space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5" /> Danger Zone
+                </h3>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-lg border border-rose-200/60 dark:border-rose-900/40 bg-rose-50/50 dark:bg-rose-950/20">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Delete Account</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Permanently remove this {user.role === "merchant" ? "merchant" : "user"} and all associated data. This action cannot be undone.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                    className="h-9 px-4 text-xs font-semibold text-rose-600 bg-white hover:bg-rose-50 border-rose-300 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/60 dark:hover:bg-rose-950/60 rounded-md shrink-0"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete User
+                  </Button>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -559,13 +610,13 @@ const AdminUserDetail = () => {
               <DialogTitle>Edit User Profile</DialogTitle>
               <DialogDescription>Modify user privileges or information.</DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleEditSubmit} className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Name</Label>
-                <Input maxLength={NAME_MAX_LENGTH} required value={formState.name} onChange={(e) => setFormState({ ...formState, name: sanitizeNameInput(e.target.value) })} />
+            <form onSubmit={handleEditSubmit} className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Name</Label>
+                <Input maxLength={NAME_MAX_LENGTH} required value={formState.name} onChange={(e) => setFormState({ ...formState, name: sanitizeNameInput(e.target.value) })} className="h-9 text-xs rounded-md" />
               </div>
-              <div className="space-y-2">
-                <Label>Mobile Number (Optional)</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Mobile Number (Optional)</Label>
                 <Input
                   type="text"
                   maxLength={12}
@@ -575,19 +626,22 @@ const AdminUserDetail = () => {
                     setFormState({ ...formState, mobile: val });
                   }}
                   placeholder="Enter 12-digit mobile number"
+                  className="h-9 text-xs rounded-md"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="text" inputMode="email" maxLength={EMAIL_MAX_LENGTH} required value={formState.email} onChange={(e) => setFormState({ ...formState, email: sanitizeEmailInput(e.target.value) })} />
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Email Address</Label>
+                <Input type="text" inputMode="email" maxLength={EMAIL_MAX_LENGTH} required value={formState.email} onChange={(e) => setFormState({ ...formState, email: sanitizeEmailInput(e.target.value) })} className="h-9 text-xs rounded-md" />
               </div>
-              <div className="space-y-2">
-                <Label>New Password (Optional)</Label>
-                <Input type="password" maxLength={30} value={formState.password} onChange={(e) => setFormState({ ...formState, password: e.target.value })} placeholder="Leave empty to keep current password" />
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">New Password (Optional)</Label>
+                <Input type="password" maxLength={30} value={formState.password} onChange={(e) => setFormState({ ...formState, password: e.target.value })} placeholder="Leave empty to keep current password" className="h-9 text-xs rounded-md" />
               </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Saving..." : "Save Changes"}</Button>
+              <DialogFooter className="pt-2">
+                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="h-9 text-xs rounded-md">Cancel</Button>
+                <Button type="submit" disabled={isSubmitting} className="h-9 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md">
+                  {isSubmitting ? "Saving..." : "Save Changes"}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -598,20 +652,21 @@ const AdminUserDetail = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <KeyRound className="h-5 w-5 text-primary" /> Reset Password
+                <KeyRound className="h-4.5 w-4.5 text-primary" /> Reset Password
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-xs">
                 Set a new password for {user?.name} ({user?.email})
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleResetPasswordSubmit} className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>New Password</Label>
-                <Input type="password" maxLength={30} required value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} placeholder="Enter new password" />
+            <form onSubmit={handleResetPasswordSubmit} className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">New Password</Label>
+                <Input type="password" maxLength={30} required value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} placeholder="Enter new password" className="h-9 text-xs rounded-md" />
+                <p className="text-[11px] text-muted-foreground">{PASSWORD_HINT}</p>
               </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsResetPasswordDialogOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={isResettingPassword} className="bg-gradient-primary text-white">
+              <DialogFooter className="pt-2">
+                <Button type="button" variant="outline" onClick={() => setIsResetPasswordDialogOpen(false)} className="h-9 text-xs rounded-md">Cancel</Button>
+                <Button type="submit" disabled={isResettingPassword} className="h-9 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md">
                   {isResettingPassword ? "Resetting..." : "Reset Password"}
                 </Button>
               </DialogFooter>
@@ -619,21 +674,59 @@ const AdminUserDetail = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                <Trash2 className="h-4.5 w-4.5" /> Delete Account
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                This action is permanent and cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-3 space-y-3">
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/30 rounded-md border border-rose-200/60 dark:border-rose-900/40 text-xs space-y-1.5">
+                <p><strong>Name:</strong> {user?.name}</p>
+                <p><strong>Email:</strong> {user?.email}</p>
+                <p><strong>Role:</strong> {user?.role === "merchant" ? "Merchant" : "User"}</p>
+                <p><strong>ID:</strong> <span className="font-mono text-[11px]">{user?._id}</span></p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Are you sure you want to permanently delete this {user?.role === "merchant" ? "merchant" : "user"} account? All associated data will be removed.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting} className="h-9 text-xs rounded-md">
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+                className="h-9 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-md"
+              >
+                {isDeleting ? "Deleting..." : "Delete Account"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Limits Configuration Dialog */}
         <Dialog open={isActivationDialogOpen} onOpenChange={setIsActivationDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-500" /> Configure Merchant Limits
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" /> Configure Merchant Limits
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-xs">
                 Set slot limits for maximum events and services allowed on the platform.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleActivateMerchantSubmit} className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="maxEv">Maximum Events Limit</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="maxEv" className="text-xs font-semibold">Maximum Events Limit</Label>
                   <Input
                     id="maxEv"
                     type="number"
@@ -642,10 +735,11 @@ const AdminUserDetail = () => {
                     required
                     value={maxEvents}
                     onChange={(e) => setMaxEvents(e.target.value)}
+                    className="h-9 text-xs rounded-md"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="maxSe">Maximum Services Limit</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="maxSe" className="text-xs font-semibold">Maximum Services Limit</Label>
                   <Input
                     id="maxSe"
                     type="number"
@@ -654,12 +748,13 @@ const AdminUserDetail = () => {
                     required
                     value={maxServices}
                     onChange={(e) => setMaxServices(e.target.value)}
+                    className="h-9 text-xs rounded-md"
                   />
                 </div>
               </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsActivationDialogOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={activatingMerchant} className="bg-gradient-primary text-white">
+              <DialogFooter className="pt-2">
+                <Button type="button" variant="outline" onClick={() => setIsActivationDialogOpen(false)} className="h-9 text-xs rounded-md">Cancel</Button>
+                <Button type="submit" disabled={activatingMerchant} className="h-9 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md">
                   {activatingMerchant ? "Saving..." : "Save Limits"}
                 </Button>
               </DialogFooter>
@@ -671,21 +766,21 @@ const AdminUserDetail = () => {
         <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary" /> Send Onboarding Quotation
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <DollarSign className="h-4.5 w-4.5 text-primary" /> Send Onboarding Quotation
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-xs">
                 Set the setup fee amount for this merchant. The merchant will pay this amount before activation.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSendQuoteSubmit} className="space-y-4 py-2">
-              <div className="p-3 bg-secondary/30 rounded-lg text-xs space-y-1 border border-border">
+              <div className="p-3 bg-muted/40 rounded-md text-xs space-y-1 border border-border/60">
                 <p><strong>Merchant:</strong> {user?.name}</p>
                 <p><strong>Email:</strong> {user?.email}</p>
                 <p><strong>Business:</strong> {user?.merchantDetails?.businessName || "—"}</p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="qAmount">Quotation Amount (in USD/Credits) *</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="qAmount" className="text-xs font-semibold">Quotation Amount (in USD/Credits) *</Label>
                 <Input
                   id="qAmount"
                   type="text"
@@ -696,19 +791,20 @@ const AdminUserDetail = () => {
                     const val = e.target.value.replace(/[^0-9]/g, "");
                     setQuoteAmount(val.slice(0, 7));
                   }}
+                  className="h-9 text-xs rounded-md"
                 />
-                <p className="text-[10px] text-muted-foreground">Enter a positive number (up to 1,000,000)</p>
+                <p className="text-[11px] text-muted-foreground">Enter a positive number (up to 1,000,000)</p>
               </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={sendingQuote} className="bg-gradient-primary text-white">
+              <DialogFooter className="pt-2">
+                <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)} className="h-9 text-xs rounded-md">Cancel</Button>
+                <Button type="submit" disabled={sendingQuote} className="h-9 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md">
                   {sendingQuote ? "Sending Quote..." : "Send Quote"}
                 </Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
-      </section>
+      </div>
     </AdminLayout>
   );
 };

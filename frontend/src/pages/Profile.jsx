@@ -90,19 +90,19 @@ const Profile = () => {
         switch (role) {
             case "admin":
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/15 text-red-400 border border-red-500/30">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
                         <Shield className="h-3.5 w-3.5" /> Administrator
                     </span>
                 );
             case "merchant":
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shrink-0">
                         <Store className="h-3.5 w-3.5" /> Merchant / Organiser
                     </span>
                 );
             default:
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
                         <UserCircle className="h-3.5 w-3.5" /> Verified Customer
                     </span>
                 );
@@ -111,39 +111,40 @@ const Profile = () => {
 
     if (!user) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="text-muted-foreground">Loading profile...</div>
+            <div className="flex items-center justify-center min-h-[300px] text-xs text-muted-foreground">
+                Loading profile...
             </div>
         );
     }
 
     return (
-        <div className="py-4 sm:py-8 lg:py-10 max-w-4xl mx-auto">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="w-full">
+        <div className="w-full min-w-0 font-sans">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="w-full space-y-5">
                 
-                {/* Page Title Header */}
-                <div className="mb-6 sm:mb-8">
-                    <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground">
-                        Account <span className="text-gradient">Profile</span>
+                {/* Page Title Header (Solid dark title, compact line spacing) */}
+                <div className="mb-4">
+                    <h1 className="font-semibold text-2xl sm:text-3xl text-foreground tracking-tight">
+                        Account Profile
                     </h1>
-                    <p className="text-muted-foreground text-xs sm:text-sm mt-1 font-medium">
-                        Manage your account settings, personal information, and quick shortcuts
+                    <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+                        Manage your account information and preferences.
                     </p>
                 </div>
 
-                {/* Main Profile Card */}
-                <div className="rounded-3xl border border-border bg-card p-5 sm:p-8 shadow-card space-y-8">
+                {/* Main Compact Outer Card */}
+                <div className="rounded-xl border border-border/70 bg-card p-5 sm:p-6 shadow-xs space-y-5">
                     
-                    {/* User Hero Header */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 p-5 sm:p-6 rounded-2xl border border-border/80 bg-gradient-to-r from-secondary/50 via-card to-secondary/30">
-                        <div className="flex items-center gap-4">
-                            <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow shrink-0">
-                                <User className="h-8 w-8 sm:h-10 sm:w-10" />
+                    {/* Compact Profile Summary Banner (Height ~100px-115px) */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg border border-border/80 bg-slate-50/80 dark:bg-slate-900/60 min-h-[100px]">
+                        <div className="flex items-center gap-3.5 min-w-0">
+                            <div className="h-14 w-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-xl font-bold shrink-0">
+                                {user.name ? user.name.slice(0, 2).toUpperCase() : "U"}
                             </div>
-                            <div>
-                                <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground leading-tight">{user.name}</h2>
-                                <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                                    <Mail className="h-3.5 w-3.5 opacity-70" /> {user.email}
+                            <div className="min-w-0">
+                                <h2 className="font-semibold text-lg text-foreground leading-tight truncate">{user.name}</h2>
+                                <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1 truncate">
+                                    <Mail className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                                    <span>{user.email}</span>
                                 </p>
                             </div>
                         </div>
@@ -153,73 +154,73 @@ const Profile = () => {
                     </div>
 
                     {/* Personal Details Form Section */}
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-2 border-b border-border/60 pb-3">
-                            <ShieldCheck className="h-5 w-5 text-primary" />
-                            <h3 className="font-display text-base font-bold text-foreground">Personal Details</h3>
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 border-b border-border/60 pb-2.5">
+                            <ShieldCheck className="h-4.5 w-4.5 text-primary" />
+                            <h3 className="font-semibold text-base text-foreground">Personal Details</h3>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             
-                            {/* Name Field */}
-                            <div className="space-y-2">
-                                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                            {/* Display Name Field */}
+                            <div className="space-y-1.5">
+                                <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                                     Display Name
                                 </label>
                                 {editing ? (
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                         <div className="flex items-center gap-2">
                                             <Input
                                                 value={name}
                                                 onChange={(e) => setName(sanitizeNameInput(e.target.value))}
                                                 placeholder="Enter your name"
                                                 maxLength={NAME_MAX_LENGTH}
-                                                className="flex-1 h-11 bg-secondary/50 border-border text-sm rounded-xl"
+                                                className="flex-1 h-10 bg-background border-border text-xs rounded-md"
                                                 disabled={loading}
                                             />
                                             <Button
                                                 size="sm"
                                                 onClick={handleSave}
                                                 disabled={loading || !name.trim()}
-                                                className="bg-gradient-primary text-white h-11 px-4 rounded-xl shadow-glow"
+                                                className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-3.5 text-xs font-semibold rounded-md"
                                             >
-                                                <Save className="h-4 w-4 mr-1.5" /> Save
+                                                <Save className="h-3.5 w-3.5 mr-1" /> Save
                                             </Button>
                                             <Button
                                                 size="sm"
                                                 variant="outline"
                                                 onClick={handleCancel}
                                                 disabled={loading}
-                                                className="h-11 px-3.5 rounded-xl border-border"
+                                                className="h-10 px-3 rounded-md border-border"
                                             >
-                                                <X className="h-4 w-4" />
+                                                <X className="h-3.5 w-3.5" />
                                             </Button>
                                         </div>
-                                        <p className="text-[11px] text-muted-foreground">{NAME_HINT}</p>
+                                        <p className="text-[10px] text-muted-foreground">{NAME_HINT}</p>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-secondary/30">
-                                        <span className="text-sm font-semibold text-foreground">{user.name}</span>
+                                    <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border border-border/80 bg-muted/20 h-11">
+                                        <span className="text-xs font-semibold text-foreground truncate">{user.name}</span>
                                         <Button
                                             size="sm"
                                             variant="ghost"
                                             onClick={() => setEditing(true)}
-                                            className="h-8 px-3 text-xs font-bold text-primary hover:bg-primary/10 rounded-lg"
+                                            className="h-7 px-2.5 text-xs font-semibold text-primary hover:bg-primary/10 rounded-md shrink-0"
                                         >
-                                            <Edit2 className="h-3.5 w-3.5 mr-1.5" /> Edit
+                                            <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
                                         </Button>
                                     </div>
                                 )}
                             </div>
 
                             {/* Email Field */}
-                            <div className="space-y-2">
-                                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                            <div className="space-y-1.5">
+                                <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                                     Email Address
                                 </label>
-                                <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-border/80 bg-secondary/20 text-muted-foreground">
-                                    <span className="text-sm font-medium">{user.email}</span>
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                                <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border border-border/80 bg-muted/20 h-11">
+                                    <span className="text-xs font-medium text-foreground truncate">{user.email}</span>
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md shrink-0">
                                         <CheckCircle className="h-3 w-3" /> Verified
                                     </span>
                                 </div>
@@ -228,86 +229,104 @@ const Profile = () => {
                     </div>
 
                     {/* Quick Shortcuts & Rewards Grid */}
-                    <div className="space-y-4 pt-2 border-t border-border/60">
-                        <div className="flex items-center gap-2 pb-1">
-                            <Sparkles className="h-5 w-5 text-purple-500" />
-                            <h3 className="font-display text-base font-bold text-foreground">Quick Shortcuts & Rewards</h3>
+                    <div className="space-y-3.5 pt-4 border-t border-border/60">
+                        <div className="flex items-center gap-2 pb-0.5">
+                            <Sparkles className="h-4.5 w-4.5 text-purple-500" />
+                            <h3 className="font-semibold text-base text-foreground">Quick Shortcuts & Rewards</h3>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                             <Link
-                                to="/customer-dashboard/wallet"
-                                className="group p-4 rounded-2xl border border-border bg-card hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all shadow-sm flex items-center gap-3.5"
+                                to={
+                                    user?.role === "admin" ? "/admin-dashboard/payments" :
+                                    user?.role === "merchant" ? "/merchant-dashboard/earnings" :
+                                    "/customer-dashboard/wallet"
+                                }
+                                className="group p-3.5 rounded-lg border border-border/70 bg-card hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all shadow-xs flex items-center gap-3"
                             >
-                                <div className="h-11 w-11 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                                    <Wallet className="h-5 w-5" />
+                                <div className="h-10 w-10 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                                    <Wallet className="h-4.5 w-4.5" />
                                 </div>
                                 <div className="min-w-0">
-                                    <h4 className="text-xs font-extrabold text-foreground group-hover:text-emerald-500 transition-colors">My Wallet</h4>
-                                    <p className="text-[11px] text-muted-foreground font-semibold mt-0.5 truncate">Balance: ₹{user?.walletBalance || 0}</p>
+                                    <h4 className="text-xs font-bold text-foreground group-hover:text-emerald-600 transition-colors truncate">
+                                        {user?.role === "admin" ? "Payments & Wallet" : user?.role === "merchant" ? "Earnings & Wallet" : "My Wallet"}
+                                    </h4>
+                                    <p className="text-[11px] text-muted-foreground font-medium mt-0.5 truncate">
+                                        {user?.role === "customer" ? `Balance: ₹${user?.walletBalance || 0}` : "View financial transactions"}
+                                    </p>
                                 </div>
                             </Link>
 
                             <Link
-                                to="/customer-dashboard/referral"
-                                className="group p-4 rounded-2xl border border-border bg-card hover:border-pink-500/50 hover:bg-pink-500/5 transition-all shadow-sm flex items-center gap-3.5"
+                                to={
+                                    user?.role === "admin" ? "/admin-dashboard/referrals" :
+                                    user?.role === "merchant" ? "/merchant-dashboard/referrals" :
+                                    "/customer-dashboard/referral"
+                                }
+                                className="group p-3.5 rounded-lg border border-border/70 bg-card hover:border-pink-500/50 hover:bg-pink-500/5 transition-all shadow-xs flex items-center gap-3"
                             >
-                                <div className="h-11 w-11 rounded-xl bg-pink-500/15 text-pink-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                                    <Gift className="h-5 w-5" />
+                                <div className="h-10 w-10 rounded-md bg-pink-500/15 text-pink-600 dark:text-pink-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                                    <Gift className="h-4.5 w-4.5" />
                                 </div>
                                 <div className="min-w-0">
-                                    <h4 className="text-xs font-extrabold text-foreground group-hover:text-pink-500 transition-colors">Referrals & Rewards</h4>
-                                    <p className="text-[11px] text-muted-foreground font-semibold mt-0.5 truncate">Invite & earn cash</p>
+                                    <h4 className="text-xs font-bold text-foreground group-hover:text-pink-600 transition-colors truncate">Referrals & Rewards</h4>
+                                    <p className="text-[11px] text-muted-foreground font-medium mt-0.5 truncate">Invite & reward programs</p>
                                 </div>
                             </Link>
 
                             <Link
-                                to="/customer-dashboard/ai-recommendations"
-                                className="group p-4 rounded-2xl border border-border bg-card hover:border-purple-500/50 hover:bg-purple-500/5 transition-all shadow-sm flex items-center gap-3.5"
+                                to={
+                                    user?.role === "admin" ? "/admin-dashboard/ai-recommendations" :
+                                    user?.role === "merchant" ? "/merchant-dashboard/ai-recommendations" :
+                                    "/customer-dashboard/ai-recommendations"
+                                }
+                                className="group p-3.5 rounded-lg border border-border/70 bg-card hover:border-purple-500/50 hover:bg-purple-500/5 transition-all shadow-xs flex items-center gap-3"
                             >
-                                <div className="h-11 w-11 rounded-xl bg-purple-500/15 text-purple-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                                    <Sparkles className="h-5 w-5" />
+                                <div className="h-10 w-10 rounded-md bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                                    <Sparkles className="h-4.5 w-4.5" />
                                 </div>
                                 <div className="min-w-0">
-                                    <h4 className="text-xs font-extrabold text-foreground group-hover:text-purple-500 transition-colors">AI Picks</h4>
-                                    <p className="text-[11px] text-muted-foreground font-semibold mt-0.5 truncate">Smart suggestions</p>
+                                    <h4 className="text-xs font-bold text-foreground group-hover:text-purple-600 transition-colors truncate">AI Picks</h4>
+                                    <p className="text-[11px] text-muted-foreground font-medium mt-0.5 truncate">Smart recommendations</p>
                                 </div>
                             </Link>
                         </div>
                     </div>
 
-                    {/* Account Stats & Overview Section */}
-                    <div className="space-y-4 pt-2 border-t border-border/60">
-                        <div className="flex items-center gap-2 pb-1">
-                            <Calendar className="h-5 w-5 text-indigo-500" />
-                            <h3 className="font-display text-base font-bold text-foreground">Account Information</h3>
+                    {/* Account Information & Logout Bar */}
+                    <div className="space-y-3.5 pt-4 border-t border-border/60">
+                        <div className="flex items-center gap-2 pb-0.5">
+                            <Calendar className="h-4.5 w-4.5 text-indigo-500" />
+                            <h3 className="font-semibold text-base text-foreground">Account Information</h3>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="p-4 rounded-2xl border border-border bg-secondary/20">
-                                <span className="text-xs font-semibold text-muted-foreground block mb-1">Member Since</span>
-                                <span className="text-sm font-bold text-foreground">
-                                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <div className="p-3.5 rounded-lg border border-border/70 bg-muted/20 flex justify-between items-center text-xs">
+                                <span className="font-medium text-muted-foreground">Member Since</span>
+                                <span className="font-semibold text-foreground">
+                                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
                                 </span>
                             </div>
 
-                            <div className="p-4 rounded-2xl border border-border bg-secondary/20">
-                                <span className="text-xs font-semibold text-muted-foreground block mb-1">Last Profile Update</span>
-                                <span className="text-sm font-bold text-foreground">
-                                    {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Recently'}
+                            <div className="p-3.5 rounded-lg border border-border/70 bg-muted/20 flex justify-between items-center text-xs">
+                                <span className="font-medium text-muted-foreground">Last Profile Update</span>
+                                <span className="font-semibold text-foreground">
+                                    {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently'}
                                 </span>
                             </div>
                         </div>
                     </div>
 
                     {/* Sign Out Action Button */}
-                    <div className="pt-6 border-t border-border/60 flex items-center justify-center sm:justify-end">
+                    <div className="pt-4 border-t border-border/60 flex items-center justify-between gap-4">
+                        <span className="text-xs text-muted-foreground hidden sm:inline">Signed in as <strong className="text-foreground">{user.email}</strong></span>
                         <Button
                             onClick={handleLogout}
                             variant="destructive"
-                            className="w-full sm:w-auto h-12 px-6 rounded-2xl font-bold bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95"
+                            size="sm"
+                            className="w-full sm:w-auto h-9 px-4 rounded-md font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                            <LogOut className="h-4.5 w-4.5" /> Sign Out of Account
+                            <LogOut className="h-3.5 w-3.5" /> Sign Out
                         </Button>
                     </div>
 

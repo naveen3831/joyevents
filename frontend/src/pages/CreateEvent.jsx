@@ -256,8 +256,8 @@ const CreateEvent = () => {
         }
     };
     return (<MerchantLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <div className="container mx-auto">
+      <section className="py-2 sm:py-6">
+        <div className="w-full space-y-6">
           <Link to="/merchant-dashboard/events" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
             <ArrowLeft className="h-4 w-4"/> Back to Events
           </Link>
@@ -665,12 +665,12 @@ const CreateEvent = () => {
                   <p className="text-xs text-muted-foreground mt-2">Customers will pay this fixed price to book your event</p>
                 </div>)}
 
-            <div className="sticky bottom-0 -mx-4 sm:mx-0 bg-background/95 backdrop-blur border-t border-border sm:border-0 sm:bg-transparent p-4 sm:p-0 flex flex-col sm:flex-row gap-3">
-              <Button type="submit" className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow min-h-[44px]" size="lg" disabled={loading}>
-                {loading ? "Creating Event..." : "Publish Event"}
-              </Button>
-              <Button type="button" variant="outline" size="lg" className="min-h-[44px]" onClick={() => navigate("/merchant-dashboard/events")} disabled={loading}>
+            <div className="pt-6 mt-4 border-t border-border flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
+              <Button type="button" variant="outline" size="lg" className="w-full sm:w-auto min-h-[44px] px-6 rounded-xl font-semibold" onClick={() => navigate("/merchant-dashboard/events")} disabled={loading}>
                 Cancel
+              </Button>
+              <Button type="submit" className="w-full sm:w-auto bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow min-h-[44px] px-8 rounded-xl font-semibold" size="lg" disabled={loading}>
+                {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Publishing Event...</>) : "Publish Event"}
               </Button>
             </div>
           </motion.form>

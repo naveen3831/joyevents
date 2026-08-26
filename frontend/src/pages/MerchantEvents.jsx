@@ -1,8 +1,10 @@
+import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/utils";
 import { useGsapStagger } from "@/lib/gsapAnimations";
 import { Calendar, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, DollarSign, Upload, Ticket } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import AdminLayout from "@/components/AdminLayout";
+import PageHeader from "@/components/common/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -40,6 +42,7 @@ const getTodayString = () => {
 const MerchantEvents = ({ layout = "merchant" } = {}) => {
     const PageLayout = layout === "admin" ? AdminLayout : MerchantLayout;
     const { token } = useAuth();
+    const navigate = useNavigate();
     const [events, setEvents] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -123,22 +126,11 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
     };
     useEffect(() => { loadEvents(); }, []);
     const openCreate = () => {
-        setEditingId(null);
-        setForm(EMPTY_FORM);
-        setImageFile(null);
-        setImagePreview("");
-        setGalleryFiles([]);
-        setGalleryPreviews([]);
-        setEventType("fullService");
-        setTicketedType(null);
-        setSelectedSession(null);
-        setTicketTypes([]);
-        setShowNewCatInput(false);
-        setNewCatName("");
-        setFormErrors({});
-        setTicketError("");
-        setNewCatError("");
-        setShowModal(true);
+        if (layout === "admin") {
+            navigate("/admin-dashboard/my-events/new");
+        } else {
+            navigate("/create-event");
+        }
     };
     const openEdit = (ev) => {
         setEditingId(ev._id);
@@ -422,24 +414,30 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
         setGalleryPreviews(prev => prev.filter((_, i) => i !== index));
     };
     return (<PageLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
-          <div>
-            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-              My <span className="text-gradient">Events</span>
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">Manage your created events - edit or delete only what you own</p>
-          </div>
-          <Button onClick={openCreate} className="w-full sm:w-auto bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow min-h-11">
-            <Plus className="mr-2 h-4 w-4"/> Add Event
-          </Button>
-        </div>
+      <div className="w-full min-w-0 space-y-5 font-sans">
+        <PageHeader
+          title="My Events"
+          subtitle="Manage your created events — edit or delete your listing entries."
+          breadcrumbs={[
+            { label: "Merchant Portal", to: "/merchant-dashboard" },
+            { label: "Events & Services" },
+            { label: "My Events" },
+          ]}
+          actions={
+            <Button onClick={openCreate} className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-xs font-semibold h-9 px-3.5">
+              <Plus className="mr-1.5 h-4 w-4"/> Add Event
+            </Button>
+          }
+        />
 
         {loading ? (<div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
             <Loader2 className="h-5 w-5 animate-spin"/> Loading…
-          </div>) : events.length === 0 ? (<div className="rounded-xl border border-border bg-card p-10 text-center">
+          </div>) : events.length === 0 ? (<div className="rounded-xl border border-border bg-card p-10 text-center flex flex-col items-center">
             <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-30 text-muted-foreground"/>
-            <p className="text-muted-foreground">No events yet. Create your first event to get started. Only your events are shown here.</p>
+            <p className="text-muted-foreground mb-4">No events yet. Create your first event to get started. Only your events are shown here.</p>
+            <Button onClick={openCreate} className="bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow">
+              <Plus className="mr-2 h-4 w-4"/> Add Event
+            </Button>
           </div>) : (<div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6 lg:grid-cols-3">
             {events.map((ev) => (<div key={ev._id} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
                 {/* Image */}
@@ -1031,7 +1029,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
               </form>
             </div>
           </div>)}
-      </section>
+      </div>
     </PageLayout>);
 };
 export default MerchantEvents;

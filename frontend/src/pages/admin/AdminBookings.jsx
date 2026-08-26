@@ -152,7 +152,7 @@ const AdminBookings = () => {
     const hasActiveFilters = statusFilter !== "all" || dateFilter !== "all" || merchantFilter !== "all" || search.trim() !== "" || bookingView !== "all";
 
     return (<AdminLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
+      <div className="w-full min-w-0 space-y-5 font-sans">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
           <div className="flex items-center gap-3 mb-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground">
@@ -377,7 +377,7 @@ const AdminBookings = () => {
               </div>)}
           </DialogContent>
         </Dialog>
-      </section>
+      </div>
     </AdminLayout>);
 };
 export default AdminBookings;

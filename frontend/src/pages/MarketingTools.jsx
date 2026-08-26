@@ -4,6 +4,7 @@ import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Megaphone, Ticket, Share2, Send, Plus, Edit2, Trash2, Copy, Loader2, AlertCircle } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
+import PageHeader from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -353,18 +354,21 @@ const MarketingTools = () => {
       </MerchantLayout>);
     }
     return (<MerchantLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
-            <div>
-              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
-                <Megaphone className="h-6 w-6 sm:h-7 sm:w-7 text-primary"/>
-                Marketing <span className="text-gradient">Tools</span>
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">Promote your events and boost bookings</p>
-            </div>
-          </div>
-        </motion.div>
+      <div className="w-full min-w-0 space-y-5 font-sans">
+        <PageHeader
+          title="Marketing Tools"
+          subtitle="Create promo codes, manage discounts, and send broadcast notifications to customers."
+          breadcrumbs={[
+            { label: "Merchant Portal", to: "/merchant-dashboard" },
+            { label: "Growth" },
+            { label: "Marketing Tools" },
+          ]}
+          actions={
+            <Button onClick={() => openPromoDialog()} className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-xs font-semibold h-9 px-3.5">
+              <Plus className="mr-1.5 h-4 w-4"/> Create Promo Code
+            </Button>
+          }
+        />
 
         {/* Tabs */}
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.1 }} className="mb-8 flex flex-wrap gap-2">
@@ -624,7 +628,7 @@ const MarketingTools = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </section>
+      </div>
     </MerchantLayout>);
 };
 export default MarketingTools;

@@ -135,7 +135,7 @@ const CustomerSidebar = ({ open, onClose, onToggle }) => {
 
     return (<>
       {/* Permanent Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card/95 backdrop-blur-xl shrink-0 sticky top-16 h-[calc(100vh-4.5rem)] shadow-sm font-sans rounded-2xl my-2 ml-4">
+      <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card/95 backdrop-blur-xl shrink-0 sticky top-16 h-[calc(100vh-4.5rem)] shadow-sm font-sans rounded-2xl my-2 ml-0">
         <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border/80">
           <User className="h-5 w-5 text-primary"/>
           <span className="font-display text-base font-bold tracking-tight text-foreground">{t("dashboard")}</span>

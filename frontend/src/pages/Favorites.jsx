@@ -79,8 +79,8 @@ const Favorites = () => {
         }
     };
     return (role === "customer" ? (<CustomerLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <div className="container mx-auto">
+      <section className="py-2 sm:py-6">
+        <div className="w-full">
           <div className="mb-6 sm:mb-8 flex items-center gap-3">
             <Heart className="h-6 w-6 sm:h-7 sm:w-7 text-primary fill-primary shrink-0"/>
             <div>

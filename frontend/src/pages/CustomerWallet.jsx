@@ -152,8 +152,8 @@ const CustomerWallet = () => {
         }
     };
     return (<CustomerLayout>
-      <div className="min-h-screen px-4 sm:px-6 lg:px-12 py-8">
-        <div className="max-w-6xl mx-auto space-y-8">
+      <div className="w-full py-2 sm:py-6">
+        <div className="w-full space-y-6">
           
           {/* Header */}
           <div className="mb-6 sm:mb-8">

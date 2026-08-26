@@ -3,6 +3,7 @@ import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { BarChart3, TrendingUp, Users, Ticket, DollarSign, Calendar, Loader2, AlertCircle, RefreshCcw } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
+import PageHeader from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
@@ -68,22 +69,16 @@ const EventAnalytics = () => {
       </MerchantLayout>);
     }
     return (<MerchantLayout>
-      <section className="py-2 sm:py-8 lg:py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
-            <div>
-              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
-                <BarChart3 className="h-6 w-6 sm:h-7 sm:w-7 text-primary"/>
-                Event <span className="text-gradient">Analytics</span>
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">Track ticket sales, revenue, and attendee statistics</p>
-            </div>
-            <Button onClick={loadAnalytics} variant="outline" size="sm" className="w-full sm:w-auto">
-              <RefreshCcw className="h-4 w-4 mr-2"/>
-              Refresh
-            </Button>
-          </div>
-        </motion.div>
+      <div className="w-full min-w-0 space-y-5 font-sans">
+        <PageHeader
+          title="Event Analytics"
+          subtitle="Track ticket sales, revenue breakdown, and attendee statistics across all your events."
+          breadcrumbs={[
+            { label: "Merchant Portal", to: "/merchant-dashboard" },
+            { label: "Growth" },
+            { label: "Event Analytics" },
+          ]}
+        />
 
         {/* Stats Grid */}
         <div ref={statsGridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
@@ -155,7 +150,7 @@ const EventAnalytics = () => {
             )}
           </div>
         </motion.div>
-      </section>
+      </div>
     </MerchantLayout>);
 };
 export default EventAnalytics;
