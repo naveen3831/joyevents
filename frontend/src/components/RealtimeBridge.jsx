@@ -33,8 +33,7 @@ export default function RealtimeBridge() {
   useEffect(() => {
     if (!token || !isLoggedIn) return undefined;
 
-    const client = createRealtimeClient({
-      token,
+    const client = createRealtimeClient(token, {
       onMessage(msg) {
         dispatchRealtimeEvent("realtime:raw-message", msg);
 

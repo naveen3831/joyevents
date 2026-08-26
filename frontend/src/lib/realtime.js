@@ -41,7 +41,7 @@ function isTokenExpired(token) {
   }
 }
 
-export function createRealtimeClient({ token, onMessage, onStatus }) {
+export function createRealtimeClient(token, { onMessage, onStatus } = {}) {
   let socket = null;
   let reconnectTimer = null;
   let reconnectAttempt = 0;
@@ -69,6 +69,10 @@ export function createRealtimeClient({ token, onMessage, onStatus }) {
     }
     clearReconnect();
     setStatus("connecting");
+
+    console.log("[Realtime] token present:", Boolean(token));
+    console.log("[Realtime] token length:", token?.length);
+    console.log("[Realtime] connecting path:", "/ws");
 
     if (socket) {
       socket.onopen = null;
@@ -111,7 +115,7 @@ export function createRealtimeClient({ token, onMessage, onStatus }) {
   }
 
   if (isTokenExpired(token)) {
-    setStatus("error");
+    onStatus?.("error");
     return { close() {} };
   }
 
