@@ -13,8 +13,8 @@ export const DataTable = ({ children, className = "", minWidth = "700px" }) => {
 };
 
 export const TableHeader = ({ children, className = "" }) => (
-  <thead>
-    <tr className={`bg-muted/40 border-b border-border/70 ${className}`}>
+  <thead className={`sticky top-0 z-10 bg-card shadow-xs border-b border-border/70 ${className}`}>
+    <tr className="bg-muted/50 border-b border-border/70">
       {children}
     </tr>
   </thead>
@@ -23,7 +23,7 @@ export const TableHeader = ({ children, className = "" }) => (
 export const TableHeaderCell = ({ children, className = "", align = "left", width }) => (
   <th
     style={width ? { width } : undefined}
-    className={`px-3.5 sm:px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider align-middle ${
+    className={`px-3.5 sm:px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider align-middle bg-card ${
       align === "center" ? "text-center" : align === "right" ? "text-right" : "text-left"
     } ${className}`}
   >

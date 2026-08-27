@@ -54,6 +54,7 @@
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.34.4",
     "gsap": "^3.15.0",
+    "html5-qrcode": "^2.3.8",
     "i18next": "^26.0.2",
     "input-otp": "^1.4.2",
     "leaflet": "^1.9.4",

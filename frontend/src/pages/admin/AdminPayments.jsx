@@ -220,15 +220,15 @@ const AdminPayments = () => {
           </TableBody>
         </DataTable>
       ) : (
-        <DataTable minWidth="100%">
+        <DataTable minWidth="850px">
           <TableHeader>
             <TableHeaderCell className="w-[26%]">Booking / Item</TableHeaderCell>
             <TableHeaderCell className="w-[16%]">Customer</TableHeaderCell>
             <TableHeaderCell className="w-[14%]">Amount</TableHeaderCell>
-            <TableHeaderCell className="w-[12%]">Status</TableHeaderCell>
+            <TableHeaderCell className="w-[14%]">Status</TableHeaderCell>
             <TableHeaderCell className="w-[12%]">Method</TableHeaderCell>
             <TableHeaderCell className="w-[12%]">Date</TableHeaderCell>
-            <TableHeaderCell align="right" className="w-[8%]">Actions</TableHeaderCell>
+            <TableHeaderCell align="right" className="w-[6%]">Actions</TableHeaderCell>
           </TableHeader>
           <TableBody>
             {filteredBookings.map((booking) => {
@@ -247,62 +247,66 @@ const AdminPayments = () => {
               });
 
               return (
-                <TableRow key={booking._id}>
+                <TableRow key={booking._id} className="h-[64px]">
                   {/* Booking / Item */}
-                  <TableCell>
-                    <div className="space-y-0.5">
-                      <p className="font-semibold text-xs text-foreground truncate max-w-[220px]" title={bookingName}>
+                  <TableCell className="w-[26%] py-3">
+                    <div className="space-y-1">
+                      <p className="font-bold text-xs sm:text-sm text-foreground truncate max-w-[210px]" title={bookingName}>
                         {bookingName}
                       </p>
-                      <StatusBadge status={booking.event ? "event" : "service"} />
+                      <div>
+                        <StatusBadge
+                          status={booking.event ? "event" : "service"}
+                          className="h-4.5 px-2 text-[10px] font-medium min-w-0 inline-flex"
+                        />
+                      </div>
                     </div>
                   </TableCell>
 
                   {/* Customer */}
-                  <TableCell>
-                    <p className="font-semibold text-xs text-foreground">
-                      {booking.customer?.name || "Customer"}
-                    </p>
-                  </TableCell>
-
-                  {/* Amount */}
-                  <TableCell>
-                    <div className="space-y-0.5 text-xs">
-                      <p className="font-bold text-foreground">
-                        {formatCurrency(booking.price || 0)}
+                  <TableCell className="w-[16%] py-3">
+                    <div className="space-y-0.5">
+                      <p className="font-semibold text-xs sm:text-sm text-foreground truncate max-w-[130px]" title={booking.customer?.name}>
+                        {booking.customer?.name || "Customer"}
                       </p>
-                      {booking.paymentStatus === "paid" ? (
-                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Paid</p>
-                      ) : booking.paymentStatus === "pending" || booking.paymentStatus === "partially_paid" ? (
-                        <p className="text-[10px] text-amber-600 font-medium">{formatCurrency(dueAmount)} due</p>
-                      ) : booking.paymentStatus === "failed" ? (
-                        <p className="text-[10px] text-rose-600 font-medium">Failed</p>
-                      ) : booking.paymentStatus === "refunded" ? (
-                        <p className="text-[10px] text-slate-500 font-medium">Refunded</p>
-                      ) : null}
+                      {booking.customer?.email && (
+                        <p className="text-[11px] text-muted-foreground truncate max-w-[130px]" title={booking.customer.email}>
+                          {booking.customer.email}
+                        </p>
+                      )}
                     </div>
                   </TableCell>
 
+                  {/* Amount */}
+                  <TableCell className="w-[14%] py-3">
+                    <p className="font-bold text-xs sm:text-sm text-foreground">
+                      {formatCurrency(booking.price || 0)}
+                    </p>
+                  </TableCell>
+
                   {/* Status */}
-                  <TableCell>
-                    <StatusBadge status={booking.paymentStatus} />
+                  <TableCell className="w-[14%] py-3">
+                    <StatusBadge
+                      status={booking.paymentStatus}
+                      className="h-[28px] min-w-[94px] px-3 font-semibold justify-center text-center"
+                    />
                   </TableCell>
 
                   {/* Method */}
-                  <TableCell>
-                    <div className="flex items-center gap-1.5 text-xs text-foreground font-medium">
+                  <TableCell className="w-[12%] py-3">
+                    <div className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground whitespace-nowrap">
                       {getPaymentMethodIcon(booking.paymentMethod)}
                       <span className="capitalize">{booking.paymentMethod || "standard"}</span>
                     </div>
                   </TableCell>
 
                   {/* Date */}
-                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                  <TableCell className="w-[12%] py-3 text-xs text-muted-foreground whitespace-nowrap font-medium">
                     {formattedDate}
                   </TableCell>
 
                   {/* Actions */}
-                  <TableCell align="right">
+                  <TableCell align="right" className="w-[6%] py-3">
                     <ActionMenu
                       items={[
                         {

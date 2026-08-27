@@ -266,7 +266,7 @@ const AdminCommissions = () => {
 
           {/* Breakdown Table */}
           <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
-            <div className="p-4 sm:p-6 border-b border-border/80">
+            <div className="px-5 sm:px-6 py-4 border-b border-border/80">
               <h2 className="font-display text-lg sm:text-xl font-bold">Commission Breakdown</h2>
               <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Detailed breakdown of platform commission and net merchant payout per booking.</p>
             </div>
@@ -277,14 +277,14 @@ const AdminCommissions = () => {
             ) : (
               <DataTable minWidth="100%">
                 <TableHeader>
-                  <TableHeaderCell className="w-[24%]">Service / Event</TableHeaderCell>
-                  <TableHeaderCell className="w-[14%]">Merchant</TableHeaderCell>
-                  <TableHeaderCell className="w-[12%] whitespace-nowrap">Booking Amount</TableHeaderCell>
-                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Rate</TableHeaderCell>
-                  <TableHeaderCell className="w-[12%] whitespace-nowrap">Admin Earnings</TableHeaderCell>
-                  <TableHeaderCell className="w-[12%] whitespace-nowrap">Merchant Payout</TableHeaderCell>
-                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Date</TableHeaderCell>
-                  <TableHeaderCell align="right" className="w-[6%]">Actions</TableHeaderCell>
+                  <TableHeaderCell className="w-[25%] pl-5 sm:pl-6 pr-3">SERVICE / EVENT</TableHeaderCell>
+                  <TableHeaderCell className="w-[13%] px-3">MERCHANT</TableHeaderCell>
+                  <TableHeaderCell className="w-[12%] px-3 whitespace-nowrap">BOOKING AMOUNT</TableHeaderCell>
+                  <TableHeaderCell className="w-[10%] px-3 whitespace-nowrap">RATE</TableHeaderCell>
+                  <TableHeaderCell className="w-[13%] px-3 whitespace-nowrap">ADMIN EARNINGS</TableHeaderCell>
+                  <TableHeaderCell className="w-[11%] px-3 whitespace-nowrap">PAYOUT</TableHeaderCell>
+                  <TableHeaderCell className="w-[11%] px-3 whitespace-nowrap">DATE</TableHeaderCell>
+                  <TableHeaderCell align="right" className="w-[5%] pr-5 sm:pr-6 pl-3">ACTIONS</TableHeaderCell>
                 </TableHeader>
                 <TableBody>
                   {commissionRows.map(({ booking, adminEarning, payout, rateLabel, isSaved, isAdminBooking }) => {
@@ -297,53 +297,68 @@ const AdminCommissions = () => {
                     const showDash = !isSaved && !isAdminBooking;
 
                     return (
-                      <TableRow key={booking._id}>
+                      <TableRow key={booking._id} className="h-[62px]">
                         {/* Service / Event */}
-                        <TableCell>
-                          <div className="space-y-0.5">
-                            <p className="font-semibold text-xs text-foreground truncate max-w-[200px]" title={itemName}>
+                        <TableCell className="w-[25%] pl-5 sm:pl-6 pr-3 py-3">
+                          <div className="space-y-1 min-w-0">
+                            <p className="font-bold text-xs sm:text-sm text-foreground truncate max-w-[210px]" title={itemName}>
                               {itemName}
                             </p>
-                            <StatusBadge status={booking.event ? "event" : "service"} />
+                            <div>
+                              <StatusBadge
+                                status={booking.event ? "event" : "service"}
+                                className="h-4.5 px-2 text-[10px] font-medium min-w-0 inline-flex"
+                              />
+                            </div>
                           </div>
                         </TableCell>
 
                         {/* Merchant */}
-                        <TableCell>
+                        <TableCell className="w-[13%] px-3 py-3">
                           {booking.assignedTo ? (
-                            <p className="font-semibold text-xs text-foreground">{booking.assignedTo.name}</p>
+                            <p className="font-semibold text-xs sm:text-sm text-foreground truncate max-w-[120px]" title={booking.assignedTo.name}>
+                              {booking.assignedTo.name}
+                            </p>
                           ) : (
-                            <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                            <span className="text-xs text-amber-600 dark:text-amber-400 font-medium italic">Unassigned</span>
                           )}
                         </TableCell>
 
                         {/* Booking Amount */}
-                        <TableCell className="font-bold text-xs text-foreground">
+                        <TableCell className="w-[12%] px-3 py-3 font-bold text-xs sm:text-sm text-foreground whitespace-nowrap">
                           {formatCurrency(booking.price)}
                         </TableCell>
 
                         {/* Rate */}
-                        <TableCell>
-                          <StatusBadge status={isAdminBooking ? "admin" : isSaved ? "active" : "pending"} label={rateLabel} />
+                        <TableCell className="w-[10%] px-3 py-3">
+                          <StatusBadge
+                            status={isAdminBooking ? "admin" : isSaved ? "active" : "pending"}
+                            label={rateLabel}
+                            className={`h-[26px] px-2.5 text-[11px] font-semibold flex items-center justify-center rounded-full w-fit ${
+                              rateLabel === "5%"
+                                ? "min-w-[48px]"
+                                : "min-w-[70px]"
+                            }`}
+                          />
                         </TableCell>
 
                         {/* Admin Earnings */}
-                        <TableCell className="font-semibold text-xs text-foreground">
-                          {showDash ? "—" : formatCurrency(adminEarning)}
+                        <TableCell className="w-[13%] px-3 py-3 font-bold text-xs sm:text-sm text-foreground whitespace-nowrap">
+                          {showDash ? <span className="text-muted-foreground font-normal">—</span> : formatCurrency(adminEarning)}
                         </TableCell>
 
-                        {/* Merchant Payout */}
-                        <TableCell className="text-purple-600 font-semibold text-xs">
-                          {showDash ? "—" : formatCurrency(payout)}
+                        {/* Payout */}
+                        <TableCell className="w-[11%] px-3 py-3 font-bold text-xs sm:text-sm text-purple-600 dark:text-purple-400 whitespace-nowrap">
+                          {showDash ? <span className="text-muted-foreground font-normal">—</span> : formatCurrency(payout)}
                         </TableCell>
 
                         {/* Date */}
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                        <TableCell className="w-[11%] px-3 py-3 text-xs text-muted-foreground whitespace-nowrap font-medium">
                           {formattedDate}
                         </TableCell>
 
                         {/* Actions */}
-                        <TableCell align="right">
+                        <TableCell align="right" className="w-[5%] pr-5 sm:pr-6 pl-3 py-3">
                           <ActionMenu
                             items={[
                               {

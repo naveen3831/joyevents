@@ -420,7 +420,15 @@ router.patch("/:id", verifyToken, upload.fields([
           return res.status(400).json({ error: "Destination URL cannot exceed 2048 characters" });
         }
         const isRelative = trimmed.startsWith("/");
-        const isValid = isRelative || /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .%-]*)*\/?$/i.test(trimmed);
+        let isValid = isRelative;
+        if (!isRelative) {
+          try {
+            const parsed = new URL(trimmed);
+            isValid = parsed.protocol === "http:" || parsed.protocol === "https:";
+          } catch {
+            isValid = false;
+          }
+        }
         if (!isValid) {
           return res.status(400).json({ error: "Invalid QR Destination URL format" });
         }

@@ -99,9 +99,19 @@ export default function QRCodeGenerator() {
             toast.error("Destination URL cannot exceed 2048 characters");
             return;
         }
-        // Check if it's a relative path starting with '/' or a valid absolute URL (allowing spaces)
+        // Allow relative paths (starting with /) or any valid absolute URL
+        // Use the browser's URL constructor for reliable validation — it correctly
+        // handles localhost, IP addresses with ports, and all standard domains.
         const isRelativePath = trimmedUrl.startsWith("/");
-        const isValidUrl = isRelativePath || /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .%-]*)*\/?$/i.test(trimmedUrl);
+        let isValidUrl = isRelativePath;
+        if (!isRelativePath) {
+            try {
+                const parsed = new URL(trimmedUrl);
+                isValidUrl = parsed.protocol === "http:" || parsed.protocol === "https:";
+            } catch {
+                isValidUrl = false;
+            }
+        }
         if (!isValidUrl) {
             toast.error("Please enter a valid URL (starting with http:// or https://) or a relative path (starting with /)");
             return;

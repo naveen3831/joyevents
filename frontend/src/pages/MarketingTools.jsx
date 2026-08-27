@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Megaphone, Ticket, Share2, Send, Plus, Edit2, Trash2, Copy, Loader2, AlertCircle } from "lucide-react";
@@ -70,6 +70,7 @@ const EventShareCard = ({ event, onCopy }) => {
       </Card>);
 };
 const MarketingTools = () => {
+    const navigate = useNavigate();
     const { token } = useAuth();
     const location = useLocation();
     const [loading, setLoading] = useState(true);
@@ -112,25 +113,7 @@ const MarketingTools = () => {
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
         if (searchParams.get("createPromo") === "true" || location.state?.openCreatePromo) {
-            setEditingPromo(null);
-            setPromoForm({
-                code: "",
-                description: "",
-                appliesTo: "all",
-                applicableCategories: ["all"],
-                discountType: "percentage",
-                discountValue: 0,
-                maxUses: "",
-                expiryDate: "",
-                minBookingAmount: 0,
-                maxDiscount: ""
-            });
-            setPromoDialogOpen(true);
-            setActiveTab("promo");
-            // Clean up search query and state
-            if (searchParams.get("createPromo") === "true") {
-                window.history.replaceState(null, "", window.location.pathname);
-            }
+            navigate("/merchant-dashboard/marketing/promo/new");
         }
     }, [location.search, location.state]);
     // Smooth real-time updates
@@ -206,20 +189,7 @@ const MarketingTools = () => {
         }
     };
     const handleEditPromo = (promo) => {
-        setEditingPromo(promo);
-        setPromoForm({
-            code: promo.code || "",
-            description: promo.description || "",
-            appliesTo: promo.appliesTo || "all",
-            applicableCategories: promo.applicableCategories?.length > 0 ? promo.applicableCategories : ["all"],
-            discountType: promo.discountType || "percentage",
-            discountValue: promo.discountValue || 0,
-            maxUses: promo.maxUses != null ? String(promo.maxUses) : "",
-            expiryDate: promo.expiryDate ? promo.expiryDate.split("T")[0] : "",
-            minBookingAmount: promo.minBookingAmount || 0,
-            maxDiscount: promo.maxDiscount != null ? String(promo.maxDiscount) : "",
-        });
-        setPromoDialogOpen(true);
+        navigate(`/merchant-dashboard/marketing/promo/${promo._id}/edit`);
     };
     const getCategoryOptions = (appliesTo) => {
         if (appliesTo === "services")
@@ -363,11 +333,6 @@ const MarketingTools = () => {
             { label: "Growth" },
             { label: "Marketing Tools" },
           ]}
-          actions={
-            <Button onClick={() => openPromoDialog()} className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-xs font-semibold h-9 px-3.5">
-              <Plus className="mr-1.5 h-4 w-4"/> Create Promo Code
-            </Button>
-          }
         />
 
         {/* Tabs */}
@@ -399,11 +364,7 @@ const MarketingTools = () => {
                 <h2 className="font-display text-lg sm:text-xl font-bold text-foreground">Promo Codes</h2>
                 <p className="text-muted-foreground text-sm mt-1">Create and manage discount codes</p>
               </div>
-              <Button onClick={() => {
-                setEditingPromo(null);
-                setPromoForm({ code: "", description: "", appliesTo: "all", applicableCategories: ["all"], discountType: "percentage", discountValue: 0, maxUses: "", expiryDate: "", minBookingAmount: 0, maxDiscount: "" });
-                setPromoDialogOpen(true);
-            }} className="bg-gradient-primary">
+              <Button onClick={() => navigate("/merchant-dashboard/marketing/promo/new")} className="bg-gradient-primary">
                 <Plus className="h-4 w-4 mr-2"/>
                 Create Promo Code
               </Button>
@@ -466,110 +427,7 @@ const MarketingTools = () => {
             </Card>
           </motion.div>)}
 
-        {/* Promo Code Dialog */}
-        <Dialog open={promoDialogOpen} onOpenChange={(open) => { setPromoDialogOpen(open); if (!open)
-        setEditingPromo(null); }}>
-          <DialogContent className="max-w-md md:max-w-xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="pb-2">
-              <DialogTitle>{editingPromo ? "Edit Promo Code" : "Create Promo Code"}</DialogTitle>
-              <DialogDescription>{editingPromo ? "Update the discount code details" : "Create a new discount code for your customers"}</DialogDescription>
-            </DialogHeader>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3 py-2">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <Label className="text-xs font-semibold">Promo Code</Label>
-                  <span className="text-[10px] text-muted-foreground">{(promoForm.code || "").length}/15</span>
-                </div>
-                <Input placeholder="e.g., SUMMER20" value={promoForm.code} maxLength={15} onChange={(e) => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })} className="h-9 text-xs"/>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <Label className="text-xs font-semibold">Description</Label>
-                  <span className="text-[10px] text-muted-foreground">{(promoForm.description || "").length}/150</span>
-                </div>
-                <Input placeholder="e.g., Summer discount" value={promoForm.description} maxLength={150} onChange={(e) => setPromoForm({ ...promoForm, description: e.target.value })} className="h-9 text-xs"/>
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold">Applies To</Label>
-                <Select value={promoForm.appliesTo} onValueChange={(value) => {
-            setPromoForm({
-                ...promoForm,
-                appliesTo: value,
-                applicableCategories: ["all"]
-            });
-        }}>
-                  <SelectTrigger className="mt-1 h-9 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All (Events + Services)</SelectItem>
-                    <SelectItem value="ticketedEvents">Ticketed Events</SelectItem>
-                    <SelectItem value="fullServiceEvents">Single Ticket Events</SelectItem>
-                    <SelectItem value="services">Services</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold">Applicable Categories</Label>
-                <Select key={promoForm.appliesTo} value={promoForm.applicableCategories?.[0] || "all"} onValueChange={(value) => setPromoForm({ ...promoForm, applicableCategories: [value] })}>
-                  <SelectTrigger className="mt-1 h-9 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {(getCategoryOptions(promoForm.appliesTo) || []).map((cat, idx) => (<SelectItem key={idx} value={cat}>{cat}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold">Discount Type</Label>
-                <Select value={promoForm.discountType} onValueChange={(value) => setPromoForm({ ...promoForm, discountType: value })}>
-                  <SelectTrigger className="mt-1 h-9 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percentage">Percentage (%)</SelectItem>
-                    <SelectItem value="fixed">Fixed (₹)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold">Discount Value</Label>
-                <Input type="number" placeholder="0" value={promoForm.discountValue} onChange={(e) => setPromoForm({ ...promoForm, discountValue: parseFloat(e.target.value) })} className="mt-1 h-9 text-xs"/>
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold">Minimum Booking Amount</Label>
-                <Input type="number" placeholder="e.g., 3000" value={promoForm.minBookingAmount} onChange={(e) => setPromoForm({ ...promoForm, minBookingAmount: Number(e.target.value || 0) })} className="mt-1 h-9 text-xs"/>
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold">Max Uses (Leave empty for unlimited)</Label>
-                <Input type="number" placeholder="e.g., 100" value={promoForm.maxUses} onChange={(e) => setPromoForm({ ...promoForm, maxUses: e.target.value })} className="mt-1 h-9 text-xs"/>
-              </div>
-
-              <div className="md:col-span-2">
-                <Label className="text-xs font-semibold">Expiry Date</Label>
-                <Input type="date" value={promoForm.expiryDate} onChange={(e) => setPromoForm({ ...promoForm, expiryDate: e.target.value })} className="mt-1 h-9 text-xs"/>
-              </div>
-            </div>
-
-            <DialogFooter className="pt-2">
-              <Button variant="outline" onClick={() => setPromoDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleCreatePromo} disabled={submitting} className="bg-gradient-primary">
-                {submitting ? (editingPromo ? "Saving..." : "Creating...") : (editingPromo ? "Save Changes" : "Create Code")}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* Notification Dialog */}
         <Dialog open={notifyDialogOpen} onOpenChange={setNotifyDialogOpen}>
