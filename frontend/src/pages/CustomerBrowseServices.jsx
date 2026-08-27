@@ -476,57 +476,92 @@ const CustomerBrowseServices = () => {
                   )}
                 </div>
               ) : (
-                <div ref={gridRef} className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div ref={gridRef} className="grid grid-cols-1 gap-6 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3">
                   {filtered.map((svc, i) => (
-                    <motion.div key={svc._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: i * 0.04 }} onClick={() => goToDetail(svc)} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors w-full h-full cursor-pointer">
+                    <motion.div
+                      key={svc._id}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, amount: 0.15 }}
+                      transition={{ delay: i * 0.04 }}
+                      onClick={() => goToDetail(svc)}
+                      className="group rounded-[14px] border border-border bg-card overflow-hidden flex flex-col shadow-[0_4px_14px_rgba(15,23,42,0.06)] hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(15,23,42,0.1)] hover:border-primary/50 transition-all duration-300 w-full min-w-0 h-full cursor-pointer"
+                    >
                       {/* Image */}
-                      <div className="relative overflow-hidden bg-secondary shrink-0 w-full h-48 sm:h-52 cursor-pointer" onClick={() => goToDetail(svc)}>
-                        {imgSrc(svc.image) ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full w-full items-center justify-center"><Briefcase className="h-10 w-10 opacity-20"/></div>)}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/>
+                      <div className="relative overflow-hidden bg-secondary shrink-0 w-full h-[175px]">
+                        {imgSrc(svc.image) ? (
+                          <img
+                            src={imgSrc(svc.image)}
+                            alt={svc.name}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <Briefcase className="h-10 w-10 opacity-20" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                         <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
                           From {formatCurrency(svc.price)}
                         </span>
                       </div>
 
                       {/* Content */}
-                      <div className="p-4 sm:p-5 flex flex-col flex-1 min-w-0 justify-between">
+                      <div className="p-[14px_18px_16px_18px] flex flex-col flex-grow min-w-0">
                         <div>
-                          <Link to={`/customer-dashboard/services/${svc._id}`}>
-                            <h3 className="font-display text-base sm:text-lg font-bold line-clamp-2 leading-snug group-hover:text-primary transition-colors cursor-pointer">
-                              {svc.name}
-                            </h3>
-                          </Link>
+                          <h3 className="font-display text-base sm:text-lg font-bold line-clamp-2 leading-snug group-hover:text-primary transition-colors cursor-pointer">
+                            {svc.name}
+                          </h3>
 
                           {/* Rating display */}
-                          {svc.averageRating && svc.averageRating > 0 ? (<div className="flex items-center gap-1 mt-1">
-                              <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0"/>
+                          {svc.averageRating && svc.averageRating > 0 ? (
+                            <div className="flex items-center gap-1 mt-2">
+                              <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0" />
                               <span className="text-xs font-semibold">
                                 {svc.averageRating.toFixed(1)}
                               </span>
                               <span className="text-[10px] text-muted-foreground">
                                 ({svc.ratingCount || 0})
                               </span>
-                            </div>) : null}
-                          {svc.highlights?.length > 0 && (<ul className="mt-2 space-y-1">
-                              {svc.highlights.slice(0, 2).map((h, hi) => (<li key={hi} className="flex items-center gap-1.5 text-[11px] sm:text-xs text-muted-foreground">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0"/>
+                            </div>
+                          ) : null}
+
+                          {svc.highlights?.length > 0 && (
+                            <ul className="mt-2 space-y-1">
+                              {svc.highlights.slice(0, 2).map((h, hi) => (
+                                <li key={hi} className="flex items-center gap-1.5 text-[11px] sm:text-xs text-muted-foreground">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
                                   <span className="line-clamp-1">{h}</span>
-                                </li>))}
-                            </ul>)}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </div>
 
-                        <div className="flex-1"/>
+                        {/* Action Area */}
+                        <div className="mt-auto pt-[16px] space-y-[10px]">
+                          <Button
+                            className="w-full h-[46px] rounded-xl text-xs font-semibold bg-gradient-primary text-white hover:opacity-90 flex items-center justify-center gap-1.5 shadow-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedServiceForCart(svc);
+                            }}
+                          >
+                            <ShoppingBag className="h-3.5 w-3.5" /> Book Now
+                          </Button>
 
-                        <div className="mt-2 sm:mt-5 flex flex-col gap-1.5 sm:gap-2">
-                          <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10" onClick={() => goToDetail(svc)}>
-                            View Details
-                          </Button>
-                          <Button className="w-full rounded-lg py-1.5 sm:py-2 text-[11px] sm:text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 flex items-center justify-center gap-1.5" onClick={() => setSelectedServiceForCart(svc)}>
-                            <ShoppingBag className="h-4 w-4"/> Add to Cart
-                          </Button>
-                          {svc.createdBy && (<button onClick={() => setContactService(svc)} className="w-full rounded-lg py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium border border-border hover:bg-secondary transition-all text-muted-foreground flex items-center justify-center gap-1">
-                              <Mail className="h-3.5 w-3.5"/> Contact Provider
-                            </button>)}
+                          {svc.createdBy && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setContactService(svc);
+                              }}
+                              className="w-full h-[24px] max-h-[24px] text-[12px] font-semibold text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1.5 cursor-pointer pt-0.5"
+                            >
+                              <Mail className="h-3.5 w-3.5" /> Contact Provider
+                            </button>
+                          )}
                         </div>
                       </div>
                     </motion.div>

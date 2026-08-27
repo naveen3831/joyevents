@@ -75,7 +75,7 @@ const AdminMyServices = () => {
               <p className="text-xs text-muted-foreground mt-1">Click "New Service" to create your first service. Only your services are shown here.</p>
             </div>) : (<div ref={gridRef} className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
               {services.map((svc) => (<div key={svc._id} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 hover:shadow-card transition-all">
-                  <div className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-44">
+                  <div className="relative overflow-hidden bg-secondary flex-shrink-0 h-[175px] w-full">
                     {svc.image ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
                         <Briefcase className="h-12 w-12 opacity-30"/>
                       </div>)}

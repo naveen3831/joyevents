@@ -378,7 +378,7 @@ const UserDashboard = () => {
                             onClick={() => navigate(`/customer-dashboard/services/${svc._id}`)}
                             className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors cursor-pointer"
                           >
-                            <div className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-44">
+                            <div className="relative overflow-hidden bg-secondary flex-shrink-0 h-[175px] w-full">
                               {svc.image ? (
                                 <img src={svc.image.startsWith("http") ? svc.image : `${API_URL}${svc.image}`} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>
                               ) : (

@@ -4,6 +4,7 @@ import {
   Clock,
   CreditCard,
   DollarSign,
+  Eye,
   ReceiptText,
   RefreshCw,
   Smartphone,
@@ -23,8 +24,10 @@ import { StatusBadge } from "@/components/common/table/StatusBadge";
 import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
 import { TableSkeleton } from "@/components/common/table/TableSkeleton";
 import { TableEmptyState } from "@/components/common/table/TableEmptyState";
+import { useNavigate } from "react-router-dom";
 
 const AdminPayments = () => {
+  const navigate = useNavigate();
   const { token } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -219,109 +222,106 @@ const AdminPayments = () => {
       ) : (
         <DataTable minWidth="100%">
           <TableHeader>
-            <TableHeaderCell className="w-[20%]">Booking Item</TableHeaderCell>
-            <TableHeaderCell className="w-[18%]">Customer / Merchant</TableHeaderCell>
-            <TableHeaderCell className="w-[14%]">Payment Status</TableHeaderCell>
-            <TableHeaderCell className="w-[12%] whitespace-nowrap">Amounts</TableHeaderCell>
-            <TableHeaderCell className="w-[12%] whitespace-nowrap">Revenue Split</TableHeaderCell>
-            <TableHeaderCell className="w-[12%] font-mono">Reference</TableHeaderCell>
-            <TableHeaderCell className="w-[8%] whitespace-nowrap">Date</TableHeaderCell>
-            <TableHeaderCell align="right" className="w-[4%]">Action</TableHeaderCell>
+            <TableHeaderCell className="w-[26%]">Booking / Item</TableHeaderCell>
+            <TableHeaderCell className="w-[16%]">Customer</TableHeaderCell>
+            <TableHeaderCell className="w-[14%]">Amount</TableHeaderCell>
+            <TableHeaderCell className="w-[12%]">Status</TableHeaderCell>
+            <TableHeaderCell className="w-[12%]">Method</TableHeaderCell>
+            <TableHeaderCell className="w-[12%]">Date</TableHeaderCell>
+            <TableHeaderCell align="right" className="w-[8%]">Actions</TableHeaderCell>
           </TableHeader>
           <TableBody>
             {filteredBookings.map((booking) => {
               const paidAmount = getPaidAmount(booking);
               const dueAmount = getDueAmount(booking);
-              const adminAmount = getAdminEarning(booking);
-              const merchantAmount = getMerchantPayout(booking);
               const bookingName =
                 booking.serviceName ||
                 booking.eventName ||
                 booking.event?.title ||
                 booking.service?.name ||
                 "Booking";
-              const commissionLabel = booking.commissionSummary?.adminDirect
-                ? "Admin Direct"
-                : `Commission ${Number(
-                    booking.commissionSummary?.commissionRate ?? commissionRate * 100
-                  ).toFixed(0)}%`;
+              const formattedDate = new Date(booking.createdAt).toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              });
 
               return (
                 <TableRow key={booking._id}>
+                  {/* Booking / Item */}
                   <TableCell>
-                    <div className="space-y-1">
-                      <p className="font-semibold text-xs text-foreground truncate max-w-[180px]">
+                    <div className="space-y-0.5">
+                      <p className="font-semibold text-xs text-foreground truncate max-w-[220px]" title={bookingName}>
                         {bookingName}
                       </p>
-                      <div className="flex items-center gap-1.5">
-                        <StatusBadge status={booking.event ? "event" : "service"} />
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          ID: {booking._id.slice(-6)}
-                        </span>
-                      </div>
+                      <StatusBadge status={booking.event ? "event" : "service"} />
                     </div>
                   </TableCell>
+
+                  {/* Customer */}
                   <TableCell>
-                    <div className="space-y-1 text-xs">
-                      <div>
-                        <p className="font-medium text-foreground">{booking.customer?.name || "Customer"}</p>
-                        <p className="text-[10px] text-muted-foreground truncate max-w-[130px]">
-                          {booking.customer?.email}
-                        </p>
-                      </div>
-                      <div className="text-[10px]">
-                        <span className="text-muted-foreground font-medium">Merchant: </span>
-                        <span className="text-foreground">{booking.assignedTo?.name || "Unassigned"}</span>
-                      </div>
-                    </div>
+                    <p className="font-semibold text-xs text-foreground">
+                      {booking.customer?.name || "Customer"}
+                    </p>
                   </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <StatusBadge status={booking.paymentStatus} />
-                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                        {getPaymentMethodIcon(booking.paymentMethod)}
-                        <span className="capitalize">{booking.paymentMethod || "standard"}</span>
-                      </div>
-                    </div>
-                  </TableCell>
+
+                  {/* Amount */}
                   <TableCell>
                     <div className="space-y-0.5 text-xs">
-                      <AmountLine label="Total" value={formatCurrency(booking.price || 0)} />
-                      <AmountLine label="Paid" value={formatCurrency(paidAmount)} valueClass="text-emerald-600 dark:text-emerald-400 font-semibold" />
-                      {dueAmount > 0 && (
-                        <AmountLine label="Due" value={formatCurrency(dueAmount)} valueClass="text-amber-600 font-semibold" />
-                      )}
+                      <p className="font-bold text-foreground">
+                        {formatCurrency(booking.price || 0)}
+                      </p>
+                      {booking.paymentStatus === "paid" ? (
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Paid</p>
+                      ) : booking.paymentStatus === "pending" || booking.paymentStatus === "partially_paid" ? (
+                        <p className="text-[10px] text-amber-600 font-medium">{formatCurrency(dueAmount)} due</p>
+                      ) : booking.paymentStatus === "failed" ? (
+                        <p className="text-[10px] text-rose-600 font-medium">Failed</p>
+                      ) : booking.paymentStatus === "refunded" ? (
+                        <p className="text-[10px] text-slate-500 font-medium">Refunded</p>
+                      ) : null}
                     </div>
                   </TableCell>
+
+                  {/* Status */}
                   <TableCell>
-                    <div className="space-y-0.5 text-xs">
-                      <AmountLine label="Admin" value={formatCurrency(adminAmount)} />
-                      <AmountLine label="Merchant" value={formatCurrency(merchantAmount)} />
-                      <p className="text-[10px] text-muted-foreground">{commissionLabel}</p>
-                    </div>
+                    <StatusBadge status={booking.paymentStatus} />
                   </TableCell>
+
+                  {/* Method */}
                   <TableCell>
-                    <div className="space-y-0.5 text-[10px] font-mono">
-                      <p className="truncate max-w-[110px] text-foreground">{getPaymentReference(booking)}</p>
-                      {booking.ticketId && <p className="text-muted-foreground">Ticket: {booking.ticketId}</p>}
+                    <div className="flex items-center gap-1.5 text-xs text-foreground font-medium">
+                      {getPaymentMethodIcon(booking.paymentMethod)}
+                      <span className="capitalize">{booking.paymentMethod || "standard"}</span>
                     </div>
                   </TableCell>
+
+                  {/* Date */}
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(booking.createdAt).toLocaleDateString()}
+                    {formattedDate}
                   </TableCell>
+
+                  {/* Actions */}
                   <TableCell align="right">
-                    {booking.paymentStatus === "paid" && (
-                      <ActionMenu
-                        items={[
-                          {
-                            label: "Process Refund",
-                            icon: RefreshCw,
-                            destructive: true,
-                            onClick: () => setSelectedBookingForRefund(booking),
-                          },
-                        ]}
-                      />
-                    )}
+                    <ActionMenu
+                      items={[
+                        {
+                          label: "View Details",
+                          icon: Eye,
+                          onClick: () => navigate(`/admin-dashboard/payments/${booking._id}`),
+                        },
+                        ...(booking.paymentStatus === "paid"
+                          ? [
+                              {
+                                label: "Process Refund",
+                                icon: RefreshCw,
+                                destructive: true,
+                                onClick: () => setSelectedBookingForRefund(booking),
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
                   </TableCell>
                 </TableRow>
               );

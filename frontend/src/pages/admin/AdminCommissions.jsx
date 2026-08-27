@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Calculator, DollarSign, TrendingUp, Percent, Wallet, ArrowRight, Info } from "lucide-react";
+import { Calculator, DollarSign, TrendingUp, Percent, Wallet, ArrowRight, Info, Eye } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import { StatusBadge } from "@/components/common/table/StatusBadge";
 import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
 import { TableSkeleton } from "@/components/common/table/TableSkeleton";
 import { TableEmptyState } from "@/components/common/table/TableEmptyState";
+import { useNavigate } from "react-router-dom";
+import ActionMenu from "@/components/common/ActionMenu";
 const getCommissionDetails = (booking) => {
     const isAdminBooking = booking.assignedTo?.role === "admin" || booking.commissionSummary?.adminDirect;
     if (booking.commissionSummary) {
@@ -62,12 +64,13 @@ const getCommissionDetails = (booking) => {
         commission: 0,
         payout: 0,
         adminEarning: 0,
-        rateLabel: "Not saved",
+        rateLabel: "Not Set",
         isSaved: false,
         isAdminBooking
     };
 };
 const AdminCommissions = () => {
+    const navigate = useNavigate();
     const { token } = useAuth();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -268,62 +271,88 @@ const AdminCommissions = () => {
               <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Detailed breakdown of platform commission and net merchant payout per booking.</p>
             </div>
             {loading ? (
-              <TableSkeleton columns={10} rows={5} minWidth="100%" />
+              <TableSkeleton columns={8} rows={5} minWidth="100%" />
             ) : bookings.length === 0 ? (
-              <TableEmptyState title="No paid bookings found" description="There are no paid or completed bookings available for commission calculation." colSpan={10} />
+              <TableEmptyState title="No paid bookings found" description="There are no paid or completed bookings available for commission calculation." colSpan={8} />
             ) : (
               <DataTable minWidth="100%">
                 <TableHeader>
-                  <TableHeaderCell className="w-[8%]">Booking ID</TableHeaderCell>
-                  <TableHeaderCell className="w-[18%]">Service / Event</TableHeaderCell>
-                  <TableHeaderCell className="w-[14%]">Customer</TableHeaderCell>
+                  <TableHeaderCell className="w-[24%]">Service / Event</TableHeaderCell>
                   <TableHeaderCell className="w-[14%]">Merchant</TableHeaderCell>
-                  <TableHeaderCell className="w-[8%] whitespace-nowrap">Price</TableHeaderCell>
-                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Commission Rate</TableHeaderCell>
-                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Admin Earnings</TableHeaderCell>
-                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Merchant Payout</TableHeaderCell>
-                  <TableHeaderCell className="w-[8%] whitespace-nowrap">Date</TableHeaderCell>
-                  <TableHeaderCell className="w-[10%]">Status</TableHeaderCell>
+                  <TableHeaderCell className="w-[12%] whitespace-nowrap">Booking Amount</TableHeaderCell>
+                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Rate</TableHeaderCell>
+                  <TableHeaderCell className="w-[12%] whitespace-nowrap">Admin Earnings</TableHeaderCell>
+                  <TableHeaderCell className="w-[12%] whitespace-nowrap">Merchant Payout</TableHeaderCell>
+                  <TableHeaderCell className="w-[10%] whitespace-nowrap">Date</TableHeaderCell>
+                  <TableHeaderCell align="right" className="w-[6%]">Actions</TableHeaderCell>
                 </TableHeader>
                 <TableBody>
                   {commissionRows.map(({ booking, adminEarning, payout, rateLabel, isSaved, isAdminBooking }) => {
+                    const itemName = booking.service?.name || booking.serviceName || booking.event?.title || "Booking";
+                    const formattedDate = new Date(booking.datetime).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    });
+                    const showDash = !isSaved && !isAdminBooking;
+
                     return (
                       <TableRow key={booking._id}>
-                        <TableCell className="font-mono text-xs text-muted-foreground">{booking._id.slice(-8)}</TableCell>
+                        {/* Service / Event */}
                         <TableCell>
-                          <p className="font-semibold text-xs text-foreground truncate max-w-[170px]">
-                            {booking.service?.name || booking.serviceName || booking.event?.title || "—"}
-                          </p>
+                          <div className="space-y-0.5">
+                            <p className="font-semibold text-xs text-foreground truncate max-w-[200px]" title={itemName}>
+                              {itemName}
+                            </p>
+                            <StatusBadge status={booking.event ? "event" : "service"} />
+                          </div>
                         </TableCell>
-                        <TableCell>
-                          <p className="font-medium text-xs text-foreground">{booking.customer?.name}</p>
-                          <p className="text-[10px] text-muted-foreground truncate max-w-[130px]">{booking.customer?.email}</p>
-                        </TableCell>
+
+                        {/* Merchant */}
                         <TableCell>
                           {booking.assignedTo ? (
-                            <>
-                              <p className="font-medium text-xs text-foreground">{booking.assignedTo.name}</p>
-                              <p className="text-[10px] text-muted-foreground truncate max-w-[130px]">{booking.assignedTo.email}</p>
-                            </>
+                            <p className="font-semibold text-xs text-foreground">{booking.assignedTo.name}</p>
                           ) : (
                             <span className="text-xs text-muted-foreground italic">Unassigned</span>
                           )}
                         </TableCell>
-                        <TableCell className="font-bold text-xs text-foreground">{formatCurrency(booking.price)}</TableCell>
+
+                        {/* Booking Amount */}
+                        <TableCell className="font-bold text-xs text-foreground">
+                          {formatCurrency(booking.price)}
+                        </TableCell>
+
+                        {/* Rate */}
                         <TableCell>
                           <StatusBadge status={isAdminBooking ? "admin" : isSaved ? "active" : "pending"} label={rateLabel} />
                         </TableCell>
-                        <TableCell className="text-emerald-600 font-bold text-xs">
-                          {formatCurrency(adminEarning)}
+
+                        {/* Admin Earnings */}
+                        <TableCell className="font-semibold text-xs text-foreground">
+                          {showDash ? "—" : formatCurrency(adminEarning)}
                         </TableCell>
-                        <TableCell className="text-purple-600 font-bold text-xs">
-                          {formatCurrency(payout)}
+
+                        {/* Merchant Payout */}
+                        <TableCell className="text-purple-600 font-semibold text-xs">
+                          {showDash ? "—" : formatCurrency(payout)}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {new Date(booking.datetime).toLocaleDateString()}
+
+                        {/* Date */}
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {formattedDate}
                         </TableCell>
-                        <TableCell>
-                          <StatusBadge status={booking.status} />
+
+                        {/* Actions */}
+                        <TableCell align="right">
+                          <ActionMenu
+                            items={[
+                              {
+                                label: "View Details",
+                                icon: Eye,
+                                onClick: () => navigate(`/admin-dashboard/payments/${booking._id}`),
+                              },
+                            ]}
+                          />
                         </TableCell>
                       </TableRow>
                     );

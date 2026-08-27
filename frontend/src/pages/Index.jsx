@@ -80,7 +80,7 @@ const ServiceCard = ({ svc, imgSrc, navigate, openBook }) => {
     return (
         <div ref={hoverRef} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col shadow-card will-change-transform">
             {/* Image */}
-            <div className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-52">
+            <div className="relative overflow-hidden bg-secondary flex-shrink-0 h-[175px] w-full">
                 {imgSrc(svc.image) ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center text-muted-foreground">
                     <Briefcase className="h-12 w-12 opacity-30"/>
                   </div>)}

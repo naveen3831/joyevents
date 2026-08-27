@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/utils";
 import { useGsapStagger } from "@/lib/gsapAnimations";
-import { Calendar, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, DollarSign, Upload, Ticket } from "lucide-react";
+import { Calendar, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, DollarSign, Upload, Ticket, Eye } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import AdminLayout from "@/components/AdminLayout";
 import PageHeader from "@/components/common/PageHeader";
@@ -133,55 +133,11 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
         }
     };
     const openEdit = (ev) => {
-        setEditingId(ev._id);
-        const dt = new Date(ev.datetime);
-        setForm({
-            title: ev.title || "",
-            description: ev.description || "",
-            date: dt.toISOString().slice(0, 10),
-            time: dt.toTimeString().slice(0, 5),
-            location: ev.location || "",
-            price: String(ev.price || ""),
-            category: ev.category || "General",
-            status: ev.status || "upcoming",
-            maxAttendees: String(ev.maxAttendees || "")
-        });
-        setImagePreview(imgSrc(ev.image));
-        setImageFile(null);
-        setGalleryFiles([]);
-        setGalleryPreviews([]);
-        setShowNewCatInput(false);
-        setNewCatName("");
-        setFormErrors({});
-        setTicketError("");
-        setNewCatError("");
-        // Load ticket data if ticketed event
-        if (ev.eventType === "ticketed") {
-            setEventType("ticketed");
-            if (ev.hasMultipleSessions && ev.sessions) {
-                // Day/Night sessions
-                setTicketedType("dayNight");
-                setSelectedSession(null);
-                setTicketTypes([]);
-            }
-            else {
-                // Normal tickets
-                setTicketedType("normal");
-                setSelectedSession(null);
-                setTicketTypes(ev.tickets?.map((t) => ({
-                    name: t.type,
-                    price: String(t.price),
-                    available: String(t.available)
-                })) || []);
-            }
+        if (layout === "admin") {
+            navigate(`/admin-dashboard/my-events/${ev._id}/edit`);
+        } else {
+            navigate(`/merchant-dashboard/events/${ev._id}/edit`);
         }
-        else {
-            setEventType("fullService");
-            setTicketedType(null);
-            setSelectedSession(null);
-            setTicketTypes([]);
-        }
-        setShowModal(true);
     };
     const handleDelete = async (id) => {
         if (!confirm("Delete this event?"))
@@ -438,127 +394,144 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
             <Button onClick={openCreate} className="bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow">
               <Plus className="mr-2 h-4 w-4"/> Add Event
             </Button>
-          </div>) : (<div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6 lg:grid-cols-3">
-            {events.map((ev) => (<div key={ev._id} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
-                {/* Image */}
-                <div className="relative overflow-hidden bg-secondary flex-shrink-0 aspect-[3/4] sm:aspect-auto sm:h-52">
-                  {imgSrc(ev.image) ? (<img src={imgSrc(ev.image)} alt={ev.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
-                      <ImageIcon className="h-12 w-12 opacity-30"/>
-                    </div>)}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"/>
-                  <span className={`absolute top-3 left-3 rounded-full px-2.5 py-1 text-xs font-semibold capitalize backdrop-blur-md shadow-sm ${ev.status === "upcoming" ? "bg-blue-500/80 text-white" : ev.status === "ongoing" ? "bg-green-500/80 text-white" : "bg-gray-500/80 text-white"}`}>
-                    {ev.status}
-                  </span>
-                  <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                    {ev.category}
-                  </span>
-                  <div className="absolute top-3 right-3 flex gap-2 z-10">
-                    <button onClick={() => openEdit(ev)} title="Edit event" className="rounded-full bg-black/70 text-white p-2 hover:bg-primary hover:text-primary-foreground transition-colors shadow-sm">
-                      <Pencil className="h-4 w-4"/>
-                    </button>
-                    <button onClick={() => handleDelete(ev._id)} disabled={deletingId === ev._id} title="Delete event" className="rounded-full bg-black/70 text-white p-2 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 shadow-sm">
-                      {deletingId === ev._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
-                    </button>
-                  </div>
-                </div>
+          </div>) : (<div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:grid-cols-3">
+            {events.map((ev) => {
+              const itemName = ev.title;
+              const formattedDate = ev.datetime
+                ? new Date(ev.datetime).toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : null;
+              const formattedTime = ev.datetime
+                ? new Date(ev.datetime).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : null;
 
-                {/* Info */}
-                <div className="p-3.5 sm:p-5 flex flex-col flex-1">
-                  <h3 className="font-display font-semibold text-lg line-clamp-1">{ev.title}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">{ev.location}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(ev.datetime).toLocaleString()}</p>
+              const allTickets = [];
+              if (ev.hasMultipleSessions && ev.sessions) {
+                  ["day", "night"].forEach((s) => {
+                      if (ev.sessions[s]?.enabled && ev.sessions[s]?.tickets) {
+                          ev.sessions[s].tickets.forEach((t) => {
+                              const existing = allTickets.find(x => x.type === t.type);
+                              if (existing) {
+                                  existing.available += t.available || 0;
+                                  existing.sold += t.sold || 0;
+                              }
+                              else
+                                  allTickets.push({ type: t.type, available: t.available || 0, sold: t.sold || 0 });
+                          });
+                      }
+                  });
+              }
+              else if (ev.tickets?.length) {
+                  ev.tickets.forEach((t) => allTickets.push({ type: t.type, available: t.available || 0, sold: t.sold || 0 }));
+              }
+              const totalSold = allTickets.reduce((s, t) => s + t.sold, 0);
+              const totalCapacity = allTickets.reduce((s, t) => s + t.available, 0);
 
-                  {/* Ticket stats */}
-                  {ev.eventType === "ticketed" && (<div className="mt-3 border-t border-border pt-2">
-                      <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1 mb-1">
-                        <Ticket className="h-3 w-3"/> Tickets Booked:
-                      </p>
-                      {(() => {
-                        const allTickets = [];
-                        if (ev.hasMultipleSessions && ev.sessions) {
-                            ["day", "night"].forEach((s) => {
-                                if (ev.sessions[s]?.enabled && ev.sessions[s]?.tickets) {
-                                    ev.sessions[s].tickets.forEach((t) => {
-                                        const existing = allTickets.find(x => x.type === t.type);
-                                        if (existing) {
-                                            existing.available += t.available || 0;
-                                            existing.sold += t.sold || 0;
-                                        }
-                                        else
-                                            allTickets.push({ type: t.type, available: t.available || 0, sold: t.sold || 0 });
-                                    });
-                                }
-                            });
-                        }
-                        else if (ev.tickets?.length) {
-                            ev.tickets.forEach((t) => allTickets.push({ type: t.type, available: t.available || 0, sold: t.sold || 0 }));
-                        }
-                        const totalSold = allTickets.reduce((s, t) => s + t.sold, 0);
-                        const totalAvailable = allTickets.reduce((s, t) => s + t.available, 0);
-                        return (<>
-                            <div className="flex items-center gap-1 text-xs mb-1">
-                              <span className="font-semibold text-primary">{totalSold}</span>
-                              <span className="text-muted-foreground">/ {totalAvailable} total</span>
-                              {totalSold >= totalAvailable && totalAvailable > 0 && <span className="ml-1 text-red-500 font-semibold">Sold Out</span>}
-                            </div>
-                            {allTickets.map((t) => {
-                                const remaining = t.available - t.sold;
-                                return (<div key={t.type} className="flex items-center justify-between text-xs">
-                                  <span className="capitalize text-muted-foreground">{t.type}:</span>
-                                  <span className={remaining <= 0 ? "text-red-500 font-semibold" : "text-green-500 font-semibold"}>
-                                    {t.sold}/{t.available} {remaining <= 0 ? "· Sold Out" : `· ${remaining} left`}
-                                  </span>
-                                </div>);
-                            })}
-                          </>);
-                    })()}
-                    </div>)}
-
-                  {ev.eventType === "fullService" && (<div className="mt-2 flex items-center gap-1 text-xs">
-                      <span className="text-muted-foreground">👥 Attendees:</span>
-                      <span className="font-semibold text-primary">{ev.attendeesCount || 0}</span>
-                      {ev.maxAttendees > 0 && <span className="text-muted-foreground">/ {ev.maxAttendees}</span>}
-                    </div>)}
-
-                  <div className="flex-1"/>
-
-                  <div className="mt-4 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-primary">
-                      {ev.eventType === "ticketed"
-                    ? (() => {
-                        const allPrices = [];
-                        if (ev.hasMultipleSessions && ev.sessions) {
-                            ["day", "night"].forEach((s) => { if (ev.sessions[s]?.enabled)
-                                ev.sessions[s].tickets?.forEach((t) => { if (t.price > 0)
-                                    allPrices.push(t.price); }); });
-                        }
-                        else {
-                            (ev.tickets || []).forEach((t) => { if (t.price > 0)
-                                allPrices.push(t.price); });
-                        }
-                        if (!allPrices.length)
-                            return "Free";
-                        const min = Math.min(...allPrices), max = Math.max(...allPrices);
-                        return min === max ? `${formatCurrency(min)}` : `${formatCurrency(min)} – ${formatCurrency(max)}`;
-                    })()
-                    : `${formatCurrency(ev.price)}`}
-                    </span>
-                    <span className={`rounded-full px-2 py-1 text-xs font-semibold capitalize ${ev.status === "upcoming" ? "bg-blue-500/15 text-blue-400" : ev.status === "ongoing" ? "bg-green-500/15 text-green-400" : "bg-gray-500/15 text-gray-400"}`}>
+              return (
+                <div key={ev._id} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
+                  {/* Image */}
+                  <div className="relative overflow-hidden bg-secondary flex-shrink-0 h-[180px] w-full">
+                    {imgSrc(ev.image) ? (<img src={imgSrc(ev.image)} alt={ev.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
+                        <ImageIcon className="h-10 w-10 opacity-30"/>
+                      </div>)}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none"/>
+                    <span className={`absolute top-3 left-3 rounded-full px-2.5 py-0.5 text-[10px] font-semibold capitalize backdrop-blur-md shadow-xs ${ev.status === "upcoming" ? "bg-blue-500/80 text-white" : ev.status === "ongoing" ? "bg-green-500/80 text-white" : "bg-gray-500/80 text-white"}`}>
                       {ev.status}
                     </span>
+                    <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-2.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                      {ev.category}
+                    </span>
                   </div>
 
-                  {/* Actions */}
-                  <div className="mt-3 flex gap-2 border-t border-border pt-3">
-                    <Button size="sm" variant="outline" className="flex-1 min-h-[38px] rounded-xl font-semibold border-border/80 hover:bg-secondary" onClick={() => openEdit(ev)}>
-                      <Pencil className="mr-1.5 h-3.5 w-3.5"/> Edit Event
-                    </Button>
-                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-white hover:bg-red-500 shrink-0 min-h-[38px] rounded-xl" disabled={deletingId === ev._id} onClick={() => handleDelete(ev._id)}>
-                      {deletingId === ev._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
-                    </Button>
+                  {/* Info */}
+                  <div className="p-4 flex flex-col flex-1 min-w-0 justify-between">
+                    <div>
+                      <h3 className="font-display font-semibold text-base text-foreground line-clamp-2 h-[44px] leading-tight" title={itemName}>{itemName}</h3>
+                      
+                      {/* Date & Location Metadata */}
+                      <div className="space-y-[6px] text-xs text-muted-foreground mt-2.5">
+                        {formattedDate && (
+                          <div className="flex items-center gap-1.5 h-[18px]">
+                            <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span className="truncate">{formattedDate} at {formattedTime}</span>
+                          </div>
+                        )}
+                        {ev.location && (
+                          <div className="flex items-center gap-1.5 h-[18px]" title={ev.location}>
+                            <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span className="truncate">{ev.location}</span>
+                          </div>
+                        )}
+                        {/* Summary Line */}
+                        {ev.eventType === "ticketed" ? (
+                          <div className="flex items-center gap-1.5 h-[18px]">
+                            <Ticket className="h-3.5 w-3.5 text-primary shrink-0"/>
+                            <span className="truncate">
+                              Tickets Booked: <span className="font-semibold text-foreground">{totalSold}</span> / {totalCapacity}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 h-[18px]">
+                            <span className="text-primary shrink-0">👥</span>
+                            <span className="truncate">
+                              Attendees: <span className="font-semibold text-foreground">{ev.attendeesCount || 0}</span>
+                              {ev.maxAttendees > 0 && ` / ${ev.maxAttendees}`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 min-h-[12px]"/>
+
+                    <div className="flex items-center justify-between mt-4">
+                      <span className="text-sm font-bold text-primary">
+                        {ev.eventType === "ticketed"
+                      ? (() => {
+                          const allPrices = [];
+                          if (ev.hasMultipleSessions && ev.sessions) {
+                              ["day", "night"].forEach((s) => { if (ev.sessions[s]?.enabled)
+                                  ev.sessions[s].tickets?.forEach((t) => { if (t.price > 0)
+                                      allPrices.push(t.price); }); });
+                          }
+                          else {
+                              (ev.tickets || []).forEach((t) => { if (t.price > 0)
+                                  allPrices.push(t.price); });
+                          }
+                          if (!allPrices.length)
+                              return "Free";
+                          const min = Math.min(...allPrices), max = Math.max(...allPrices);
+                          return min === max ? `${formatCurrency(min)}` : `${formatCurrency(min)} – ${formatCurrency(max)}`;
+                      })()
+                      : `${formatCurrency(ev.price)}`}
+                      </span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${ev.status === "upcoming" ? "bg-blue-500/15 text-blue-400" : ev.status === "ongoing" ? "bg-green-500/15 text-green-400" : "bg-gray-500/15 text-gray-400"}`}>
+                        {ev.status}
+                      </span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="mt-3 flex gap-2 border-t border-border/50 pt-2.5">
+                      <Button size="sm" variant="outline" className="flex-1 h-[36px] rounded-xl font-semibold border-border/80 hover:bg-secondary text-xs flex items-center justify-center gap-1.5" onClick={() => navigate(layout === "admin" ? `/admin-dashboard/events/${ev._id}` : `/merchant-dashboard/events/${ev._id}`)}>
+                        <Eye className="h-3.5 w-3.5"/> View
+                      </Button>
+                      <Button size="sm" variant="outline" className="flex-[2] h-[36px] rounded-xl font-semibold border-border/80 hover:bg-secondary text-xs flex items-center justify-center gap-1.5" onClick={() => openEdit(ev)}>
+                        <Pencil className="mr-1 h-3 w-3"/> Edit Event
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-red-500 hover:text-white hover:bg-red-500 shrink-0 h-[36px] w-[36px] p-0 rounded-xl" disabled={deletingId === ev._id} onClick={() => handleDelete(ev._id)}>
+                        {deletingId === ev._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>))}
+              );
+            })}
           </div>)}
 
         {/* Modal */}
