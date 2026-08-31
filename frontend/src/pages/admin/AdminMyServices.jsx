@@ -74,7 +74,11 @@ const AdminMyServices = () => {
               <p className="text-muted-foreground font-medium">No services yet</p>
               <p className="text-xs text-muted-foreground mt-1">Click "New Service" to create your first service. Only your services are shown here.</p>
             </div>) : (<div ref={gridRef} className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {services.map((svc) => (<div key={svc._id} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 hover:shadow-card transition-all">
+              {services.map((svc) => (<div
+                  key={svc._id}
+                  onClick={() => navigate(`/admin-dashboard/services/${svc._id}`)}
+                  className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+                >
                   <div className="relative overflow-hidden bg-secondary flex-shrink-0 h-[175px] w-full">
                     {svc.image ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
                         <Briefcase className="h-12 w-12 opacity-30"/>
@@ -103,11 +107,28 @@ const AdminMyServices = () => {
 
                     <div className="flex-1"/>
 
-                    <div className="mt-5 flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate(`/admin-dashboard/my-services/${svc._id}/edit`)}>
+                    <div className="mt-5 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/admin-dashboard/my-services/${svc._id}/edit`);
+                        }}
+                      >
                         <Pencil className="mr-1 h-3 w-3"/> Edit
                       </Button>
-                      <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" disabled={deleting === svc._id} onClick={() => handleDelete(svc._id)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                        disabled={deleting === svc._id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(svc._id);
+                        }}
+                      >
                         {deleting === svc._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
                       </Button>
                     </div>

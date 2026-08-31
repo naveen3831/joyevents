@@ -82,10 +82,13 @@ const EventCard = ({ event, index = 0, onBookNow, onViewDetails, isFavorited, on
       transition={{ delay: index * 0.03, duration: 0.3 }}
       className="w-full min-w-0"
     >
-      <div className="group rounded-[14px] border border-[#E5E7EB] bg-card overflow-hidden flex flex-col shadow-[0_4px_14px_rgba(15,23,42,0.06)] hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(15,23,42,0.1)] transition-all duration-300 w-full min-w-0 h-auto">
+      <div
+        onClick={handleTitleClick}
+        className="group rounded-[14px] border border-[#E5E7EB] bg-card overflow-hidden flex flex-col shadow-[0_4px_14px_rgba(15,23,42,0.06)] hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(15,23,42,0.1)] transition-all duration-300 w-full min-w-0 h-auto cursor-pointer"
+      >
         
         {/* 180px Event Image */}
-        <div onClick={handleTitleClick} className="relative w-full h-[170px] sm:h-[180px] overflow-hidden bg-secondary shrink-0 cursor-pointer">
+        <div className="relative w-full h-[170px] sm:h-[180px] overflow-hidden bg-secondary shrink-0">
           {event.image ? (
             <img
               src={event.image}
@@ -139,7 +142,6 @@ const EventCard = ({ event, index = 0, onBookNow, onViewDetails, isFavorited, on
           <div>
             {/* One-Line Event Title */}
             <h3
-              onClick={handleTitleClick}
               className="text-[18px] leading-[24px] font-bold text-foreground group-hover:text-primary transition-colors truncate cursor-pointer mb-[12px]"
               title={event.title}
             >
@@ -165,38 +167,23 @@ const EventCard = ({ event, index = 0, onBookNow, onViewDetails, isFavorited, on
 
           {/* Action Area */}
           <div className="mt-4 pt-1 space-y-2">
-            {/* Compact Details + Book Now Row (42px height, 10px gap) */}
-            <div className="grid grid-cols-2 gap-[10px]">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onViewDetails) onViewDetails(event);
-                  else handleTitleClick();
-                }}
-                className="h-[42px] rounded-xl text-xs font-semibold border border-border bg-transparent text-foreground hover:bg-secondary transition-colors flex items-center justify-center gap-1.5 w-full"
-              >
-                <Eye className="h-3.5 w-3.5" /> Details
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onBookNow) onBookNow(event);
-                  else handleTitleClick();
-                }}
-                disabled={event.live || allSoldOut}
-                className={`h-[42px] rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 w-full ${
-                  event.live || allSoldOut
-                    ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
-                    : "bg-gradient-primary text-white hover:opacity-90 shadow-xs"
-                }`}
-              >
-                <CalendarCheck className="h-3.5 w-3.5" />
-                {event.live ? "Live" : allSoldOut ? "Sold Out" : "Book Now"}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onBookNow) onBookNow(event);
+                else handleTitleClick();
+              }}
+              disabled={event.live || allSoldOut}
+              className={`h-[42px] rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 w-full ${
+                event.live || allSoldOut
+                  ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                  : "bg-gradient-primary text-white hover:opacity-90 shadow-xs cursor-pointer"
+              }`}
+            >
+              <CalendarCheck className="h-3.5 w-3.5" />
+              {event.live ? "Live" : allSoldOut ? "Sold Out" : "Book Now"}
+            </button>
 
             {/* Small Contact Organiser Text Link (24px max height) */}
             {event.createdBy && (

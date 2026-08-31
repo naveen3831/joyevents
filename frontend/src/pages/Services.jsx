@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { STATIC_IMAGES } from "@/lib/staticImages";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { apiListServices, apiListCategories, apiValidatePromoCode, apiGetAllPromoCodes } from "@/lib/api";
@@ -18,7 +18,7 @@ import { API_URL } from "@/lib/config";
 import LocationPicker from "@/components/LocationPicker";
 import ManageCategoriesModal from "@/components/ManageCategoriesModal";
 import SimplePayment from "@/components/SimplePayment";
-import { getPendingServiceBooking, clearPendingServiceBooking } from "@/lib/bookingState";
+import { savePendingServiceBooking, getPendingServiceBooking, clearPendingServiceBooking } from "@/lib/bookingState";
 import ContactMerchantModal from "@/components/ContactMerchantModal";
 const PENDING_CONTACT_SVC_KEY = "pendingContactService";
 const WHY_US = [
@@ -35,18 +35,35 @@ const PROCESS = [
 ];
 import { useHomepageSettings } from "@/hooks/useHomepageSettings";
 
+const normalizeCategory = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
+const formatCategoryLabel = (cat) => {
+  const norm = normalizeCategory(cat);
+  if (!norm || norm === "all") return "All";
+  return norm
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 const HIGHLIGHT_TINTS = [
     "bg-tint-orange text-tint-orange-fg",
     "bg-tint-pink text-tint-pink-fg",
     "bg-tint-violet text-tint-violet-fg",
     "bg-tint-blue text-tint-blue-fg",
 ];
-
 const ServiceGridCard = ({ svc, imgSrc, navigate, openBook, handleContactService }) => {
     const hoverRef = useGsapCardHover({ lift: -8, scale: 1.015 });
     return (
-        <div ref={hoverRef} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col shadow-card will-change-transform w-full h-full">
-            <div className="relative overflow-hidden bg-secondary shrink-0 w-full h-48 sm:h-52 cursor-pointer" onClick={() => navigate(`/services/${svc._id}`)}>
+        <div 
+            ref={hoverRef} 
+            onClick={() => navigate(`/services/${svc._id}`)} 
+            className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col shadow-card will-change-transform w-full h-full cursor-pointer"
+        >
+            <div className="relative overflow-hidden bg-secondary shrink-0 w-full h-48 sm:h-52">
                 {imgSrc(svc.image) ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full w-full items-center justify-center bg-gradient-mesh text-primary/30">
                     <Briefcase className="h-10 w-10 opacity-30"/>
                   </div>)}
@@ -57,7 +74,7 @@ const ServiceGridCard = ({ svc, imgSrc, navigate, openBook, handleContactService
             </div>
             <div className="p-4 sm:p-5 flex flex-col flex-1 min-w-0 justify-between">
                 <div>
-                    <h3 className="font-display text-base sm:text-lg font-bold leading-snug text-foreground cursor-pointer group-hover:text-primary transition-colors line-clamp-2" onClick={() => navigate(`/services/${svc._id}`)}>{svc.name}</h3>
+                    <h3 className="font-display text-base sm:text-lg font-bold leading-snug text-foreground group-hover:text-primary transition-colors line-clamp-2">{svc.name}</h3>
 
                     {svc.averageRating && svc.averageRating > 0 ? (<div className="flex items-center gap-1 mt-2">
                         <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0"/>
@@ -68,7 +85,7 @@ const ServiceGridCard = ({ svc, imgSrc, navigate, openBook, handleContactService
                     {svc.highlights?.length > 0 && (<ul className="mt-3 space-y-1.5 flex-1">
                         {svc.highlights.slice(0, 2).map((h, hi) => (<li key={h} className="flex items-center gap-2 text-xs text-muted-foreground">
                             <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${HIGHLIGHT_TINTS[hi % HIGHLIGHT_TINTS.length]}`}>
-                              <Sparkle className="h-3 w-3"/>
+                                <Sparkle className="h-3 w-3"/>
                             </span>
                             <span className="line-clamp-1">{h}</span>
                           </li>))}
@@ -76,15 +93,12 @@ const ServiceGridCard = ({ svc, imgSrc, navigate, openBook, handleContactService
                 </div>
 
                 <div className="mt-4 space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                        <Button variant="outline" className="min-h-[40px] rounded-xl text-xs font-semibold border-border hover:bg-secondary text-foreground gap-1.5" onClick={() => navigate(`/services/${svc._id}`)}>
-                            <Eye className="h-4 w-4"/> Details
-                        </Button>
-                        <Button className="min-h-[40px] rounded-xl text-xs font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow gap-1.5" onClick={() => openBook(svc)}>
+                    <div className="grid grid-cols-1 gap-2">
+                        <Button className="min-h-[40px] rounded-xl text-xs font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow gap-1.5" onClick={(e) => { e.stopPropagation(); openBook(svc); }}>
                             <CalendarCheck className="h-4 w-4"/> Book Now
                         </Button>
                     </div>
-                    {svc.createdBy && (<button onClick={() => handleContactService(svc)} className="w-full min-h-[34px] rounded-xl text-xs font-medium border border-border/80 hover:bg-secondary transition-all text-muted-foreground flex items-center justify-center gap-1.5">
+                    {svc.createdBy && (<button onClick={(e) => { e.stopPropagation(); handleContactService(svc); }} className="w-full min-h-[34px] rounded-xl text-xs font-medium border border-border/80 hover:bg-secondary transition-all text-muted-foreground flex items-center justify-center gap-1.5">
                         <Mail className="h-3.5 w-3.5"/> Contact Organiser
                       </button>)}
                 </div>
@@ -101,7 +115,9 @@ const Services = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [searchParams, setSearchParams] = useSearchParams();
-    const [activeCategory, setActiveCategory] = useState(searchParams.get("category") || "All");
+    const [activeCategory, setActiveCategory] = useState(
+      normalizeCategory(searchParams.get("category")) || "all"
+    );
     const [showServiceModal, setShowServiceModal] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [selectedService, setSelectedService] = useState(null);
@@ -178,43 +194,89 @@ const Services = () => {
     // Sync state with URL parameter if it changes externally
     useEffect(() => {
         const urlCategory = searchParams.get("category");
-        if (urlCategory && urlCategory !== activeCategory) {
-            setActiveCategory(urlCategory);
-        }
-        else if (!urlCategory && activeCategory !== "All") {
-            setActiveCategory("All");
+        const normUrlCategory = normalizeCategory(urlCategory) || "all";
+        if (normUrlCategory !== normalizeCategory(activeCategory)) {
+            setActiveCategory(normUrlCategory);
         }
     }, [searchParams]);
     // Sync URL parameter if state changes internally
-    const handleCategoryChange = (cat) => {
-        setActiveCategory(cat);
-        if (cat === "All") {
+    const handleCategoryChange = (catValue) => {
+        const normCat = normalizeCategory(catValue);
+        setActiveCategory(normCat);
+        if (!normCat || normCat === "all") {
             setSearchParams({});
         }
         else {
-            setSearchParams({ category: cat });
+            setSearchParams({ category: normCat });
         }
     };
-    // Extract unique categories from services
-    const categories = ["All", ...Array.from(new Set([
-            ...dbCategories.map(c => c.name),
-            ...services.map(s => s.category || "General")
-        ]))];
-    // Filter services based on search and category
-    const filteredServices = services.filter(service => {
-        const matchesSearch = service.name.toLowerCase().includes(search.toLowerCase()) ||
-            (service.description && service.description.toLowerCase().includes(search.toLowerCase()));
-        const matchesCategory = activeCategory === "All" || (service.category || "General") === activeCategory;
-        return matchesSearch && matchesCategory;
-    });
+    // Extract unique normalized categories with display labels
+    const categories = useMemo(() => {
+        const categoryMap = new Map();
+        categoryMap.set("all", "All");
+
+        dbCategories.forEach((c) => {
+            const raw = typeof c === "string" ? c : c?.name;
+            const norm = normalizeCategory(raw);
+            if (norm && norm !== "all" && !categoryMap.has(norm)) {
+                categoryMap.set(norm, formatCategoryLabel(raw));
+            }
+        });
+
+        services.forEach((s) => {
+            const raw = s.category || "General";
+            const norm = normalizeCategory(raw);
+            if (norm && norm !== "all" && !categoryMap.has(norm)) {
+                categoryMap.set(norm, formatCategoryLabel(raw));
+            }
+        });
+
+        return Array.from(categoryMap.entries()).map(([value, label]) => ({
+            value,
+            label,
+        }));
+    }, [dbCategories, services]);
+
+    // Filter services based on search and normalized category
+    const filteredServices = useMemo(() => {
+        return services.filter((service) => {
+            const term = search.trim().toLowerCase();
+            const matchesSearch =
+                !term ||
+                service.name?.toLowerCase().includes(term) ||
+                (service.description && service.description.toLowerCase().includes(term));
+
+            const serviceCat = normalizeCategory(service.category || "General");
+            const activeCat = normalizeCategory(activeCategory);
+            const matchesCategory = !activeCat || activeCat === "all" || serviceCat === activeCat;
+
+            return matchesSearch && matchesCategory;
+        });
+    }, [services, search, activeCategory]);
+
     const servicesPageGridRef = useGsapStagger([filteredServices.length], { scrollTrigger: true, y: 24 });
     const openBook = (svc) => {
         const dashboardUrl = `/customer-dashboard/services/${svc._id}`;
         if (!isLoggedIn || !token) {
-            // Save the specific service ID to redirect after login
+            // Save the specific service ID and state to redirect after login
+            savePendingServiceBooking({
+                serviceId: svc._id,
+                serviceName: svc.name,
+                servicePrice: svc.price,
+                date: "",
+                time: "",
+                selectedAddOns: {},
+                customerAddress: "",
+                customerLocation: null,
+                promoCode: "",
+                returnTo: dashboardUrl,
+            });
             localStorage.setItem("authReturnTo", dashboardUrl);
-            toast.error("Please sign in to book");
-            navigate(`/login?redirect=${encodeURIComponent(dashboardUrl)}`);
+            sessionStorage.setItem("postLoginRedirect", dashboardUrl);
+            toast.error("Please sign in to book this service");
+            navigate(`/login?redirect=${encodeURIComponent(dashboardUrl)}`, {
+                state: { from: dashboardUrl }
+            });
             return;
         }
         // If logged in as customer, go to dashboard version for booking
@@ -419,11 +481,22 @@ const Services = () => {
                   Manage Categories
                 </Button>)}
               <div className="flex flex-wrap gap-2">
-                {categories.map((cat) => (<button key={cat} onClick={() => handleCategoryChange(cat)} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all ${activeCategory === cat
-                ? "bg-gradient-primary text-primary-foreground shadow-md scale-105"
-                : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
-                    {cat}
-                  </button>))}
+                {categories.map((cat) => {
+                  const isActive = (normalizeCategory(activeCategory) || "all") === cat.value;
+                  return (
+                    <button
+                      key={cat.value}
+                      onClick={() => handleCategoryChange(cat.value)}
+                      className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                        isActive
+                          ? "bg-gradient-primary text-primary-foreground shadow-md scale-105"
+                          : "bg-secondary text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

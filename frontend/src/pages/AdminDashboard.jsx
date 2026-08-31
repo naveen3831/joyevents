@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
-import { Users, Store, Calendar, DollarSign, TrendingUp, Shield, Filter, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Users, Store, Calendar, IndianRupee, TrendingUp, Shield, Filter, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Layout from "@/components/Layout";
 import StatCard from "@/components/StatCard";
 import { useState, useEffect } from "react";
@@ -127,7 +127,7 @@ const AdminDashboard = () => {
             <StatCard title="Total Users" value={stats.totalUsers.toLocaleString()} icon={<Users className="h-5 w-5"/>} index={0}/>
             <StatCard title="Total Merchants" value={stats.totalMerchants} icon={<Store className="h-5 w-5"/>} index={1}/>
             <StatCard title="Total Events" value={stats.totalEvents.toString()} icon={<Calendar className="h-5 w-5"/>} index={2}/>
-            <StatCard title="Platform Revenue" value={formatCurrency(stats.totalRevenue)} icon={<DollarSign className="h-5 w-5"/>} index={3}/>
+            <StatCard title="Platform Revenue" value={formatCurrency(stats.totalRevenue)} icon={<IndianRupee className="h-5 w-5"/>} index={3}/>
           </div>
 
           <div className="mt-12 grid gap-8 lg:grid-cols-2">

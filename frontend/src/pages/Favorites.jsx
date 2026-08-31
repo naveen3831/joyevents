@@ -21,7 +21,12 @@ const FavoriteCard = ({ fav, idx, handleRemove }) => {
     const price = item.price;
     const image = imgSrc(item.image);
     const category = item.category;
-    return (<div ref={hoverRef} className="rounded-xl border border-border bg-card overflow-hidden group shadow-card will-change-transform">
+    return (
+      <Link
+        to={href}
+        ref={hoverRef}
+        className="rounded-xl border border-border bg-card overflow-hidden group shadow-card will-change-transform block cursor-pointer"
+      >
         <div className="relative h-44 overflow-hidden bg-secondary">
           {image ? (<img src={image} alt={title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
               {isEvent ? <Calendar className="h-10 w-10 opacity-30"/> : <Briefcase className="h-10 w-10 opacity-30"/>}
@@ -30,7 +35,11 @@ const FavoriteCard = ({ fav, idx, handleRemove }) => {
           <span className="absolute top-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
             {isEvent ? "Event" : "Service"}
           </span>
-          <button onClick={() => handleRemove(fav._id)} className="absolute top-3 right-3 rounded-full bg-black/60 p-2 hover:bg-red-500 hover:text-white transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center" aria-label="Remove favorite">
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemove(fav._id); }}
+            className="absolute top-3 right-3 rounded-full bg-black/60 p-2 hover:bg-red-500 hover:text-white transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
+            aria-label="Remove favorite"
+          >
             <Trash2 className="h-4 w-4"/>
           </button>
         </div>
@@ -38,14 +47,12 @@ const FavoriteCard = ({ fav, idx, handleRemove }) => {
           <p className="text-xs text-muted-foreground mb-1">{category}</p>
           <h3 className="font-display font-semibold text-base">{title}</h3>
           {isEvent && item.datetime && (<p className="text-xs text-muted-foreground mt-1">{new Date(item.datetime).toLocaleDateString()}</p>)}
-          <div className="mt-3 flex items-center justify-between">
+          <div className="mt-3">
             <span className="text-sm font-semibold text-primary">{formatCurrency(price)}</span>
-            <Link to={href}>
-              <Button size="sm" className="bg-gradient-primary text-primary-foreground hover:opacity-90 min-h-[36px]">View</Button>
-            </Link>
           </div>
         </div>
-      </div>);
+      </Link>
+    );
 };
 
 const Favorites = () => {

@@ -128,7 +128,7 @@ const AdminServices = () => {
             <TableHeaderCell className="w-[20%]">Merchant Provider</TableHeaderCell>
             <TableHeaderCell className="w-[14%]">Price</TableHeaderCell>
             <TableHeaderCell className="w-[10%]">Status</TableHeaderCell>
-            <TableHeaderCell align="right" className="w-[4%]">Actions</TableHeaderCell>
+            <TableHeaderCell align="center" className="w-[6%]">ACTIONS</TableHeaderCell>
           </TableHeader>
           <TableBody>
             {filteredServices.map((svc) => {
@@ -173,16 +173,17 @@ const AdminServices = () => {
                   <TableCell>
                     <StatusBadge status={svc.active !== false ? "active" : "inactive"} />
                   </TableCell>
-                  <TableCell align="right">
-                    <ActionMenu
-                      items={[
-                        {
-                          label: "View Service",
-                          icon: Eye,
-                          onClick: () => navigate(`/admin-dashboard/services/${svc._id}`),
-                        },
-                      ]}
-                    />
+                  <TableCell align="center" className="w-[6%] py-3">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg transition-colors cursor-pointer mx-auto"
+                      onClick={() => navigate(`/admin-dashboard/services/${svc._id}`)}
+                      title="View Service"
+                      aria-label="View Service"
+                    >
+                      <Eye className="h-4 w-4 text-primary" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               );

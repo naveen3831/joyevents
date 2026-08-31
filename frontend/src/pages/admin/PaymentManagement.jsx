@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { DollarSign, TrendingUp, CreditCard, ArrowUpRight, ArrowDownRight, RefreshCcw, Wallet, CheckCircle2, Loader2, AlertCircle, Check, X } from "lucide-react";
+import { IndianRupee, TrendingUp, CreditCard, ArrowUpRight, ArrowDownRight, RefreshCcw, Wallet, CheckCircle2, Loader2, AlertCircle, Check, X } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -297,7 +297,7 @@ const PaymentManagement = () => {
           <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
             <div className="min-w-0">
               <h1 className="font-display text-xl sm:text-3xl font-bold flex items-center gap-2">
-                <DollarSign className="h-6 w-6 sm:h-7 sm:w-7 text-primary shrink-0"/>
+                <IndianRupee className="h-6 w-6 sm:h-7 sm:w-7 text-primary shrink-0"/>
                 Payment <span className="text-gradient">Management</span>
               </h1>
               <p className="text-muted-foreground text-xs sm:text-sm mt-1">
@@ -330,7 +330,7 @@ const PaymentManagement = () => {
             {/* Commission Calculation */}
             <div className="p-4 rounded-lg bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/20 hover:border-green-500/40 transition-all cursor-pointer" onClick={() => setActiveTab("commissions")}>
               <div className="flex items-start justify-between mb-3">
-                <DollarSign className="h-6 w-6 text-green-600"/>
+                <IndianRupee className="h-6 w-6 text-green-600"/>
                 <span className="text-xs font-semibold bg-green-500/20 text-green-600 px-2 py-1 rounded">5%</span>
               </div>
               <h4 className="font-semibold text-sm mb-2">Commission Calculation</h4>
@@ -399,7 +399,7 @@ const PaymentManagement = () => {
         {/* Stats Grid */}
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.3 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
           <StatCard title="Total Revenue" value={`${formatCurrency(totalRevenue)}`} icon={TrendingUp} trend="+12.5%" color="text-green-600"/>
-          <StatCard title="Admin Commission (5%)" value={`${formatCurrency(totalCommission)}`} icon={DollarSign} trend="+8.2%" color="text-blue-600"/>
+          <StatCard title="Admin Commission (5%)" value={`${formatCurrency(totalCommission)}`} icon={IndianRupee} trend="+8.2%" color="text-blue-600"/>
           <StatCard title="Pending Payments" value={pendingPayments} icon={CreditCard} color="text-orange-600"/>
           <StatCard title="Completed Transactions" value={completedTransactions} icon={Wallet} trend="+15.3%" color="text-purple-600"/>
         </motion.div>

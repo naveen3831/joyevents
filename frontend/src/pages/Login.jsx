@@ -26,19 +26,30 @@ const Login = () => {
     const cardRef = useGsapReveal({ y: 24, duration: 0.7 });
     const orb1Ref = useGsapParallax(0.3);
     const orb2Ref = useGsapParallax(-0.2);
-    // If already logged in, check if we should redirect to dashboard or wait for authReturnTo
+    // If already logged in, check if we should redirect to saved target or dashboard
     useEffect(() => {
         sessionStorage.removeItem("forceLoginNoRedirect");
-        const savedReturnTo = localStorage.getItem("authReturnTo");
-        const effectiveRedirect = redirectParam || savedReturnTo;
-
-        console.log('📋 Login useEffect - isLoggedIn:', isLoggedIn, 'role:', role, 'effectiveRedirect:', effectiveRedirect);
         if (isLoggedIn && role) {
-            console.log('✅ Already logged in, redirecting to target:', effectiveRedirect || dashboardPaths[role]);
+            const savedReturnTo = localStorage.getItem("authReturnTo") || sessionStorage.getItem("postLoginRedirect");
+            const stateFrom = location.state?.from;
+            const rawTarget = redirectParam || stateFrom || savedReturnTo;
+
+            let target = dashboardPaths[role] || "/customer-dashboard";
+            if (role === "customer" && rawTarget && typeof rawTarget === "string" && rawTarget.startsWith("/") && !rawTarget.startsWith("//")) {
+                target = rawTarget;
+            } else if (role !== "customer") {
+                if (rawTarget && typeof rawTarget === "string" && rawTarget.startsWith(`/${role}-dashboard`)) {
+                    target = rawTarget;
+                } else {
+                    target = dashboardPaths[role] || "/customer-dashboard";
+                }
+            }
+
             localStorage.removeItem("authReturnTo");
-            navigate(effectiveRedirect || dashboardPaths[role], { replace: true });
+            sessionStorage.removeItem("postLoginRedirect");
+            navigate(target, { replace: true });
         }
-    }, [isLoggedIn, role, navigate, redirectParam]);
+    }, [isLoggedIn, role, navigate, redirectParam, location]);
 
     // Show error if redirected due to deactivation
     useEffect(() => {
@@ -68,6 +79,25 @@ const Login = () => {
                 role: userRole,
             } : {}));
             localStorage.setItem("role", userRole);
+
+            const savedReturnTo = localStorage.getItem("authReturnTo") || sessionStorage.getItem("postLoginRedirect");
+            const stateFrom = location.state?.from;
+            const rawTarget = redirectParam || stateFrom || savedReturnTo;
+
+            let target = dashboardPaths[userRole] || "/customer-dashboard";
+            if (userRole === "customer" && rawTarget && typeof rawTarget === "string" && rawTarget.startsWith("/") && !rawTarget.startsWith("//")) {
+                target = rawTarget;
+            } else if (userRole !== "customer") {
+                if (rawTarget && typeof rawTarget === "string" && rawTarget.startsWith(`/${userRole}-dashboard`)) {
+                    target = rawTarget;
+                } else {
+                    target = dashboardPaths[userRole] || "/customer-dashboard";
+                }
+            }
+
+            localStorage.removeItem("authReturnTo");
+            sessionStorage.removeItem("postLoginRedirect");
+
             // Update state
             setToken(res?.token || null);
             setUser(res?.user ? {
@@ -83,10 +113,6 @@ const Login = () => {
             setSessionActive();
             toast.success(`${roleLabels[userRole]} login successful!`);
             
-            const savedReturnTo = localStorage.getItem("authReturnTo");
-            const targetRedirect = redirectParam || savedReturnTo;
-            const target = targetRedirect || dashboardPaths[userRole];
-            localStorage.removeItem("authReturnTo");
             navigate(target, { replace: true });
         }
         catch (err) {

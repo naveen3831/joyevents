@@ -362,9 +362,12 @@ const ServiceDetail = () => {
                     returnTo: returnUrl
                 });
                 localStorage.setItem("authReturnTo", returnUrl);
+                sessionStorage.setItem("postLoginRedirect", returnUrl);
                 console.log('✅ Saved to localStorage. Current value:', localStorage.getItem("authReturnTo"));
                 toast.error("Please sign in to book this service");
-                navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`);
+                navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`, {
+                    state: { from: returnUrl }
+                });
                 return;
             }
             setShowPaymentModal(true);

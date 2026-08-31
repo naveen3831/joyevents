@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/utils";
 import { useGsapStagger } from "@/lib/gsapAnimations";
-import { Calendar, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, DollarSign, Upload, Ticket, Eye } from "lucide-react";
+import { Calendar, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, IndianRupee, Upload, Ticket, Eye } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import AdminLayout from "@/components/AdminLayout";
 import PageHeader from "@/components/common/PageHeader";
@@ -434,7 +434,11 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
               const totalCapacity = allTickets.reduce((s, t) => s + t.available, 0);
 
               return (
-                <div key={ev._id} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
+                <div
+                  key={ev._id}
+                  onClick={() => navigate(layout === "admin" ? `/admin-dashboard/events/${ev._id}` : `/merchant-dashboard/events/${ev._id}`)}
+                  className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+                >
                   {/* Image */}
                   <div className="relative overflow-hidden bg-secondary flex-shrink-0 h-[180px] w-full">
                     {imgSrc(ev.image) ? (<img src={imgSrc(ev.image)} alt={ev.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
@@ -517,14 +521,28 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                     </div>
 
                     {/* Actions */}
-                    <div className="mt-3 flex gap-2 border-t border-border/50 pt-2.5">
-                      <Button size="sm" variant="outline" className="flex-1 h-[36px] rounded-xl font-semibold border-border/80 hover:bg-secondary text-xs flex items-center justify-center gap-1.5" onClick={() => navigate(layout === "admin" ? `/admin-dashboard/events/${ev._id}` : `/merchant-dashboard/events/${ev._id}`)}>
-                        <Eye className="h-3.5 w-3.5"/> View
-                      </Button>
-                      <Button size="sm" variant="outline" className="flex-[2] h-[36px] rounded-xl font-semibold border-border/80 hover:bg-secondary text-xs flex items-center justify-center gap-1.5" onClick={() => openEdit(ev)}>
+                    <div className="mt-3 flex gap-2 border-t border-border/50 pt-2.5" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-[36px] rounded-xl font-semibold border-border/80 hover:bg-secondary text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(ev);
+                        }}
+                      >
                         <Pencil className="mr-1 h-3 w-3"/> Edit Event
                       </Button>
-                      <Button size="sm" variant="ghost" className="text-red-500 hover:text-white hover:bg-red-500 shrink-0 h-[36px] w-[36px] p-0 rounded-xl" disabled={deletingId === ev._id} onClick={() => handleDelete(ev._id)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-500 hover:text-white hover:bg-red-500 shrink-0 h-[36px] w-[36px] p-0 rounded-xl cursor-pointer"
+                        disabled={deletingId === ev._id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(ev._id);
+                        }}
+                      >
                         {deletingId === ev._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
                       </Button>
                     </div>
@@ -925,7 +943,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
 
                 <div className="grid grid-cols-2 gap-4">
                   {eventType === "fullService" && (<div>
-                      <Label className="text-sm text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3"/> Price (₹)</Label>
+                      <Label className="text-sm text-muted-foreground flex items-center gap-1"><IndianRupee className="h-3 w-3"/> Price (₹)</Label>
                       <Input type="number" min="1" step="1" value={form.price} onChange={(e) => {
                     setForm({ ...form, price: e.target.value });
                     if (formErrors.price)

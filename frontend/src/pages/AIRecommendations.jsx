@@ -13,7 +13,12 @@ import { useGsapStagger, useGsapCardHover } from "@/lib/gsapAnimations";
 
 const RecommendationCard = ({ event, index, navigate, imgSrc }) => {
     const hoverRef = useGsapCardHover({ lift: -5, scale: 1.02 });
-    return (<div ref={hoverRef} className="rounded-xl border border-border bg-card overflow-hidden will-change-transform group">
+    return (
+      <div
+        ref={hoverRef}
+        onClick={() => navigate(`/customer-dashboard/events/${event._id}`)}
+        className="rounded-xl border border-border bg-card overflow-hidden will-change-transform group cursor-pointer hover:border-primary/50 hover:shadow-md transition-all flex flex-col justify-between"
+      >
         {/* Image */}
         <div className="relative h-40 overflow-hidden bg-secondary">
           {imgSrc(event.image) ? (<img src={imgSrc(event.image)} alt={event.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh">
@@ -29,29 +34,31 @@ const RecommendationCard = ({ event, index, navigate, imgSrc }) => {
         </div>
 
         {/* Body */}
-        <div className="p-4">
-          <h3 className="font-semibold text-sm leading-snug line-clamp-2">{event.title}</h3>
+        <div className="p-4 flex-1 flex flex-col justify-between">
+          <div>
+            <h3 className="font-semibold text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors">{event.title}</h3>
 
-          <div className="mt-2 space-y-1">
-            {event.datetime && (<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Calendar className="h-3 w-3 shrink-0"/>
-                {new Date(event.datetime).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-              </div>)}
-            {event.location && (<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3 shrink-0"/>
-                <span className="truncate">{event.location}</span>
+            <div className="mt-2 space-y-1">
+              {event.datetime && (<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Calendar className="h-3 w-3 shrink-0"/>
+                  {new Date(event.datetime).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                </div>)}
+              {event.location && (<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3 shrink-0"/>
+                  <span className="truncate">{event.location}</span>
+                </div>)}
+            </div>
+
+            {/* AI reason */}
+            {event._reason && (<div className="mt-2 flex items-center gap-1.5 text-xs text-primary/80 bg-primary/5 rounded-lg px-2 py-1">
+                <Sparkles className="h-3 w-3 shrink-0"/>
+                <span className="truncate">{event._reason}</span>
               </div>)}
           </div>
 
-          {/* AI reason */}
-          {event._reason && (<div className="mt-2 flex items-center gap-1.5 text-xs text-primary/80 bg-primary/5 rounded-lg px-2 py-1">
-              <Sparkles className="h-3 w-3 shrink-0"/>
-              <span className="truncate">{event._reason}</span>
-            </div>)}
-
-          <div className="mt-3 flex items-center justify-between">
+          <div className="mt-3 flex items-center justify-between pt-2 border-t border-border/50">
             <span className="font-bold text-sm text-gradient">{formatCurrency(event.price)}</span>
-            <Button size="sm" className="bg-gradient-primary text-primary-foreground hover:opacity-90 h-8 px-3 text-xs min-h-[32px]" onClick={() => navigate(`/customer-dashboard/events/${event._id}`)}>
+            <Button size="sm" className="bg-gradient-primary text-primary-foreground hover:opacity-90 h-8 px-3 text-xs min-h-[32px]" onClick={(e) => { e.stopPropagation(); navigate(`/customer-dashboard/events/${event._id}`); }}>
               Book <ArrowRight className="ml-1 h-3 w-3"/>
             </Button>
           </div>

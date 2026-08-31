@@ -13,7 +13,7 @@ import {
   Trash2,
   UserCheck,
   UserX,
-  DollarSign,
+  IndianRupee,
   Mail,
   Copy,
   Check,
@@ -345,7 +345,7 @@ const AdminUserDetail = () => {
                       className="h-9 px-3 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800/60 rounded-md"
                       title="Send Onboarding Quotation"
                     >
-                      <DollarSign className="h-3.5 w-3.5 mr-1" /> Quote
+                      <IndianRupee className="h-3.5 w-3.5 mr-1" /> Quote
                     </Button>
                   )}
 
@@ -767,7 +767,7 @@ const AdminUserDetail = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-base">
-                <DollarSign className="h-4.5 w-4.5 text-primary" /> Send Onboarding Quotation
+                <IndianRupee className="h-4.5 w-4.5 text-primary" /> Send Onboarding Quotation
               </DialogTitle>
               <DialogDescription className="text-xs">
                 Set the setup fee amount for this merchant. The merchant will pay this amount before activation.
@@ -780,7 +780,7 @@ const AdminUserDetail = () => {
                 <p><strong>Business:</strong> {user?.merchantDetails?.businessName || "—"}</p>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="qAmount" className="text-xs font-semibold">Quotation Amount (in USD/Credits) *</Label>
+                <Label htmlFor="qAmount" className="text-xs font-semibold">Quotation Amount (in ₹) *</Label>
                 <Input
                   id="qAmount"
                   type="text"

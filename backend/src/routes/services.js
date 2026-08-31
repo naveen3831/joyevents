@@ -7,10 +7,14 @@ import { uploadToCloudinary } from "../utils/cloudinary.js";
 
 const router = Router();
 
-// Public: list all active services
-router.get("/", async (_req, res) => {
+// Public: list all active services (optionally filterable by category)
+router.get("/", async (req, res) => {
   try {
-    const services = await Service.find().populate("createdBy", "name email").sort({ createdAt: -1 });
+    const filter = {};
+    if (req.query.category && req.query.category.trim().toLowerCase() !== "all") {
+      filter.category = { $regex: new RegExp(`^${req.query.category.trim()}$`, "i") };
+    }
+    const services = await Service.find(filter).populate("createdBy", "name email").sort({ createdAt: -1 });
 
     // Fetch average ratings and rating counts for all services
     const ratings = await Booking.aggregate([

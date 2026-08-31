@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Calendar, MapPin, DollarSign, FileText, Users } from "lucide-react";
+import { Sparkles, Calendar, MapPin, IndianRupee, FileText, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiCreateCustomServiceRequest } from "@/lib/api";
 import { toast } from "sonner";
@@ -177,7 +177,7 @@ export default function RequestCustomServiceModal({ open, onOpenChange, onSucces
             {/* Budget */}
             <div className="space-y-1 sm:col-span-1">
               <Label htmlFor="budget" className="font-semibold text-xs flex items-center gap-1">
-                <DollarSign className="h-3.5 w-3.5 text-muted-foreground" /> Budget (Optional)
+                <IndianRupee className="h-3.5 w-3.5 text-muted-foreground" /> Budget in ₹ (Optional)
               </Label>
               <Input
                 id="budget"

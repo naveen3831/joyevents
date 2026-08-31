@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { BarChart3, TrendingUp, Users, Ticket, DollarSign, Calendar, Loader2, AlertCircle, RefreshCcw } from "lucide-react";
+import { BarChart3, TrendingUp, Users, Ticket, IndianRupee, Calendar, Loader2, AlertCircle, RefreshCcw } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import PageHeader from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -84,7 +84,7 @@ const EventAnalytics = () => {
         <div ref={statsGridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
           <StatCard title="Total Events" value={analytics?.totalEvents || 0} icon={<Calendar className="h-5 w-5"/>} index={0}/>
           <StatCard title="Total Tickets Sold" value={analytics?.totalTicketsSold || 0} icon={<Ticket className="h-5 w-5"/>} index={1} trend="+12.5%"/>
-          <StatCard title="Total Event Revenue" value={`${formatCurrency((analytics?.totalEventRevenue || 0))}`} icon={<DollarSign className="h-5 w-5"/>} index={2} trend="+8.2%"/>
+          <StatCard title="Total Event Revenue" value={`${formatCurrency((analytics?.totalEventRevenue || 0))}`} icon={<IndianRupee className="h-5 w-5"/>} index={2} trend="+8.2%"/>
           <StatCard title="Total Attendees" value={analytics?.totalAttendees || 0} icon={<Users className="h-5 w-5"/>} index={3}/>
         </div>
 

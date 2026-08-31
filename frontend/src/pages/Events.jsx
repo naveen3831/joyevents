@@ -165,8 +165,11 @@ const Events = () => {
         if (!isLoggedIn || !token) {
             // Save the specific event ID to redirect after login
             localStorage.setItem("authReturnTo", dashboardUrl);
+            sessionStorage.setItem("postLoginRedirect", dashboardUrl);
             toast.error("Please login to book events");
-            navigate(`/login?redirect=${encodeURIComponent(dashboardUrl)}`);
+            navigate(`/login?redirect=${encodeURIComponent(dashboardUrl)}`, {
+                state: { from: dashboardUrl }
+            });
             return;
         }
         // If logged in as customer, go to dashboard version for booking

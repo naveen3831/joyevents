@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { ArrowLeft, Calendar, Clock, MapPin, Users, DollarSign, Share2, Heart, Image as ImageIcon, X, ChevronLeft, ChevronRight, Ticket, Check, Tag, Video, Star, CalendarDays } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, MapPin, Users, IndianRupee, Share2, Heart, Image as ImageIcon, X, ChevronLeft, ChevronRight, Ticket, Check, Tag, Video, Star, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Layout from "@/components/Layout";
@@ -184,8 +184,11 @@ const EventDetail = () => {
                 returnTo: returnUrl
             });
             localStorage.setItem("authReturnTo", returnUrl);
+            sessionStorage.setItem("postLoginRedirect", returnUrl);
             toast.error("Please sign in to book this event");
-            navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`);
+            navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`, {
+                state: { from: returnUrl }
+            });
             return;
         }
         // Seats already selected inline — go straight to payment
@@ -579,7 +582,7 @@ const EventDetail = () => {
                         }
                         return event.tickets?.every((t) => ((t.available || 0) - (t.sold || 0)) <= 0);
                     })())}>
-                      <DollarSign className="mr-2 h-4 w-4"/>
+                      <IndianRupee className="mr-2 h-4 w-4"/>
                       {(() => {
                     if (event.eventType === "ticketed") {
                         const soldOut = event.hasMultipleSessions

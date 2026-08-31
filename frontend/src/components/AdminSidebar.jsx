@@ -8,7 +8,7 @@ import {
   Calendar,
   Settings,
   Briefcase,
-  DollarSign,
+  IndianRupee,
   BarChart3,
   Activity,
   User,
@@ -63,13 +63,13 @@ const groups = [
   },
   {
     label: "Payments",
-    icon: DollarSign,
+    icon: IndianRupee,
     items: [
       { to: "/admin-dashboard/payments", label: "Transactions", icon: CreditCard },
       { to: "/admin-dashboard/commissions", label: "Commissions", icon: Calculator },
       { to: "/admin-dashboard/refunds", label: "Refunds", icon: RefreshCcw },
       { to: "/admin-dashboard/payouts", label: "Payouts", icon: Wallet },
-      { to: "/admin-dashboard/earnings", label: "Admin Earnings", icon: DollarSign },
+      { to: "/admin-dashboard/earnings", label: "Admin Earnings", icon: IndianRupee },
     ],
   },
   {

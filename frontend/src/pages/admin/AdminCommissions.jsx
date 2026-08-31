@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Calculator, DollarSign, TrendingUp, Percent, Wallet, ArrowRight, Info, Eye } from "lucide-react";
+import { Calculator, IndianRupee, TrendingUp, Percent, Wallet, ArrowRight, Info, Eye } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -214,7 +214,7 @@ const AdminCommissions = () => {
               <CardContent className="pt-3 sm:pt-6 px-3 sm:px-6">
                 <div className="flex items-center gap-3">
                   <div className="rounded-full bg-blue-500/15 p-3">
-                    <DollarSign className="h-5 w-5 text-blue-400"/>
+                    <IndianRupee className="h-5 w-5 text-blue-400"/>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Total Revenue</p>
@@ -271,37 +271,31 @@ const AdminCommissions = () => {
               <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Detailed breakdown of platform commission and net merchant payout per booking.</p>
             </div>
             {loading ? (
-              <TableSkeleton columns={8} rows={5} minWidth="100%" />
+              <TableSkeleton columns={7} rows={5} minWidth="100%" />
             ) : bookings.length === 0 ? (
-              <TableEmptyState title="No paid bookings found" description="There are no paid or completed bookings available for commission calculation." colSpan={8} />
+              <TableEmptyState title="No paid bookings found" description="There are no paid or completed bookings available for commission calculation." colSpan={7} />
             ) : (
-              <DataTable minWidth="100%">
+              <DataTable minWidth="100%" className="border-0 shadow-none rounded-none bg-transparent">
                 <TableHeader>
-                  <TableHeaderCell className="w-[25%] pl-5 sm:pl-6 pr-3">SERVICE / EVENT</TableHeaderCell>
-                  <TableHeaderCell className="w-[13%] px-3">MERCHANT</TableHeaderCell>
-                  <TableHeaderCell className="w-[12%] px-3 whitespace-nowrap">BOOKING AMOUNT</TableHeaderCell>
-                  <TableHeaderCell className="w-[10%] px-3 whitespace-nowrap">RATE</TableHeaderCell>
-                  <TableHeaderCell className="w-[13%] px-3 whitespace-nowrap">ADMIN EARNINGS</TableHeaderCell>
-                  <TableHeaderCell className="w-[11%] px-3 whitespace-nowrap">PAYOUT</TableHeaderCell>
-                  <TableHeaderCell className="w-[11%] px-3 whitespace-nowrap">DATE</TableHeaderCell>
-                  <TableHeaderCell align="right" className="w-[5%] pr-5 sm:pr-6 pl-3">ACTIONS</TableHeaderCell>
+                  <TableHeaderCell className="w-[28%] pl-5 sm:pl-6 pr-3">SERVICE / EVENT</TableHeaderCell>
+                  <TableHeaderCell className="w-[15%] px-3">MERCHANT</TableHeaderCell>
+                  <TableHeaderCell className="w-[13%] px-3 whitespace-nowrap">BOOKING AMOUNT</TableHeaderCell>
+                  <TableHeaderCell className="w-[11%] px-3 whitespace-nowrap">RATE</TableHeaderCell>
+                  <TableHeaderCell className="w-[14%] px-3 whitespace-nowrap">ADMIN EARNINGS</TableHeaderCell>
+                  <TableHeaderCell className="w-[13%] px-3 whitespace-nowrap">PAYOUT</TableHeaderCell>
+                  <TableHeaderCell align="center" className="w-[6%] pr-5 sm:pr-6 pl-3">ACTIONS</TableHeaderCell>
                 </TableHeader>
                 <TableBody>
                   {commissionRows.map(({ booking, adminEarning, payout, rateLabel, isSaved, isAdminBooking }) => {
                     const itemName = booking.service?.name || booking.serviceName || booking.event?.title || "Booking";
-                    const formattedDate = new Date(booking.datetime).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    });
                     const showDash = !isSaved && !isAdminBooking;
 
                     return (
                       <TableRow key={booking._id} className="h-[62px]">
                         {/* Service / Event */}
-                        <TableCell className="w-[25%] pl-5 sm:pl-6 pr-3 py-3">
+                        <TableCell className="w-[28%] pl-5 sm:pl-6 pr-3 py-3">
                           <div className="space-y-1 min-w-0">
-                            <p className="font-bold text-xs sm:text-sm text-foreground truncate max-w-[210px]" title={itemName}>
+                            <p className="font-bold text-xs sm:text-sm text-foreground truncate max-w-[220px]" title={itemName}>
                               {itemName}
                             </p>
                             <div>
@@ -314,9 +308,9 @@ const AdminCommissions = () => {
                         </TableCell>
 
                         {/* Merchant */}
-                        <TableCell className="w-[13%] px-3 py-3">
+                        <TableCell className="w-[15%] px-3 py-3">
                           {booking.assignedTo ? (
-                            <p className="font-semibold text-xs sm:text-sm text-foreground truncate max-w-[120px]" title={booking.assignedTo.name}>
+                            <p className="font-semibold text-xs sm:text-sm text-foreground truncate max-w-[130px]" title={booking.assignedTo.name}>
                               {booking.assignedTo.name}
                             </p>
                           ) : (
@@ -325,12 +319,12 @@ const AdminCommissions = () => {
                         </TableCell>
 
                         {/* Booking Amount */}
-                        <TableCell className="w-[12%] px-3 py-3 font-bold text-xs sm:text-sm text-foreground whitespace-nowrap">
+                        <TableCell className="w-[13%] px-3 py-3 font-bold text-xs sm:text-sm text-foreground whitespace-nowrap">
                           {formatCurrency(booking.price)}
                         </TableCell>
 
                         {/* Rate */}
-                        <TableCell className="w-[10%] px-3 py-3">
+                        <TableCell className="w-[11%] px-3 py-3">
                           <StatusBadge
                             status={isAdminBooking ? "admin" : isSaved ? "active" : "pending"}
                             label={rateLabel}
@@ -343,31 +337,27 @@ const AdminCommissions = () => {
                         </TableCell>
 
                         {/* Admin Earnings */}
-                        <TableCell className="w-[13%] px-3 py-3 font-bold text-xs sm:text-sm text-foreground whitespace-nowrap">
+                        <TableCell className="w-[14%] px-3 py-3 font-bold text-xs sm:text-sm text-foreground whitespace-nowrap">
                           {showDash ? <span className="text-muted-foreground font-normal">—</span> : formatCurrency(adminEarning)}
                         </TableCell>
 
                         {/* Payout */}
-                        <TableCell className="w-[11%] px-3 py-3 font-bold text-xs sm:text-sm text-purple-600 dark:text-purple-400 whitespace-nowrap">
+                        <TableCell className="w-[13%] px-3 py-3 font-bold text-xs sm:text-sm text-purple-600 dark:text-purple-400 whitespace-nowrap">
                           {showDash ? <span className="text-muted-foreground font-normal">—</span> : formatCurrency(payout)}
                         </TableCell>
 
-                        {/* Date */}
-                        <TableCell className="w-[11%] px-3 py-3 text-xs text-muted-foreground whitespace-nowrap font-medium">
-                          {formattedDate}
-                        </TableCell>
-
-                        {/* Actions */}
-                        <TableCell align="right" className="w-[5%] pr-5 sm:pr-6 pl-3 py-3">
-                          <ActionMenu
-                            items={[
-                              {
-                                label: "View Details",
-                                icon: Eye,
-                                onClick: () => navigate(`/admin-dashboard/payments/${booking._id}`),
-                              },
-                            ]}
-                          />
+                        {/* Actions - Direct Eye Icon Button */}
+                        <TableCell align="center" className="w-[6%] pr-5 sm:pr-6 pl-3 py-3">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg transition-colors cursor-pointer mx-auto"
+                            onClick={() => navigate(`/admin-dashboard/payments/${booking._id}`)}
+                            title="View Details"
+                            aria-label="View commission details"
+                          >
+                            <Eye className="h-4 w-4 text-primary" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );

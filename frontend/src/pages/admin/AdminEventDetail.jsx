@@ -15,7 +15,7 @@ import {
   ArrowLeft,
   Pencil,
   Activity,
-  DollarSign,
+  IndianRupee,
 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import PageHeader from "@/components/common/PageHeader";
@@ -246,7 +246,7 @@ const AdminEventDetail = () => {
               {/* Price / Pricing Card */}
               <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm flex items-start gap-3">
                 <div className="h-9 w-9 rounded-lg bg-muted border border-border/60 flex items-center justify-center text-muted-foreground shrink-0 mt-0.5">
-                  <DollarSign className="h-4 w-4 text-primary" />
+                  <IndianRupee className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">

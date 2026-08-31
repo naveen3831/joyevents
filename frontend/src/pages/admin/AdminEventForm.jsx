@@ -1,4 +1,4 @@
-import { Calendar, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, DollarSign, Upload, Ticket, Plus, ArrowLeft, Sparkles, FileText, Tag, Users, CheckCircle2 } from "lucide-react";
+import { Calendar, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, IndianRupee, Upload, Ticket, Plus, ArrowLeft, Sparkles, FileText, Tag, Users, CheckCircle2 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import MerchantLayout from "@/components/MerchantLayout";
 import { Input } from "@/components/ui/input";
@@ -540,7 +540,7 @@ const AdminEventForm = ({ layout = "admin" } = {}) => {
               {eventType === "fullService" && (<div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
                   <div>
                     <Label className="text-sm font-semibold text-foreground flex items-center gap-1.5 mb-1.5">
-                      <DollarSign className="h-4 w-4 text-primary"/> Event Price (₹) *
+                      <IndianRupee className="h-4 w-4 text-primary"/> Event Price (₹) *
                     </Label>
                     <Input type="number" min="1" step="1" value={form.price} onChange={(e) => {
                 setForm({ ...form, price: e.target.value });

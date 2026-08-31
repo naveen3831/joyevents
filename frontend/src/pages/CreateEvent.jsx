@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Calendar, MapPin, DollarSign, Clock, Globe, ImageIcon, Ticket, Plus, Loader2 } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, IndianRupee, Clock, Globe, ImageIcon, Ticket, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -659,7 +659,7 @@ const CreateEvent = () => {
 
               {/* Conditional rendering based on event type */}
               {eventType === "fullService" && (<div className="md:col-span-2 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                  <Label className="text-sm text-muted-foreground flex items-center gap-1 font-semibold mb-3"><DollarSign className="h-4 w-4"/> Event Price (₹)</Label>
+                  <Label className="text-sm text-muted-foreground flex items-center gap-1 font-semibold mb-3"><IndianRupee className="h-4 w-4"/> Event Price (₹)</Label>
                   <Input name="price" type="number" min="0" step="0.01" value={formData.price} onChange={handleInputChange} placeholder="Enter event price" className="mt-1 bg-card border-border" required/>
                   {errors.price && <p className="text-sm text-red-500 mt-1">{errors.price}</p>}
                   <p className="text-xs text-muted-foreground mt-2">Customers will pay this fixed price to book your event</p>

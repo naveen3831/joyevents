@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { 
   Wallet, 
   ArrowLeft, 
-  DollarSign, 
+  IndianRupee, 
   Building2, 
   ShieldCheck, 
   Clock, 
@@ -223,7 +223,7 @@ const RequestWithdrawal = () => {
               <Card className="border-border/80 shadow-xs">
                 <CardHeader className="p-6 pb-4 border-b border-border/60">
                   <CardTitle className="text-lg font-bold flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-primary" /> Withdrawal Details
+                    <IndianRupee className="h-5 w-5 text-primary" /> Withdrawal Details
                   </CardTitle>
                   <CardDescription className="text-xs">
                     Specify the amount you wish to withdraw and confirm your bank details.

@@ -728,30 +728,7 @@ const AdminSettings = () => {
           </motion.div>
         )}
 
-        {/* Danger Zone Section */}
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-5">
-          <div className="flex items-start gap-3.5">
-            <div className="h-9 w-9 rounded-lg bg-rose-500/10 text-rose-600 flex items-center justify-center shrink-0 border border-rose-500/20">
-              <AlertOctagon className="h-5 w-5" />
-            </div>
-            <div className="space-y-1">
-              <h4 className="text-sm font-bold text-rose-600 dark:text-rose-400">Danger Zone</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Critical administrative system operations. Exercise extreme caution when resetting platform data or clearing caches.
-              </p>
-              <div className="pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => toast.info("System cache cleared successfully")}
-                  className="border-rose-500/30 text-rose-600 hover:bg-rose-500/10 text-xs font-semibold rounded-lg h-9 px-4"
-                >
-                  Clear Platform Cache
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+
       </div>
     </AdminLayout>
   );

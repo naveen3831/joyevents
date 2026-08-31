@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
 import { 
-  Clock, CheckCircle2, DollarSign, AlertCircle, Loader2, MapPin, Video, 
+  Clock, CheckCircle2, IndianRupee, AlertCircle, Loader2, MapPin, Video, 
   CalendarCheck, FileText, AlertTriangle, TrendingUp, Users, Calendar, 
   Sparkles, ArrowRight, ShieldCheck, Tag, Star, Activity, LayoutDashboard, Ticket, Store, ExternalLink
 } from "lucide-react";
@@ -371,7 +371,7 @@ const AdminOverview = () => {
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm flex items-center gap-3.5">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <DollarSign className="h-5 w-5" />
+                <IndianRupee className="h-5 w-5" />
               </div>
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Today's Revenue</p>
@@ -654,7 +654,7 @@ const AdminOverview = () => {
             <DialogContent className="bg-card border-border">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-primary font-display">
-                  <DollarSign className="h-5 w-5 text-[#A68C73]"/> Send Onboarding Quotation
+                  <IndianRupee className="h-5 w-5 text-[#A68C73]"/> Send Onboarding Quotation
                 </DialogTitle>
                 <DialogDescription>
                   Set the setup fee amount for this merchant.

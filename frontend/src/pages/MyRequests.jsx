@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
-import { ArrowLeft, Ticket, AlertCircle, Star, FileText, CreditCard, Sparkles, CheckCircle2, Clock, DollarSign, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Ticket, AlertCircle, Star, FileText, CreditCard, Sparkles, CheckCircle2, Clock, IndianRupee, MoreHorizontal } from "lucide-react";
 import QRCode from "qrcode";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Button } from "@/components/ui/button";
@@ -355,151 +355,289 @@ const MyRequests = () => {
               </Button>
             </div>
 
-            {/* Tabs Header */}
-            <div className="flex gap-2 mt-6">
+            {/* Level 1 Primary Tabs */}
+            <div className="flex items-center gap-3 border-b border-border/70 pb-3 mt-4">
               <button
+                type="button"
                 onClick={() => setActiveTab("bookings")}
-                className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   activeTab === "bookings"
-                    ? "bg-gradient-primary text-white shadow-sm"
-                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                    ? "bg-gradient-primary text-white shadow-xs"
+                    : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
               >
-                Standard Bookings ({items.length})
+                <span>Standard Bookings</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                    activeTab === "bookings"
+                      ? "bg-white/20 text-white"
+                      : "bg-background/80 text-muted-foreground border border-border/50"
+                  }`}
+                >
+                  {items.length}
+                </span>
               </button>
+
               <button
+                type="button"
                 onClick={() => setActiveTab("custom")}
-                className={`px-4 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-1.5 ${
+                className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   activeTab === "custom"
-                    ? "bg-gradient-primary text-white shadow-sm"
-                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                    ? "bg-gradient-primary text-white shadow-xs"
+                    : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
               >
-                ✨ Custom Service Enquiries ({customRequests.length})
+                <span>✨ Custom Service Enquiries</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                    activeTab === "custom"
+                      ? "bg-white/20 text-white"
+                      : "bg-background/80 text-muted-foreground border border-border/50"
+                  }`}
+                >
+                  {customRequests.length}
+                </span>
               </button>
             </div>
           </motion.div>
 
-          {/* Content */}
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.2 }} className="mb-6 sm:mb-8 mt-6">
+          {/* Content Area */}
+          <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.1 }} className="mb-6 sm:mb-8 mt-3">
             {activeTab === "bookings" ? (
-              <div className="space-y-4">
-                {/* Sub-Filter pills for Upcoming & History */}
+              <div className="space-y-3">
+                {/* Level 2 Secondary Segmented Control */}
                 {items.length > 0 && (
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                  <div className="inline-flex items-center p-1 rounded-xl bg-muted/50 border border-border/60 gap-1 w-fit">
                     <button
+                      type="button"
                       onClick={() => setBookingSubFilter("all")}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                         bookingSubFilter === "all"
-                          ? "bg-gradient-primary text-white shadow-sm"
-                          : "bg-secondary text-muted-foreground hover:text-foreground"
+                          ? "bg-card text-foreground shadow-xs border border-border/50 font-bold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                       }`}
                     >
-                      All ({items.length})
+                      <span>All</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold ${
+                          bookingSubFilter === "all"
+                            ? "bg-primary/10 text-primary"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {items.length}
+                      </span>
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => setBookingSubFilter("upcoming")}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                         bookingSubFilter === "upcoming"
-                          ? "bg-gradient-primary text-white shadow-sm"
-                          : "bg-secondary text-muted-foreground hover:text-foreground"
+                          ? "bg-card text-foreground shadow-xs border border-border/50 font-bold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                       }`}
                     >
-                      📅 Upcoming ({items.filter(b => ["pending", "confirmed", "paid", "assigned", "pending_approval", "awaiting_payment", "cancellation_requested", "cancellation_fee_proposed"].includes(b.status)).length})
+                      <span>Upcoming</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold ${
+                          bookingSubFilter === "upcoming"
+                            ? "bg-primary/10 text-primary"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {items.filter(b => ["pending", "confirmed", "paid", "assigned", "pending_approval", "awaiting_payment", "cancellation_requested", "cancellation_fee_proposed"].includes(b.status)).length}
+                      </span>
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => setBookingSubFilter("history")}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                         bookingSubFilter === "history"
-                          ? "bg-gradient-primary text-white shadow-sm"
-                          : "bg-secondary text-muted-foreground hover:text-foreground"
+                          ? "bg-card text-foreground shadow-xs border border-border/50 font-bold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                       }`}
                     >
-                      📜 History ({items.filter(b => ["completed", "cancelled", "refunded"].includes(b.status)).length})
+                      <span>History</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold ${
+                          bookingSubFilter === "history"
+                            ? "bg-primary/10 text-primary"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {items.filter(b => ["completed", "cancelled", "refunded"].includes(b.status)).length}
+                      </span>
                     </button>
                   </div>
                 )}
 
                 {filteredBookings.length === 0 ? (
-                  <TableEmptyState title={`No ${bookingSubFilter} bookings found`} description="Your booking requests will appear here." colSpan={5} />
+                  <TableEmptyState title={`No ${bookingSubFilter} bookings found`} description="Your booking requests will appear here." colSpan={6} />
                 ) : (
-                  <DataTable minWidth="100%">
-                    <TableHeader>
-                      <TableHeaderCell width="25%">Service / Event</TableHeaderCell>
-                      <TableHeaderCell width="15%">Price</TableHeaderCell>
-                      <TableHeaderCell width="18%">Date / Time</TableHeaderCell>
-                      <TableHeaderCell width="18%">Status</TableHeaderCell>
-                      <TableHeaderCell align="center" width="24%">Actions</TableHeaderCell>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredBookings.map((b) => (
-                        <TableRow key={b._id}>
-                          <TableCell>
-                            <div className="text-xs font-semibold text-foreground truncate max-w-[220px]" title={b.event?.title || b.serviceName}>
-                              {b.event?.title || b.serviceName}
-                            </div>
-                            {b.event ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-primary font-medium mt-0.5">
-                                🎫 Event
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
-                                💼 Service
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-bold text-xs text-primary">
-                            {formatCurrency(b.price || 0)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                            <div className="font-medium text-foreground">{b.datetime ? new Date(b.datetime).toLocaleDateString() : "—"}</div>
-                            {b.datetime && <div className="text-[10px] text-muted-foreground">{new Date(b.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>}
-                          </TableCell>
-                           <TableCell>
-                            <StatusBadge status={b.status} className={STATUS_CLASS} />
-                          </TableCell>
-                          <TableCell align="center">
-                            <div className="flex gap-2 items-center justify-center w-[155px] min-w-[155px]">
-                              {(b.status === "awaiting_payment" || b.status === "awaiting_final_payment") && (
-                                <Button size="sm" className={`${PRIMARY_ACTION_CLASS} bg-gradient-primary text-white animate-pulse gap-1.5`} onClick={() => openPaymentModal(b)}>
-                                  <CreditCard className="h-4 w-4 shrink-0"/> Pay Now
-                                </Button>
-                              )}
-                              {((b.status === "confirmed" || b.status === "paid" || b.status === "completed" || b.event || b.ticketId) && 
-                                b.status !== "awaiting_payment" && 
-                                b.status !== "awaiting_final_payment" &&
-                                (b.event || b.ticketId)) && (
-                                <Button size="sm" variant="outline" className={`${PRIMARY_ACTION_CLASS} border-primary/40 text-primary hover:bg-primary/10 gap-1.5`} onClick={() => downloadTicket(b)}>
-                                  <Ticket className="h-4 w-4 shrink-0"/> Ticket
-                                </Button>
-                              )}
-                              {b.status === "completed" && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm" className={`${MORE_ACTION_CLASS} border-border text-muted-foreground hover:text-foreground hover:bg-muted/80 cursor-pointer`}>
-                                      <MoreHorizontal className="h-4 w-4 shrink-0" />
+                  <div className="rounded-xl border border-border/70 bg-card overflow-hidden shadow-xs">
+                    <DataTable minWidth="100%">
+                      <TableHeader>
+                        <TableHeaderCell width="26%" className="pl-5 sm:pl-6 pr-3">BOOKING / SERVICE</TableHeaderCell>
+                        <TableHeaderCell width="14%" className="px-3">AMOUNT</TableHeaderCell>
+                        <TableHeaderCell width="18%" className="px-3">DATE & TIME</TableHeaderCell>
+                        <TableHeaderCell width="18%" className="px-3">STATUS</TableHeaderCell>
+                        <TableHeaderCell width="14%" className="px-3 text-center">TICKET</TableHeaderCell>
+                        <TableHeaderCell width="10%" align="center" className="pr-5 sm:pr-6 pl-3">ACTIONS</TableHeaderCell>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredBookings.map((b) => {
+                          const dateObj = b.datetime || b.createdAt ? new Date(b.datetime || b.createdAt) : null;
+                          const formattedDate = dateObj && !isNaN(dateObj.getTime())
+                            ? dateObj.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
+                            : "—";
+                          const formattedTime = dateObj && !isNaN(dateObj.getTime()) && (dateObj.getHours() !== 0 || dateObj.getMinutes() !== 0)
+                            ? dateObj.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+                            : null;
+                          const hasTicket = (b.event || b.ticketId || ["confirmed", "paid", "completed"].includes(b.status)) &&
+                            b.status !== "awaiting_payment" && b.status !== "awaiting_final_payment" && b.status !== "cancelled";
+
+                          return (
+                            <TableRow key={b._id}>
+                              {/* Booking / Service Column */}
+                              <TableCell className="pl-5 sm:pl-6 pr-3 py-3.5 align-middle">
+                                <div className="text-xs sm:text-sm font-bold text-foreground truncate max-w-[210px]" title={b.event?.title || b.serviceName}>
+                                  {b.event?.title || b.serviceName}
+                                </div>
+                                <div className="mt-0.5">
+                                  {b.event ? (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                                      Event
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md">
+                                      Service
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+
+                              {/* Amount Column */}
+                              <TableCell className="px-3 py-3.5 align-middle text-xs sm:text-sm font-bold text-foreground">
+                                {formatCurrency(b.price || 0)}
+                              </TableCell>
+
+                              {/* Date & Time Column */}
+                              <TableCell className="px-3 py-3.5 align-middle text-xs whitespace-nowrap">
+                                <div className="font-semibold text-foreground">{formattedDate}</div>
+                                {formattedTime && <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">{formattedTime}</div>}
+                              </TableCell>
+
+                              {/* Status Badge Column */}
+                              <TableCell className="px-3 py-3.5 align-middle">
+                                <StatusBadge status={b.status} className="h-[28px] min-w-[96px] max-w-[120px] px-2.5 justify-center text-center text-[11px] font-semibold" />
+                              </TableCell>
+
+                              {/* Ticket Column */}
+                              <TableCell className="px-3 py-3.5 align-middle text-center">
+                                {hasTicket ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 px-3 text-[11px] font-semibold rounded-xl border-primary/40 text-primary hover:bg-primary/10 gap-1.5 flex items-center justify-center mx-auto cursor-pointer shadow-xs"
+                                    onClick={() => downloadTicket(b)}
+                                  >
+                                    <Ticket className="h-3.5 w-3.5 shrink-0" /> Ticket
+                                  </Button>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground font-normal block text-center">—</span>
+                                )}
+                              </TableCell>
+
+                              {/* Actions Column */}
+                              <TableCell className="pr-5 sm:pr-6 pl-3 py-3.5 align-middle text-center">
+                                <div className="flex items-center justify-center">
+                                  {b.status === "awaiting_payment" || b.status === "awaiting_final_payment" ? (
+                                    <Button
+                                      size="sm"
+                                      className="h-8 px-3 text-[11px] font-bold rounded-xl bg-gradient-primary text-white hover:opacity-90 gap-1.5 flex items-center justify-center shadow-xs animate-pulse cursor-pointer whitespace-nowrap"
+                                      onClick={() => openPaymentModal(b)}
+                                    >
+                                      <CreditCard className="h-3.5 w-3.5 shrink-0" /> Pay Now
                                     </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-44 text-xs font-semibold">
-                                    <DropdownMenuItem className="cursor-pointer flex items-center gap-2" onClick={() => downloadInvoice(b)}>
-                                      <FileText className="h-3.5 w-3.5" /> View Invoice
-                                    </DropdownMenuItem>
-                                    {!b.rating?.score && (
-                                      <DropdownMenuItem className="cursor-pointer flex items-center gap-2 text-amber-500 hover:text-amber-600" onClick={() => openRatingModal(b)}>
-                                        <Star className="h-3.5 w-3.5" /> Rate Experience
-                                      </DropdownMenuItem>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </DataTable>
+                                  ) : (
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-8 w-8 p-0 rounded-xl border-border text-muted-foreground hover:text-foreground hover:bg-muted/80 cursor-pointer flex items-center justify-center"
+                                        >
+                                          <MoreHorizontal className="h-4 w-4 shrink-0" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="w-48 text-xs font-semibold p-1">
+                                        {b.status === "completed" && (
+                                          <>
+                                            <DropdownMenuItem
+                                              className="cursor-pointer flex items-center gap-2"
+                                              onClick={() => downloadInvoice(b)}
+                                            >
+                                              <FileText className="h-3.5 w-3.5" /> View Invoice
+                                            </DropdownMenuItem>
+                                            {!b.rating?.score && (
+                                              <DropdownMenuItem
+                                                className="cursor-pointer flex items-center gap-2 text-amber-500 hover:text-amber-600"
+                                                onClick={() => openRatingModal(b)}
+                                              >
+                                                <Star className="h-3.5 w-3.5" /> Rate Experience
+                                              </DropdownMenuItem>
+                                            )}
+                                          </>
+                                        )}
+                                        {b.status === "cancellation_fee_proposed" && (
+                                          <DropdownMenuItem
+                                            className="cursor-pointer flex items-center gap-2 text-indigo-500 font-bold"
+                                            onClick={() => handleAcceptCancellationFee(b._id)}
+                                          >
+                                            <CheckCircle2 className="h-3.5 w-3.5" /> Accept Cancellation Fee
+                                          </DropdownMenuItem>
+                                        )}
+                                        {["pending", "confirmed", "paid", "assigned"].includes(b.status) && (
+                                          <DropdownMenuItem
+                                            className="cursor-pointer flex items-center gap-2 text-red-500 hover:text-red-600"
+                                            onClick={() => handleRequestCancel(b._id)}
+                                          >
+                                            <AlertCircle className="h-3.5 w-3.5" /> Request Cancel
+                                          </DropdownMenuItem>
+                                        )}
+                                        <DropdownMenuItem
+                                          className="cursor-pointer flex items-center gap-2"
+                                          onClick={() => {
+                                            const returnTo = "/customer-dashboard/bookings";
+                                            const params = new URLSearchParams({
+                                              title: b.event?.title || b.serviceName || "Booking Inquiry",
+                                              bookingId: b._id,
+                                              returnTo,
+                                            });
+                                            if (b.event?.createdBy?._id || b.merchantId) {
+                                              params.set("merchantId", b.event?.createdBy?._id || b.merchantId);
+                                            }
+                                            navigate(`/customer-dashboard/contact-organiser?${params.toString()}`);
+                                          }}
+                                        >
+                                          Contact Organiser
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </DataTable>
+                    <div className="flex items-center justify-between px-5 sm:px-6 py-3 border-t border-border/70 text-xs text-muted-foreground">
+                      <span>Showing {filteredBookings.length} of {items.length} bookings</span>
+                    </div>
+                  </div>
                 )}
               </div>
             ) : (

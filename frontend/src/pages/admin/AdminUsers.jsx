@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Plus, Users, CheckCircle, AlertTriangle, Search, Filter, UserX, UserCheck, KeyRound, FileText, CheckCircle2, DollarSign, Sparkles, XCircle, Eye, Pencil, Trash2, MessageSquare, Download, X, MoreHorizontal } from "lucide-react";
+import { Plus, Users, CheckCircle, AlertTriangle, Search, Filter, UserX, UserCheck, KeyRound, FileText, CheckCircle2, IndianRupee, Sparkles, XCircle, Eye, Pencil, Trash2, MessageSquare, Download, X, MoreHorizontal } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { useGsapReveal } from "@/lib/gsapAnimations";
 import { Input } from "@/components/ui/input";
@@ -1077,7 +1077,7 @@ const AdminUsers = () => {
                               ? [
                                   {
                                     label: "Send Quote",
-                                    icon: DollarSign,
+                                    icon: IndianRupee,
                                     onClick: () => {
                                       setSelectedCustomForQuote(r);
                                       setCustomQuoteAmount(r.budget ? String(r.budget) : "");
@@ -1231,7 +1231,7 @@ const AdminUsers = () => {
                               ? [
                                   {
                                     label: "Send Quote",
-                                    icon: DollarSign,
+                                    icon: IndianRupee,
                                     onClick: () => {
                                       setSelectedTicketForQuote(t);
                                       setTicketQuoteAmount("");
@@ -1489,7 +1489,7 @@ const AdminUsers = () => {
                       setCustomQuoteNote("");
                       setIsCustomQuoteOpen(true);
                     }}>
-                      <DollarSign className="h-4 w-4 mr-1"/> Send Quote
+                      <IndianRupee className="h-4 w-4 mr-1"/> Send Quote
                     </Button>
                     <Button size="sm" variant="destructive" className="flex-1 sm:flex-none h-10 font-medium" onClick={() => {
                       setIsCustomDetailsOpen(false);
@@ -1840,7 +1840,7 @@ const AdminUsers = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary"/> Send Onboarding Quotation
+                <IndianRupee className="h-5 w-5 text-primary"/> Send Onboarding Quotation
               </DialogTitle>
               <DialogDescription>
                 Set the setup fee amount for this merchant. The merchant will pay this amount before activation.
@@ -1853,7 +1853,7 @@ const AdminUsers = () => {
                   <p><strong>Business:</strong> {selectedMerchantForQuote.merchantDetails?.businessName}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="qAmount">Quotation Amount (in USD/Credits) *</Label>
+                  <Label htmlFor="qAmount">Quotation Amount (in ₹) *</Label>
                   <Input id="qAmount" type="text" required placeholder="e.g. 250" value={quoteAmount} onChange={(e) => {
                 const val = e.target.value.replace(/[^0-9]/g, "");
                 setQuoteAmount(val.slice(0, 7));
@@ -1921,7 +1921,7 @@ const AdminUsers = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-indigo-500"/> Send Limit Upgrade Quotation
+                <IndianRupee className="h-5 w-5 text-indigo-500"/> Send Limit Upgrade Quotation
               </DialogTitle>
               <DialogDescription>
                 Set the quotation fee for this limit upgrade request.
@@ -1934,7 +1934,7 @@ const AdminUsers = () => {
                   {selectedTicketForQuote.message && <p><strong>Message:</strong> "{selectedTicketForQuote.message}"</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="tqAmount">Quotation Amount (in USD/Credits) *</Label>
+                  <Label htmlFor="tqAmount">Quotation Amount (in ₹) *</Label>
                   <Input id="tqAmount" type="text" required placeholder="e.g. 100" value={ticketQuoteAmount} onChange={(e) => {
                 const val = e.target.value.replace(/[^0-9]/g, "");
                 setTicketQuoteAmount(val.slice(0, 7));

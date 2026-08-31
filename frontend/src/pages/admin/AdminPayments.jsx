@@ -3,7 +3,7 @@ import { formatCurrency } from "@/lib/utils";
 import {
   Clock,
   CreditCard,
-  DollarSign,
+  IndianRupee,
   Eye,
   ReceiptText,
   RefreshCw,
@@ -94,7 +94,7 @@ const AdminPayments = () => {
       case "mixed":
         return <Wallet className="h-3.5 w-3.5" />;
       default:
-        return <DollarSign className="h-3.5 w-3.5" />;
+        return <IndianRupee className="h-3.5 w-3.5" />;
     }
   };
 
@@ -166,7 +166,7 @@ const AdminPayments = () => {
         <SummaryCard
           title="Total Revenue Collected"
           value={formatCurrency(totalCollected)}
-          icon={<DollarSign className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />}
+          icon={<IndianRupee className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />}
           tone="bg-emerald-500/10"
         />
         <SummaryCard

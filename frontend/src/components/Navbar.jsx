@@ -80,14 +80,24 @@ const Navbar = ({ hideDashboardLinks = false }) => {
       apiListCategories("service").catch(() => ({ categories: [] })),
       apiListServices().catch(() => ({ services: [] }))
     ]).then(([catRes, svcRes]) => {
-      const list = catRes.categories || [];
-      if (list.length > 0) {
-        setServiceCategories(list);
-      } else {
-        const svcs = svcRes.services || [];
-        const catNames = Array.from(new Set(svcs.map(s => s.category).filter(Boolean)));
-        setServiceCategories(catNames.map(name => ({ _id: name, name })));
-      }
+      const catMap = new Map();
+      const rawList = [
+        ...(catRes.categories || []).map(c => c.name),
+        ...(svcRes.services || []).map(s => s.category)
+      ].filter(Boolean);
+
+      rawList.forEach((rawName) => {
+        const norm = String(rawName).trim().toLowerCase();
+        if (norm && norm !== "all" && !catMap.has(norm)) {
+          const label = norm
+            .split(/\s+/)
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(" ");
+          catMap.set(norm, { value: norm, label });
+        }
+      });
+
+      setServiceCategories(Array.from(catMap.values()));
     }).catch(() => { });
 
     apiListCategories("event").then(res => {
@@ -209,9 +219,9 @@ const Navbar = ({ hideDashboardLinks = false }) => {
                     </DropdownMenuItem>
                     {serviceCategories.length > 0 && <div className="h-px bg-border my-1" />}
                     {serviceCategories.map((cat) => (
-                      <DropdownMenuItem key={cat._id} asChild className="hover:bg-secondary font-medium text-sm py-2 px-3 rounded-lg cursor-pointer">
-                        <Link to={`/services?category=${encodeURIComponent(cat.name)}`}>
-                          {cat.name}
+                      <DropdownMenuItem key={cat.value} asChild className="hover:bg-secondary font-medium text-sm py-2 px-3 rounded-lg cursor-pointer">
+                        <Link to={`/services?category=${encodeURIComponent(cat.value)}`}>
+                          {cat.label}
                         </Link>
                       </DropdownMenuItem>
                     ))}

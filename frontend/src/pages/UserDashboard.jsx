@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
-import { Calendar, DollarSign, Ticket, Clock, CheckCircle2, AlertCircle, Loader2, BarChart3, Video, Search, MapPin, CalendarDays, Briefcase, ArrowRight, Star, FileText, CreditCard, Mail, Sparkles, Eye, CalendarCheck, Heart, ShoppingBag, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, IndianRupee, Ticket, Clock, CheckCircle2, AlertCircle, Loader2, BarChart3, Video, Search, MapPin, CalendarDays, Briefcase, ArrowRight, Star, FileText, CreditCard, Mail, Sparkles, Eye, CalendarCheck, Heart, ShoppingBag, ChevronLeft, ChevronRight } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
 import StatCard from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
@@ -571,7 +571,7 @@ const UserDashboard = () => {
             <StatCard
               title="Wallet Balance"
               value={formatCurrency(user?.walletBalance || 0)}
-              icon={<DollarSign className="h-5 w-5 text-emerald-500" />}
+              icon={<IndianRupee className="h-5 w-5 text-emerald-500" />}
               index={3}
               to="/customer-dashboard/wallet"
             />
@@ -718,11 +718,8 @@ const UserDashboard = () => {
                           </div>
 
                           <div className="mt-4 space-y-2">
-                            <div className="grid grid-cols-2 gap-2">
-                              <button onClick={() => navigate(`/customer-dashboard/services/${svc._id}`)} className="min-h-[40px] rounded-xl text-xs font-semibold border border-border hover:bg-secondary text-foreground transition-all flex items-center justify-center gap-1.5">
-                                <Eye className="h-4 w-4"/> Details
-                              </button>
-                              <button onClick={() => navigate(`/customer-dashboard/services/${svc._id}`)} className="min-h-[40px] rounded-xl text-xs font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow transition-all flex items-center justify-center gap-1.5">
+                            <div className="grid grid-cols-1 gap-2">
+                              <button onClick={(ev) => { ev.stopPropagation(); navigate(`/customer-dashboard/services/${svc._id}`); }} className="min-h-[40px] rounded-xl text-xs font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow transition-all flex items-center justify-center gap-1.5">
                                 <CalendarCheck className="h-4 w-4"/> Book Now
                               </button>
                             </div>

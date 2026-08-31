@@ -10,7 +10,7 @@ import {
   ChevronRight,
   Calendar,
   Briefcase,
-  DollarSign,
+  IndianRupee,
   Megaphone,
   BarChart3,
   Sparkles,
@@ -68,7 +68,7 @@ const MERCHANT_PAGES = [
   { title: "My Services", group: "Events & Services", route: "/merchant-dashboard/services", icon: Briefcase, keywords: ["services", "my services"] },
   { title: "Create Service", group: "Events & Services", route: "/merchant-dashboard/create-service", icon: Briefcase, keywords: ["create service", "new service"] },
   { title: "Bookings", group: "Events & Services", route: "/merchant-dashboard/bookings", icon: CheckCircle2, keywords: ["bookings", "reservations", "orders"] },
-  { title: "Earnings & Wallet", group: "Growth", route: "/merchant-dashboard/earnings", icon: DollarSign, keywords: ["earnings", "wallet", "payouts", "revenue"] },
+  { title: "Earnings & Wallet", group: "Growth", route: "/merchant-dashboard/earnings", icon: IndianRupee, keywords: ["earnings", "wallet", "payouts", "revenue"] },
   { title: "Marketing Tools", group: "Growth", route: "/merchant-dashboard/marketing", icon: Megaphone, keywords: ["marketing", "promotions"] },
   { title: "Referrals", group: "Growth", route: "/merchant-dashboard/referrals", icon: Gift, keywords: ["referrals", "rewards", "invite"] },
   { title: "AI Reach Stats", group: "Growth", route: "/merchant-dashboard/ai-recommendations", icon: Sparkles, keywords: ["ai", "reach", "stats", "picks"] },
@@ -117,6 +117,9 @@ export const MerchantTopHeader = ({ onSidebarToggle }) => {
     }
     if (currentPath.startsWith("/merchant-dashboard/services/") && currentPath.endsWith("/edit")) {
       return [{ label: "Merchant Portal" }, { label: "Services", to: "/merchant-dashboard/services" }, { label: "Edit Service" }];
+    }
+    if (currentPath.startsWith("/merchant-dashboard/bookings/")) {
+      return [{ label: "Merchant Portal" }, { label: "Events & Services" }, { label: "Bookings", to: "/merchant-dashboard/bookings" }, { label: "Booking Status & Management" }];
     }
     return [{ label: "Merchant Portal" }, { label: "Dashboard" }];
   };

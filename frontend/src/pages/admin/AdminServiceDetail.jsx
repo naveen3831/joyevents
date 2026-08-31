@@ -1,6 +1,7 @@
 import { formatCurrency } from "@/lib/utils";
 import { Briefcase, Loader2, AlertCircle, Tag, Store, Mail, Phone, Sparkles, ArrowLeft } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
+import MerchantLayout from "@/components/MerchantLayout";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { apiGetServiceById } from "@/lib/api";
@@ -9,7 +10,7 @@ import { toast } from "sonner";
 
 const imgSrc = (image) => !image ? "" : image.startsWith("http") ? image : `${API_URL}${image}`;
 
-const AdminServiceDetail = () => {
+const AdminServiceDetail = ({ layout = "admin" } = {}) => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [service, setService] = useState(null);
@@ -26,8 +27,10 @@ const AdminServiceDetail = () => {
         return () => { cancelled = true; };
     }, [id]);
 
+    const PageLayout = layout === "merchant" ? MerchantLayout : AdminLayout;
+
     return (
-        <AdminLayout>
+        <PageLayout>
             <section className="w-full max-w-[1050px] mx-auto pt-4 sm:pt-6 pb-12 px-4 sm:px-6">
                 <button
                     onClick={() => navigate(-1)}
@@ -166,7 +169,7 @@ const AdminServiceDetail = () => {
                     </div>
                 )}
             </section>
-        </AdminLayout>
+        </PageLayout>
     );
 };
 

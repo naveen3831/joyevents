@@ -78,7 +78,11 @@ const HIGHLIGHT_TINTS = [
 const ServiceCard = ({ svc, imgSrc, navigate, openBook }) => {
     const hoverRef = useGsapCardHover({ lift: -8, scale: 1.015 });
     return (
-        <div ref={hoverRef} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col shadow-card will-change-transform">
+        <div 
+            ref={hoverRef} 
+            onClick={() => navigate(`/services/${svc._id}`)} 
+            className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col shadow-card will-change-transform cursor-pointer"
+        >
             {/* Image */}
             <div className="relative overflow-hidden bg-secondary flex-shrink-0 h-[175px] w-full">
                 {imgSrc(svc.image) ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center text-muted-foreground">
@@ -91,34 +95,37 @@ const ServiceCard = ({ svc, imgSrc, navigate, openBook }) => {
             </div>
 
             {/* Content */}
-            <div className="p-4 sm:p-5 flex flex-col flex-1">
-                {svc.createdBy && (<div className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[10px] sm:text-xs font-medium text-muted-foreground">
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary"/>
-                    {svc.createdBy.name}
-                  </div>)}
+            <div className="p-4 sm:p-5 flex flex-col flex-1 min-w-0 justify-between">
+                <div>
+                    {svc.createdBy && (<div className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[10px] sm:text-xs font-medium text-muted-foreground">
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary"/>
+                        {svc.createdBy.name}
+                      </div>)}
 
-                <Link to={`/services/${svc._id}`}>
-                    <h3 className="font-display text-sm sm:text-lg font-bold leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors cursor-pointer min-h-[2.5rem] sm:min-h-[3.25rem]">
+                    <h3 className="font-display text-sm sm:text-lg font-bold leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors min-h-[2.5rem] sm:min-h-[3.25rem]">
                         {svc.name}
                     </h3>
-                </Link>
 
-                {/* Highlights */}
-                {svc.highlights?.length > 0 && (<ul className="mt-3 space-y-1.5 flex-1">
-                    {svc.highlights.slice(0, 2).map((h, hi) => (<li key={hi} className="flex items-center gap-2 text-[11px] sm:text-xs text-muted-foreground">
-                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${HIGHLIGHT_TINTS[hi % HIGHLIGHT_TINTS.length]}`}>
-                          <Sparkle className="h-3 w-3"/>
-                        </span>
-                        <span className="line-clamp-1">{h}</span>
-                      </li>))}
-                  </ul>)}
+                    {/* Highlights */}
+                    {svc.highlights?.length > 0 && (<ul className="mt-3 space-y-1.5 flex-1">
+                        {svc.highlights.slice(0, 2).map((h, hi) => (<li key={hi} className="flex items-center gap-2 text-[11px] sm:text-xs text-muted-foreground">
+                            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${HIGHLIGHT_TINTS[hi % HIGHLIGHT_TINTS.length]}`}>
+                              <Sparkle className="h-3 w-3"/>
+                            </span>
+                            <span className="line-clamp-1">{h}</span>
+                          </li>))}
+                      </ul>)}
+                </div>
 
                 {/* Buttons */}
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                    <Button variant="outline" className="min-h-[40px] sm:min-h-[44px] rounded-xl text-[11px] sm:text-sm font-semibold border-border hover:bg-secondary text-foreground gap-1.5" onClick={() => navigate(`/services/${svc._id}`)}>
-                        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4"/> Details
-                    </Button>
-                    <Button className="min-h-[40px] sm:min-h-[44px] rounded-xl text-[11px] sm:text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow gap-1.5" onClick={() => openBook(svc)}>
+                <div className="mt-4">
+                    <Button 
+                        className="w-full min-h-[40px] sm:min-h-[44px] rounded-xl text-[11px] sm:text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow gap-1.5" 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            openBook(svc);
+                        }}
+                    >
                         <CalendarCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4"/> Book Now
                     </Button>
                 </div>
@@ -354,8 +361,11 @@ const Index = () => {
                 returnTo: dashboardUrl,
             });
             localStorage.setItem("authReturnTo", dashboardUrl);
+            sessionStorage.setItem("postLoginRedirect", dashboardUrl);
             toast.error("Please sign in to book this event");
-            navigate(`/login?redirect=${encodeURIComponent(dashboardUrl)}`);
+            navigate(`/login?redirect=${encodeURIComponent(dashboardUrl)}`, {
+                state: { from: dashboardUrl }
+            });
             return;
         }
         navigate(dashboardUrl);
@@ -376,8 +386,11 @@ const Index = () => {
                 returnTo: dashboardUrl,
             });
             localStorage.setItem("authReturnTo", dashboardUrl);
+            sessionStorage.setItem("postLoginRedirect", dashboardUrl);
             toast.error("Please sign in to book this service");
-            navigate(`/login?redirect=${encodeURIComponent(dashboardUrl)}`);
+            navigate(`/login?redirect=${encodeURIComponent(dashboardUrl)}`, {
+                state: { from: dashboardUrl }
+            });
             return;
         }
         navigate(dashboardUrl);

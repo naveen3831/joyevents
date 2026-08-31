@@ -267,26 +267,58 @@ const AdminPaymentDetail = () => {
                     <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
                       <Sparkles className="h-3.5 w-3.5" /> Gateway & References
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-2 text-xs">
-                      <div className="flex justify-between py-1 border-b border-border/40">
-                        <span className="text-muted-foreground font-medium">Payment Method</span>
-                        <span className="capitalize font-semibold text-foreground">{booking.paymentMethod || "standard"}</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-border/40">
-                        <span className="text-muted-foreground font-medium">Payment Reference</span>
-                        <span className="font-mono text-foreground break-all">{getPaymentReference(booking)}</span>
-                      </div>
-                      {booking.ticketId && (
-                        <div className="flex justify-between py-1 border-b border-border/40">
-                          <span className="text-muted-foreground font-medium">Ticket ID</span>
-                          <span className="font-mono text-foreground">{booking.ticketId}</span>
+                    {(() => {
+                      const scheduledDateLabel = booking.event ? "Event Date" : booking.service ? "Service Date" : "Booked For";
+                      const rawScheduled = booking.datetime || booking.date || booking.serviceDate || booking.eventDate || booking.event?.datetime || booking.event?.date;
+                      const scheduledObj = rawScheduled ? new Date(rawScheduled) : null;
+                      const formattedScheduled = scheduledObj && !isNaN(scheduledObj.getTime())
+                        ? scheduledObj.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
+                        : "—";
+
+                      const scheduledTimeStr = booking.time || booking.timeSlot || booking.slotTime || booking.event?.time || (
+                        scheduledObj && !isNaN(scheduledObj.getTime()) && (scheduledObj.getHours() !== 0 || scheduledObj.getMinutes() !== 0)
+                          ? scheduledObj.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+                          : null
+                      );
+
+                      const transactionObj = booking.createdAt ? new Date(booking.createdAt) : null;
+                      const formattedTransaction = transactionObj && !isNaN(transactionObj.getTime())
+                        ? transactionObj.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
+                        : "—";
+
+                      return (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-2 text-xs">
+                          <div className="flex justify-between py-1 border-b border-border/40">
+                            <span className="text-muted-foreground font-medium">Payment Method</span>
+                            <span className="capitalize font-semibold text-foreground">{booking.paymentMethod || "standard"}</span>
+                          </div>
+                          <div className="flex justify-between py-1 border-b border-border/40">
+                            <span className="text-muted-foreground font-medium">Payment Reference</span>
+                            <span className="font-mono text-foreground break-all">{getPaymentReference(booking)}</span>
+                          </div>
+                          {booking.ticketId && (
+                            <div className="flex justify-between py-1 border-b border-border/40">
+                              <span className="text-muted-foreground font-medium">Ticket ID</span>
+                              <span className="font-mono text-foreground">{booking.ticketId}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between py-1 border-b border-border/40">
+                            <span className="text-muted-foreground font-medium">{scheduledDateLabel}</span>
+                            <span className="font-semibold text-foreground">{formattedScheduled}</span>
+                          </div>
+                          {scheduledTimeStr && (
+                            <div className="flex justify-between py-1 border-b border-border/40">
+                              <span className="text-muted-foreground font-medium">Time</span>
+                              <span className="font-semibold text-foreground">{scheduledTimeStr}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between py-1 border-b border-border/40">
+                            <span className="text-muted-foreground font-medium">Transaction Date</span>
+                            <span className="font-semibold text-foreground">{formattedTransaction}</span>
+                          </div>
                         </div>
-                      )}
-                      <div className="flex justify-between py-1 border-b border-border/40">
-                        <span className="text-muted-foreground font-medium">Transaction Date</span>
-                        <span className="text-foreground">{new Date(booking.createdAt).toLocaleString()}</span>
-                      </div>
-                    </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

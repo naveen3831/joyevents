@@ -189,190 +189,253 @@ const Cart = () => {
     };
 
     return (<CustomerLayout>
-      <div className="w-full py-2 sm:py-6">
-        <div className="w-full">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6 sm:mb-8">
-            <div>
-              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Shopping Cart</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                You have {cartItems.length} configured items in your cart
-              </p>
-            </div>
-            <Button variant="ghost" size="sm" onClick={clearCart} className="text-red-400 hover:text-red-300 min-h-[44px]">
+      <div className="w-full pt-1 sm:pt-2 pb-8">
+
+        {/* ── Page Header ─────────────────────────────── */}
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Shopping Cart</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              You have {cartItems.length} configured {cartItems.length === 1 ? "item" : "items"} in your cart
+            </p>
+          </div>
+          {cartItems.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearCart}
+              className="text-red-400 hover:text-red-300 hover:bg-red-400/10 text-xs font-semibold h-8 px-3 rounded-lg">
               Clear All
             </Button>
-          </div>
+          )}
+        </div>
 
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Left - Cart items */}
-            <div ref={itemsRef} className="flex-1 space-y-6">
+        {/* ── Empty State ───────────────────────────────── */}
+        {cartItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="p-5 rounded-full bg-secondary/60 mb-4">
+              <ShoppingBag className="h-10 w-10 text-muted-foreground/40" />
+            </div>
+            <h2 className="font-semibold text-lg text-foreground mb-1">Your cart is empty</h2>
+            <p className="text-sm text-muted-foreground mb-6 max-w-xs">
+              Looks like you haven't added anything yet. Browse events or services to get started.
+            </p>
+            <div className="flex items-center gap-3">
+              <Button variant="outline"
+                className="rounded-xl h-10 px-5 text-sm font-semibold"
+                onClick={() => navigate("/customer-dashboard/browse-events")}>
+                Browse Events
+              </Button>
+              <Button
+                className="rounded-xl h-10 px-5 text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow"
+                onClick={() => navigate("/customer-dashboard/browse-services")}>
+                Browse Services
+              </Button>
+            </div>
+          </div>
+        ) : (
+          /* ── Two-column checkout layout ─────────── */
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
+
+            {/* ════ LEFT – Cart items ═════════════════════ */}
+            <div ref={itemsRef} className="min-w-0 w-full space-y-3">
               <AnimatePresence>
-                {cartItems.map((item) => (<motion.div key={item.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -50 }} className="relative flex flex-col md:flex-row rounded-2xl border border-border bg-card shadow-card overflow-hidden hover:border-primary/40 hover:shadow-elevated transition-all">
-                    {/* Item Thumbnail */}
-                    <div className="w-full md:w-72 xl:w-80 aspect-[16/10] md:aspect-[4/3] bg-secondary/60 dark:bg-secondary shrink-0 relative overflow-hidden border-b md:border-b-0 md:border-r border-border">
-                      {imgSrc(item.image) ? (<img src={imgSrc(item.image)} alt={item.name} className="h-full w-full object-contain p-2"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh">
-                          {item.type === "event" ? (<Calendar className="h-12 w-12 opacity-10"/>) : (<Briefcase className="h-12 w-12 opacity-10"/>)}
-                        </div>)}
-                      <span className={`absolute top-3 left-3 rounded-full text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 shadow-md ${item.type === "event" ? "bg-primary text-primary-foreground" : "bg-amber-500 text-black"}`}>
+                {cartItems.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    layout
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -40 }}
+                    className="flex flex-col sm:flex-row rounded-2xl border border-border bg-card shadow-sm overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
+                  >
+                    {/* ── Event / Service Image ─────────────── */}
+                    <div className="w-full sm:w-[200px] sm:min-w-[200px] sm:max-w-[200px] aspect-video sm:aspect-auto sm:h-auto bg-secondary/60 dark:bg-secondary relative overflow-hidden border-b sm:border-b-0 sm:border-r border-border flex-shrink-0">
+                      {imgSrc(item.image)
+                        ? (<img src={imgSrc(item.image)} alt={item.name} className="h-full w-full object-cover"/>)
+                        : (<div className="flex h-full items-center justify-center min-h-[120px] bg-gradient-mesh">
+                            {item.type === "event" ? (<Calendar className="h-10 w-10 opacity-10"/>) : (<Briefcase className="h-10 w-10 opacity-10"/>)}
+                          </div>)}
+                      {/* Type badge */}
+                      <span className={`absolute top-2.5 left-2.5 rounded-full text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 shadow ${item.type === "event" ? "bg-primary text-primary-foreground" : "bg-amber-500 text-black"}`}>
                         {item.type}
                       </span>
                     </div>
 
-                    {/* Item Content */}
-                    <div className="flex-1 p-6 sm:p-7 flex flex-col justify-between">
-                      <div>
-                        <div className="flex justify-between items-start gap-4">
-                          <div>
-                            {item.category && (<p className="text-[10px] text-primary uppercase font-bold tracking-wider mb-1">{item.category}</p>)}
-                            <h3 className="font-semibold text-lg leading-snug">{item.name}</h3>
+                    {/* ── Item info + Price/Delete ───────────── */}
+                    <div className="flex-1 p-4 sm:p-5 flex flex-col justify-between min-w-0">
+                      <div className="flex items-start justify-between gap-3">
+
+                        {/* Left: category + title + date + tickets */}
+                        <div className="flex-1 min-w-0 space-y-2">
+                          {item.category && (
+                            <p className="text-[10px] text-primary uppercase font-bold tracking-widest">{item.category}</p>
+                          )}
+                          <h3 className="font-semibold text-base leading-snug text-foreground truncate">{item.name}</h3>
+
+                          {/* Date row */}
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Calendar className="h-3.5 w-3.5 text-primary shrink-0"/>
+                            <span>
+                              {new Date(item.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} • {item.time}
+                            </span>
                           </div>
-                          <button onClick={() => removeFromCart(item.id)} className="text-muted-foreground hover:text-red-400 p-1.5 rounded-lg hover:bg-secondary transition-colors">
+
+                          {/* ── Event-specific config ─────────── */}
+                          {item.type === "event" && (<>
+                            {item.details.selectedSession && (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <span className="font-semibold shrink-0">Session:</span>
+                                <span className="capitalize">{item.details.selectedSession} Session</span>
+                              </div>
+                            )}
+                            {item.details.selectedTickets && Object.keys(item.details.selectedTickets).length > 0 && (
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                <Ticket className="h-3.5 w-3.5 text-primary shrink-0"/>
+                                {Object.entries(item.details.selectedTickets)
+                                  .filter(([_, qty]) => qty > 0)
+                                  .map(([type, qty]) => (
+                                    <span key={type} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-semibold border border-primary/20">
+                                      {type} Tier × {qty}
+                                    </span>
+                                  ))}
+                              </div>
+                            )}
+                            {item.details.selectedSeatNumbers && item.details.selectedSeatNumbers.length > 0 && (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <span className="font-semibold">Seats:</span>
+                                <span className="font-mono text-[10px] bg-secondary border px-1.5 py-0.5 rounded-md">{item.details.selectedSeatNumbers.join(", ")}</span>
+                              </div>
+                            )}
+                            {item.details.quantity && item.details.quantity > 1 && (
+                              <div className="text-xs text-muted-foreground">
+                                <span className="font-semibold">Qty:</span> {item.details.quantity}
+                              </div>
+                            )}
+                          </>)}
+
+                          {/* ── Service-specific config ───────── */}
+                          {item.type === "service" && (<>
+                            {item.details.customerLocation && (
+                              <div className="flex items-start gap-1.5 text-xs text-muted-foreground mt-1">
+                                <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5"/>
+                                <span className="break-all">{item.details.customerLocation.address}</span>
+                              </div>
+                            )}
+                            {item.details.addOns && item.details.addOns.length > 0 && (
+                              <div className="flex items-start gap-1.5 text-xs text-muted-foreground mt-1">
+                                <Briefcase className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5"/>
+                                <div>
+                                  <span className="font-semibold block">Add-ons: </span>
+                                  {item.details.addOns.map((add) => (<span key={add.name} className="mr-1">{add.name} (x{add.quantity})</span>))}
+                                </div>
+                              </div>
+                            )}
+                            {item.details.guestCount && item.details.guestCount > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                <span className="font-semibold">Guests:</span> {item.details.guestCount}
+                              </div>
+                            )}
+                          </>)}
+                        </div>
+
+                        {/* Right: price + delete */}
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                          <div className="text-right">
+                            {item.discountAmount > 0 && (
+                              <span className="block text-xs text-muted-foreground line-through">{formatCurrency(item.originalPrice)}</span>
+                            )}
+                            <span className="font-display font-bold text-lg text-primary leading-none">{formatCurrency(item.price)}</span>
+                          </div>
+                          {item.appliedPromo && (
+                            <span className="inline-flex items-center gap-1 text-[10px] bg-green-500/10 text-green-500 border border-green-500/20 px-2 py-0.5 rounded font-mono">
+                              <Percent className="h-3 w-3"/> {item.appliedPromo.code}
+                            </span>
+                          )}
+                          <button
+                            onClick={() => removeFromCart(item.id)}
+                            className="text-muted-foreground/50 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-400/10 transition-colors"
+                            aria-label="Remove item"
+                          >
                             <Trash2 className="h-4 w-4"/>
                           </button>
                         </div>
-
-                        {/* Configured details summary */}
-                        <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="h-3.5 w-3.5 text-primary shrink-0"/>
-                            <span>{new Date(item.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} at {item.time}</span>
-                          </div>
-
-                          {/* Event Configuration details */}
-                          {item.type === "event" && (<>
-                              {item.details.selectedSession && (<div className="flex items-center gap-1.5">
-                                  <span className="font-semibold shrink-0">Session:</span>
-                                  <span className="capitalize">{item.details.selectedSession} Session</span>
-                                </div>)}
-                              {item.details.selectedTickets && Object.keys(item.details.selectedTickets).length > 0 && (<div className="flex items-start gap-1.5 mt-1 bg-secondary/50 rounded-lg p-2">
-                                  <Ticket className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5"/>
-                                  <div>
-                                    <span className="font-semibold block mb-0.5">Tickets:</span>
-                                    {Object.entries(item.details.selectedTickets).filter(([_, qty]) => qty > 0).map(([type, qty]) => (<div key={type} className="capitalize">{type} Tier × {qty}</div>))}
-                                  </div>
-                                </div>)}
-                              {item.details.selectedSeatNumbers && item.details.selectedSeatNumbers.length > 0 && (<div className="flex items-center gap-1.5 mt-1">
-                                  <span className="font-semibold">Seats:</span>
-                                  <span className="font-mono text-[10px] bg-secondary border px-1 rounded">{item.details.selectedSeatNumbers.join(", ")}</span>
-                                </div>)}
-                              {item.details.quantity && item.details.quantity > 1 && (<div>
-                                  <span className="font-semibold">Quantity:</span> {item.details.quantity}
-                                </div>)}
-                            </>)}
-
-                          {/* Service Configuration details */}
-                          {item.type === "service" && (<>
-                              {item.details.customerLocation && (<div className="flex items-start gap-1.5 mt-1 bg-secondary/50 rounded-lg p-2">
-                                  <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5"/>
-                                  <div className="break-all">
-                                    <span className="font-semibold block mb-0.5">Location:</span>
-                                    {item.details.customerLocation.address}
-                                  </div>
-                                </div>)}
-                              {item.details.addOns && item.details.addOns.length > 0 && (<div className="flex items-start gap-1.5 mt-1 bg-secondary/50 rounded-lg p-2">
-                                  <Briefcase className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5"/>
-                                  <div>
-                                    <span className="font-semibold block mb-0.5">Selected Add-ons:</span>
-                                    {item.details.addOns.map((add) => (<div key={add.name}>{add.name} (x{add.quantity})</div>))}
-                                  </div>
-                                </div>)}
-                              {item.details.guestCount && item.details.guestCount > 0 && (<div>
-                                  <span className="font-semibold">Guest Count:</span> {item.details.guestCount}
-                                </div>)}
-                            </>)}
-                        </div>
-
-                      </div>
-
-                      {/* Item Pricing */}
-                      <div className="border-t border-border mt-6 pt-4 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {item.appliedPromo && (<span className="inline-flex items-center gap-1 text-[10px] bg-green-500/10 text-green-500 border border-green-500/20 px-2 py-0.5 rounded font-mono">
-                              <Percent className="h-3 w-3"/> {item.appliedPromo.code}
-                            </span>)}
-                        </div>
-                        <div className="text-right">
-                          {item.discountAmount > 0 && (<span className="text-xs text-muted-foreground line-through mr-2">
-                              {formatCurrency(item.originalPrice)}
-                            </span>)}
-                          <span className="font-display font-bold text-lg text-primary">
-                            {formatCurrency(item.price)}
-                          </span>
-                        </div>
                       </div>
                     </div>
-                  </motion.div>))}
+                  </motion.div>
+                ))}
               </AnimatePresence>
             </div>
 
-            {/* Right - Checkout panel */}
-            <div className="w-full lg:w-96">
-              <div className="sticky top-24 bg-card rounded-2xl border border-border p-6 shadow-xl space-y-6">
-                <h3 className="font-semibold text-lg">Order Summary</h3>
+            {/* ════ RIGHT – Order Summary ═════════════════ */}
+            <div className="min-w-0 w-full">
+              <div className="sticky top-24 bg-card rounded-2xl border border-border p-5 shadow-sm space-y-4">
+                <h3 className="font-semibold text-base text-foreground">Order Summary</h3>
 
                 {/* Subtotals */}
-                <div className="space-y-3 text-sm border-b border-border pb-6">
-                  {eventItems.length > 0 && (<div className="flex justify-between">
+                <div className="space-y-2 text-sm border-b border-border pb-4">
+                  {eventItems.length > 0 && (
+                    <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Events ({eventItems.length})</span>
-                      <span>{formatCurrency(eventsSubtotal)}</span>
-                    </div>)}
-                  {serviceItems.length > 0 && (<div className="flex justify-between">
+                      <span className="font-medium">{formatCurrency(eventsSubtotal)}</span>
+                    </div>
+                  )}
+                  {serviceItems.length > 0 && (
+                    <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Services ({serviceItems.length})</span>
-                      <span>{formatCurrency(servicesSubtotal)}</span>
-                    </div>)}
-                  {totalDiscount > 0 && (<div className="flex justify-between text-green-500 font-medium">
+                      <span className="font-medium">{formatCurrency(servicesSubtotal)}</span>
+                    </div>
+                  )}
+                  {totalDiscount > 0 && (
+                    <div className="flex justify-between items-center text-green-500 font-medium">
                       <span>Promo Savings</span>
                       <span>-{formatCurrency(totalDiscount)}</span>
-                    </div>)}
+                    </div>
+                  )}
                 </div>
 
-                {/* Total / Checkout instructions */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-baseline">
-                    <span className="font-bold text-base">Grand Total</span>
-                    <span className="font-display font-black text-2xl text-gradient">
-                      {formatCurrency(grandTotal)}
-                    </span>
-                  </div>
-
-                  {eventItems.length > 0 && serviceItems.length > 0 && (
-                    <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-xs text-muted-foreground leading-relaxed">
-                      Complete payment for your event items below. Service requests will be sent to providers for quotation.
-                    </div>
-                  )}
-
-                  {eventItems.length > 0 && serviceItems.length === 0 && (
-                    <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-xs text-muted-foreground leading-relaxed">
-                      Proceed to payment to confirm your event booking and generate your digital ticket instantly.
-                    </div>
-                  )}
-
-                  {serviceItems.length > 0 && eventItems.length === 0 && (
-                    <div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-4 text-xs text-muted-foreground leading-relaxed">
-                      Service requests do not require immediate payments. Vendors will review your requests and send quotations.
-                    </div>
-                  )}
-
-                  <Button onClick={handleCheckoutClick} disabled={checkoutLoading} className="w-full h-12 text-base bg-gradient-primary hover:opacity-90 font-bold disabled:opacity-50">
-                    {checkoutLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2"/> Processing…
-                      </>
-                    ) : eventItems.length > 0 ? (
-                      "Proceed to Pay & Confirm"
-                    ) : (
-                      "Submit Booking Requests"
-                    )}
-                  </Button>
+                {/* Grand Total */}
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-sm">Grand Total</span>
+                  <span className="font-display font-black text-2xl text-gradient">{formatCurrency(grandTotal)}</span>
                 </div>
+
+                {/* Subtle helper text */}
+                {eventItems.length > 0 && serviceItems.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground leading-relaxed -mt-1">
+                    Payment confirms your booking and generates your digital ticket.
+                  </p>
+                )}
+                {eventItems.length > 0 && serviceItems.length > 0 && (
+                  <p className="text-[11px] text-muted-foreground leading-relaxed -mt-1">
+                    Complete payment for events. Service requests will be sent to providers for quotation.
+                  </p>
+                )}
+                {serviceItems.length > 0 && eventItems.length === 0 && (
+                  <p className="text-[11px] text-amber-500/80 leading-relaxed -mt-1">
+                    No immediate payment required. Providers will send quotations for your service requests.
+                  </p>
+                )}
+
+                {/* CTA */}
+                <Button
+                  onClick={handleCheckoutClick}
+                  disabled={checkoutLoading}
+                  className="w-full h-12 text-sm font-bold bg-gradient-primary hover:opacity-90 disabled:opacity-50 rounded-xl"
+                >
+                  {checkoutLoading ? (
+                    <><Loader2 className="h-4 w-4 animate-spin mr-2"/> Processing…</>
+                  ) : eventItems.length > 0 ? (
+                    "Proceed to Pay & Confirm"
+                  ) : (
+                    "Submit Booking Requests"
+                  )}
+                </Button>
               </div>
             </div>
+
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Payment Modal */}
+      {/* ── Payment Modal (unchanged) ─────────────────── */}
       <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
         <DialogContent className="max-w-md w-[95vw] max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
           <DialogHeader className="mb-2">
@@ -407,3 +470,5 @@ const Cart = () => {
   );
 };
 export default Cart;
+
+

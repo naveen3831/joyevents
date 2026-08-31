@@ -112,7 +112,11 @@ const AdminMyEvents = () => {
               const totalCapacity = allTickets.reduce((s, t) => s + t.available, 0);
 
               return (
-                <div key={ev._id} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 hover:shadow-card transition-all">
+                <div
+                  key={ev._id}
+                  onClick={() => navigate(`/admin-dashboard/events/${ev._id}`)}
+                  className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+                >
                   {/* Image */}
                   <div className="relative overflow-hidden bg-secondary flex-shrink-0 h-[180px] w-full">
                     {imgSrc(ev.image) ? (<img src={imgSrc(ev.image)} alt={ev.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
@@ -195,14 +199,28 @@ const AdminMyEvents = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="mt-3 flex gap-2 border-t border-border/50 pt-2.5">
-                      <Button size="sm" variant="outline" className="flex-1 h-[36px] rounded-xl font-semibold border-border/80 hover:bg-secondary text-xs flex items-center justify-center gap-1.5" onClick={() => navigate(`/admin-dashboard/events/${ev._id}`)}>
-                        <Eye className="h-3.5 w-3.5"/> View
-                      </Button>
-                      <Button size="sm" variant="outline" className="flex-[2] h-[36px] rounded-xl font-semibold border-border/80 hover:bg-secondary text-xs flex items-center justify-center gap-1.5" onClick={() => navigate(`/admin-dashboard/my-events/${ev._id}/edit`)}>
+                    <div className="mt-3 flex gap-2 border-t border-border/50 pt-2.5" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-[36px] rounded-xl font-semibold border-border/80 hover:bg-secondary text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/admin-dashboard/my-events/${ev._id}/edit`);
+                        }}
+                      >
                         <Pencil className="mr-1 h-3 w-3"/> Edit Event
                       </Button>
-                      <Button size="sm" variant="ghost" className="text-red-500 hover:text-white hover:bg-red-500 shrink-0 h-[36px] w-[36px] p-0 rounded-xl" disabled={deletingId === ev._id} onClick={() => handleDelete(ev._id)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-500 hover:text-white hover:bg-red-500 shrink-0 h-[36px] w-[36px] p-0 rounded-xl cursor-pointer"
+                        disabled={deletingId === ev._id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(ev._id);
+                        }}
+                      >
                         {deletingId === ev._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
                       </Button>
                     </div>

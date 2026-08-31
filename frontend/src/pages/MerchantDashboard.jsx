@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
-import { Calendar, DollarSign, Users, TrendingUp, Plus, BarChart3, CheckCircle2, Clock, AlertCircle, Loader2, MapPin, ExternalLink, Store, Briefcase, Video, Star, CreditCard, ArrowRight, Ticket, AlertTriangle, MoreHorizontal } from "lucide-react";
+import { Calendar, IndianRupee, Users, TrendingUp, Plus, BarChart3, CheckCircle2, Clock, AlertCircle, Loader2, MapPin, ExternalLink, Store, Briefcase, Video, Star, CreditCard, ArrowRight, Ticket, AlertTriangle, MoreHorizontal } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import PageHeader from "@/components/common/PageHeader";
 import StatCard from "@/components/StatCard";
@@ -68,6 +68,7 @@ const MerchantDashboard = () => {
     const [fixingBookings, setFixingBookings] = useState(false);
     const [updatingStatus, setUpdatingStatus] = useState(null);
     const [statusUpdate, setStatusUpdate] = useState({ id: "", show: false, currentStatus: "" });
+    const [selectedStatusOption, setSelectedStatusOption] = useState("");
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [earningsSummary, setEarningsSummary] = useState(null);
@@ -815,7 +816,7 @@ const MerchantDashboard = () => {
           <div className="mt-3 sm:mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
             <StatCard title="My Events" value={loading ? "…" : events.length} icon={<Calendar className="h-5 w-5"/>} index={3} to="/merchant-dashboard/events"/>
             <StatCard title="My Services" value={loading ? "…" : services.length} icon={<Briefcase className="h-5 w-5"/>} index={4} to="/merchant-dashboard/services"/>
-            <StatCard title="Revenue Earned" value={loading ? "…" : `${formatCurrency(totalEarnings)}`} icon={<DollarSign className="h-5 w-5"/>} index={5} to="/merchant-dashboard/earnings"/>
+            <StatCard title="Revenue Earned" value={loading ? "…" : `${formatCurrency(totalEarnings)}`} icon={<IndianRupee className="h-5 w-5"/>} index={5} to="/merchant-dashboard/earnings"/>
           </div>
 
           {/* Bookings Table with tabs */}
@@ -884,9 +885,8 @@ const MerchantDashboard = () => {
                           {tab === "completed" ? "Completed On" : "Cancelled On"}
                         </th>
                       )}
-                      <th className="p-[14px_12px] align-middle w-[13%] text-center">Status</th>
-                      <th className="p-[14px_12px] align-middle w-[5%] text-center whitespace-nowrap">Rating</th>
-                      {tab === "active" && <th className="p-[14px_12px] align-middle w-[5%] text-center whitespace-nowrap">Actions</th>}
+                      <th className="p-[14px_12px] align-middle w-[15%] text-center">Status</th>
+                      {tab === "active" && <th className="p-[14px_12px] align-middle w-[7%] text-center whitespace-nowrap">Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -899,9 +899,13 @@ const MerchantDashboard = () => {
                         <td className="p-[14px_12px] align-middle text-muted-foreground text-xs font-semibold">{idx + 1}</td>
                         <td className="p-[14px_12px] align-middle">
                           <div className="space-y-1.5 min-w-0">
-                            <div className="font-semibold text-xs text-foreground line-clamp-2 leading-snug" title={b.service?.name || b.event?.title || b.serviceName}>
+                            <Link
+                              to={`/merchant-dashboard/bookings/${b._id}`}
+                              className="font-semibold text-xs text-foreground line-clamp-2 leading-snug hover:text-primary hover:underline transition-colors block"
+                              title={b.service?.name || b.event?.title || b.serviceName}
+                            >
                               {b.service?.name || b.event?.title || b.serviceName}
-                            </div>
+                            </Link>
                             <div>
                               {b.service ? (
                                 <StatusBadge status="service" label="Service" />
@@ -956,13 +960,6 @@ const MerchantDashboard = () => {
                         <td className="p-[14px_12px] align-middle text-center">
                           <StatusBadge status={b.status} className="w-[124px] min-w-[124px] h-[36px] px-0 justify-center" />
                         </td>
-                        <td className="p-[14px_12px] align-middle text-center">
-                          {b.rating?.score ? (
-                            <span className="text-xs font-bold text-foreground inline-flex items-center gap-0.5 justify-center"><Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0"/>{b.rating.score}</span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </td>
                         {tab === "active" && (
                           <td className="p-[14px_12px] align-middle text-center">
                             <DropdownMenu>
@@ -987,13 +984,16 @@ const MerchantDashboard = () => {
                                 {/* Update / Complete Booking */}
                                 {b.service && (b.status === "paid" || b.status === "confirmed" || b.status === "awaiting_payment" || b.status === "approved" || b.status === "assigned" || b.status === "accepted" || b.status === "processing" || ((b.status === "pending" || b.status === "pending_approval") && b.approvedAt)) && (
                                   <>
+                                    <DropdownMenuItem className="cursor-pointer font-medium" onClick={() => navigate(`/merchant-dashboard/bookings/${b._id}`)}>
+                                      View Details
+                                    </DropdownMenuItem>
                                     {b.status !== "completed" && (
-                                      <DropdownMenuItem className="cursor-pointer" onClick={() => setStatusUpdate({ id: b._id, show: true, currentStatus: b.status })}>
+                                      <DropdownMenuItem className="cursor-pointer font-semibold text-primary" onClick={() => navigate(`/merchant-dashboard/bookings/${b._id}`)}>
                                         Update Status
                                       </DropdownMenuItem>
                                     )}
                                     {b.status !== "completed" && (
-                                      <DropdownMenuItem className="text-primary cursor-pointer font-semibold" onClick={() => handleComplete(b._id)}>
+                                      <DropdownMenuItem className="text-emerald-500 cursor-pointer font-semibold" onClick={() => handleComplete(b._id)}>
                                         Complete Booking
                                       </DropdownMenuItem>
                                     )}
@@ -1173,7 +1173,7 @@ const MerchantDashboard = () => {
                   {/* Full Payment */}
                   <button className="w-full flex items-center gap-4 p-4 rounded-xl bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 transition-all duration-200 group" onClick={() => { setShowCustomInput(false); handleApprove(approvalOptions.id, "full"); }} disabled={approving === approvalOptions.id}>
                     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
-                      <DollarSign className="w-5 h-5 text-green-400"/>
+                      <IndianRupee className="w-5 h-5 text-green-400"/>
                     </div>
                     <div className="text-left">
                       <p className="font-semibold text-green-400">Require Full Payment</p>
@@ -1184,101 +1184,6 @@ const MerchantDashboard = () => {
                 
                 <div className="mt-6">
                   <Button variant="outline" className="w-full" onClick={() => { setApprovalOptions({ id: "", show: false }); setShowCustomInput(false); setCustomAdvance(""); }} disabled={approving === approvalOptions.id}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </div>)}
-
-          {/* Status Update Modal */}
-          {statusUpdate.show && (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-              <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
-                <h3 className="font-display text-xl font-bold mb-2 text-center">Action</h3>
-                <div className="w-full h-px bg-border mb-6"></div>
-                
-                <div className="text-center mb-6">
-                  <div className="inline-flex items-center justify-center w-full max-w-xs mx-auto px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
-                    <span className="font-display text-lg font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                      Update Status
-                    </span>
-                  </div>
-                </div>
-                
-                <p className="text-sm text-muted-foreground mb-6 text-center">
-                  Current: <span className="font-medium capitalize text-foreground">{statusUpdate.currentStatus}</span>
-                </p>
-                
-                <div className="space-y-3">
-                  {/* Statuses BEFORE payment - only show if not paid */}
-                  {statusUpdate.currentStatus !== "paid" && statusUpdate.currentStatus !== "processing" && statusUpdate.currentStatus !== "completed" && (<>
-                      <button className="w-full flex items-center gap-4 p-4 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group" onClick={() => handleStatusUpdate(statusUpdate.id, "pending_approval")} disabled={updatingStatus === statusUpdate.id || statusUpdate.currentStatus === "pending_approval"}>
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-500/20 group-hover:bg-orange-500/30 transition-colors">
-                          <Clock className="w-5 h-5 text-orange-400"/>
-                        </div>
-                        <span className="text-lg font-medium text-orange-400 group-hover:text-orange-300">
-                          Pending Approval
-                        </span>
-                      </button>
-
-                      <button className="w-full flex items-center gap-4 p-4 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group" onClick={() => handleStatusUpdate(statusUpdate.id, "approved")} disabled={updatingStatus === statusUpdate.id || statusUpdate.currentStatus === "approved"}>
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
-                          <CheckCircle2 className="w-5 h-5 text-blue-400"/>
-                        </div>
-                        <span className="text-lg font-medium text-blue-400 group-hover:text-blue-300">
-                          Approved
-                        </span>
-                      </button>
-
-                      <button className="w-full flex items-center gap-4 p-4 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group" onClick={() => handleStatusUpdate(statusUpdate.id, "awaiting_payment")} disabled={updatingStatus === statusUpdate.id || statusUpdate.currentStatus === "awaiting_payment"}>
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-500/20 group-hover:bg-indigo-500/30 transition-colors">
-                          <CreditCard className="w-5 h-5 text-indigo-400"/>
-                        </div>
-                        <span className="text-lg font-medium text-indigo-400 group-hover:text-indigo-300">
-                          Awaiting Payment
-                        </span>
-                      </button>
-                    </>)}
-
-                  {/* Statuses AFTER or AT payment - always show if not already completed */}
-                  <button className="w-full flex items-center gap-4 p-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group" onClick={() => handleStatusUpdate(statusUpdate.id, "paid")} disabled={updatingStatus === statusUpdate.id || statusUpdate.currentStatus === "paid"}>
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 group-hover:bg-emerald-500/30 transition-colors">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-400"/>
-                    </div>
-                    <span className="text-lg font-medium text-emerald-400 group-hover:text-emerald-300">
-                      Paid
-                    </span>
-                  </button>
-
-                  <button className="w-full flex items-center gap-4 p-4 rounded-xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group" onClick={() => handleStatusUpdate(statusUpdate.id, "pending")} disabled={updatingStatus === statusUpdate.id || statusUpdate.currentStatus === "pending"}>
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-500/20 group-hover:bg-yellow-500/30 transition-colors">
-                      <Clock className="w-5 h-5 text-yellow-400"/>
-                    </div>
-                    <span className="text-lg font-medium text-yellow-400 group-hover:text-yellow-300">
-                      Pending
-                    </span>
-                  </button>
-                  
-                  <button className="w-full flex items-center gap-4 p-4 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group" onClick={() => handleStatusUpdate(statusUpdate.id, "processing")} disabled={updatingStatus === statusUpdate.id || statusUpdate.currentStatus === "processing"}>
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-500/20 group-hover:bg-orange-500/30 transition-colors">
-                      <Loader2 className="w-5 h-5 text-orange-400 animate-spin"/>
-                    </div>
-                    <span className="text-lg font-medium text-orange-400 group-hover:text-orange-300">
-                      Processing
-                    </span>
-                  </button>
-                  
-                  <button className="w-full flex items-center gap-4 p-4 rounded-xl bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group" onClick={() => handleStatusUpdate(statusUpdate.id, "completed")} disabled={updatingStatus === statusUpdate.id || statusUpdate.currentStatus === "completed"}>
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
-                      <CheckCircle2 className="w-5 h-5 text-green-400"/>
-                    </div>
-                    <span className="text-lg font-medium text-green-400 group-hover:text-green-300">
-                      Completed
-                    </span>
-                  </button>
-                </div>
-                
-                <div className="flex gap-3 mt-8">
-                  <Button variant="outline" className="flex-1" onClick={() => setStatusUpdate({ id: "", show: false, currentStatus: "" })} disabled={updatingStatus === statusUpdate.id}>
                     Cancel
                   </Button>
                 </div>
@@ -1307,7 +1212,7 @@ const MerchantDashboard = () => {
             </div>
             <div className="rounded-xl border border-border bg-card p-3 sm:p-6 flex items-center gap-2 sm:gap-4">
               <div className="flex h-8 w-8 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground shrink-0">
-                <DollarSign className="h-5 w-5"/>
+                <IndianRupee className="h-5 w-5"/>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Revenue</p>
@@ -1427,7 +1332,7 @@ const MerchantDashboard = () => {
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 0.8 }} className="mt-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-display text-sm sm:text-2xl font-bold flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-green-500"/> Payout Status
+                <IndianRupee className="h-5 w-5 text-green-500"/> Payout Status
               </h2>
             </div>
 
@@ -1546,7 +1451,7 @@ const MerchantDashboard = () => {
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ delay: 1.0 }} className="mt-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-display text-sm sm:text-2xl font-bold flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-green-500"/> Billing & Payments History
+                <IndianRupee className="h-5 w-5 text-green-500"/> Billing & Payments History
               </h2>
             </div>
             <DataTable minWidth="600px">

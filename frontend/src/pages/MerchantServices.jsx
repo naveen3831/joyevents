@@ -300,7 +300,11 @@ const MerchantServices = ({ layout = "merchant" } = {}) => {
                 <Plus className="mr-2 h-4 w-4"/> New Service
               </Button>
             </div>) : (<div ref={gridRef} className="grid grid-cols-2 gap-3 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {services.map((svc) => (<div key={svc._id} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-colors">
+              {services.map((svc) => (<div
+                  key={svc._id}
+                  onClick={() => navigate(`/merchant-dashboard/services/${svc._id}`)}
+                  className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+                >
                   {/* Image */}
                   <div className="relative overflow-hidden bg-secondary flex-shrink-0 h-[175px] w-full">
                     {svc.image ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
@@ -313,11 +317,26 @@ const MerchantServices = ({ layout = "merchant" } = {}) => {
                     <span className={`absolute top-3 left-3 rounded-full px-2.5 py-1 text-xs font-semibold backdrop-blur-md shadow-sm ${svc.active !== false ? "bg-green-500/80 text-white" : "bg-red-500/80 text-white"}`}>
                       {svc.active !== false ? "Active" : "Inactive"}
                     </span>
-                    <div className="absolute top-3 right-3 flex gap-2 z-10">
-                      <button onClick={() => openEdit(svc)} title="Edit service" className="rounded-full bg-black/70 text-white p-2 hover:bg-primary hover:text-primary-foreground transition-colors shadow-sm">
+                    <div className="absolute top-3 right-3 flex gap-2 z-10" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(svc);
+                        }}
+                        title="Edit service"
+                        className="rounded-full bg-black/70 text-white p-2 hover:bg-primary hover:text-primary-foreground transition-colors shadow-sm cursor-pointer"
+                      >
                         <Pencil className="h-4 w-4"/>
                       </button>
-                      <button onClick={() => handleDelete(svc._id)} disabled={deleting === svc._id} title="Delete service" className="rounded-full bg-black/70 text-white p-2 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 shadow-sm">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(svc._id);
+                        }}
+                        disabled={deleting === svc._id}
+                        title="Delete service"
+                        className="rounded-full bg-black/70 text-white p-2 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 shadow-sm cursor-pointer"
+                      >
                         {deleting === svc._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
                       </button>
                     </div>
@@ -340,11 +359,28 @@ const MerchantServices = ({ layout = "merchant" } = {}) => {
                     <div className="flex-1"/>
 
                     {/* Actions */}
-                    <div className="mt-5 flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => openEdit(svc)}>
+                    <div className="mt-5 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(svc);
+                        }}
+                      >
                         <Pencil className="mr-1 h-3 w-3"/> Edit
                       </Button>
-                      <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10" disabled={deleting === svc._id} onClick={() => handleDelete(svc._id)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer"
+                        disabled={deleting === svc._id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(svc._id);
+                        }}
+                      >
                         {deleting === svc._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
                       </Button>
                     </div>

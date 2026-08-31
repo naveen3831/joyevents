@@ -10,7 +10,7 @@ import {
   Video,
   User,
   Ticket,
-  DollarSign,
+  IndianRupee,
   Megaphone,
   BarChart3,
   Inbox,
@@ -44,7 +44,7 @@ const groups = [
     label: "Growth",
     icon: Megaphone,
     items: [
-      { to: "/merchant-dashboard/earnings", label: "Earnings & Wallet", icon: DollarSign },
+      { to: "/merchant-dashboard/earnings", label: "Earnings & Wallet", icon: IndianRupee },
       { to: "/merchant-dashboard/marketing", label: "Marketing Tools", icon: Megaphone },
       { to: "/merchant-dashboard/referrals", label: "Referrals", icon: Gift },
       { to: "/merchant-dashboard/ai-recommendations", label: "AI Reach Stats", icon: Sparkles },

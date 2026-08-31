@@ -95,17 +95,29 @@ const CustomerBrowseServices = () => {
     }, []);
 
     const availableCategories = useMemo(() => {
-        const serviceCats = Array.from(new Set(services.map(s => s.category).filter(Boolean)));
-        return ["All", ...serviceCats.sort()];
+        const catMap = new Map();
+        catMap.set("all", "All");
+        services.forEach((s) => {
+            const raw = s.category || "General";
+            const norm = String(raw).trim().toLowerCase();
+            if (norm && norm !== "all" && !catMap.has(norm)) {
+                const label = norm
+                    .split(/\s+/)
+                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                    .join(" ");
+                catMap.set(norm, label);
+            }
+        });
+        return Array.from(catMap.entries()).map(([value, label]) => ({ value, label }));
     }, [services]);
     const activeFilterCount = [
-        selectedCategory !== "All",
+        selectedCategory && selectedCategory.toLowerCase() !== "all",
         sortBy !== "default",
         !!priceMin,
         !!priceMax,
     ].filter(Boolean).length;
     const clearFilters = () => {
-        setSelectedCategory("All");
+        setSelectedCategory("all");
         setSortBy("default");
         setPriceMin("");
         setPriceMax("");
@@ -117,7 +129,9 @@ const CustomerBrowseServices = () => {
                 s.name?.toLowerCase().includes(q) ||
                 s.category?.toLowerCase().includes(q) ||
                 s.description?.toLowerCase().includes(q);
-            const matchCat = selectedCategory === "All" || s.category === selectedCategory;
+            const selCat = (selectedCategory || "all").trim().toLowerCase();
+            const svcCat = (s.category || "general").trim().toLowerCase();
+            const matchCat = selCat === "all" || svcCat === selCat;
             const price = s.price || 0;
             const matchMin = !priceMin || price >= Number(priceMin);
             const matchMax = !priceMax || price <= Number(priceMax);
@@ -432,15 +446,15 @@ const CustomerBrowseServices = () => {
                         <div className="flex flex-wrap gap-2">
                           {availableCategories.map((cat) => (
                             <button
-                              key={cat}
-                              onClick={() => setSelectedCategory(cat)}
+                              key={cat.value}
+                              onClick={() => setSelectedCategory(cat.value)}
                               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                                selectedCategory === cat
+                                (selectedCategory || "all").toLowerCase() === cat.value
                                   ? "bg-gradient-primary text-white font-bold shadow-sm"
                                   : "bg-secondary text-foreground hover:bg-secondary/70"
                               }`}
                             >
-                              {cat}
+                              {cat.label}
                             </button>
                           ))}
                         </div>
