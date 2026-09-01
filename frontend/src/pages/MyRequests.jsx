@@ -541,7 +541,7 @@ const MyRequests = () => {
                                     size="sm"
                                     variant="outline"
                                     className="h-8 px-3 text-[11px] font-semibold rounded-xl border-primary/40 text-primary hover:bg-primary/10 gap-1.5 flex items-center justify-center mx-auto cursor-pointer shadow-xs"
-                                    onClick={() => downloadTicket(b)}
+                                    onClick={() => navigate(`/customer-dashboard/bookings/${b._id}/ticket`, { state: { booking: b } })}
                                   >
                                     <Ticket className="h-3.5 w-3.5 shrink-0" /> Ticket
                                   </Button>

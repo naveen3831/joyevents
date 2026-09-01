@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatEventSchedule, formatTime12 } from "@/lib/utils";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, CalendarDays, Calendar, Clock, MapPin, Users, Loader2, Heart, Share2, Tag, Ticket, X, Check, Star, CheckCircle2, Images, Video, ShoppingBag, } from "lucide-react";
@@ -380,25 +380,61 @@ const CustomerEventDetail = () => {
               </div>
 
               {/* 2×2 info grid */}
-              <div className="grid grid-cols-2 gap-4 py-4" style={{ borderTop: "1px solid #E2E8F0", borderBottom: "1px solid #E2E8F0" }}>
-                {[
-                  { icon: Calendar, label: "Date", value: event.datetime ? new Date(event.datetime).toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }) : null },
-                  { icon: Clock, label: "Time", value: event.datetime ? new Date(event.datetime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : null },
-                  { icon: MapPin, label: "Location", value: renderText(event.location) },
-                  { icon: Users, label: "Attendees", value: maxAttendees > 0 ? `${attendeesCount} / ${maxAttendees}` : `${attendeesCount} attending` },
-                ].map(({ icon: Icon, label, value }) => Boolean(value) && (
-                  <div key={label} className="flex items-start gap-2.5">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center mt-0.5"
-                      style={{ background: "#F5F3FF", color: "#7C3AED" }}>
-                      <Icon style={{ width: "16px", height: "16px" }}/>
+              {(() => {
+                const schedule = formatEventSchedule(event);
+                return (
+                  <div className="space-y-3 py-4" style={{ borderTop: "1px solid #E2E8F0", borderBottom: "1px solid #E2E8F0" }}>
+                    <div className="grid grid-cols-2 gap-4">
+                      {[
+                        {
+                          icon: Calendar,
+                          label: "Date",
+                          value: schedule.dateText ? (
+                            <span>
+                              {schedule.dateText}
+                              {schedule.isMultiDay && (
+                                <span className="ml-1.5 inline-block text-[11px] font-semibold text-primary">
+                                  ({schedule.badgeText})
+                                </span>
+                              )}
+                            </span>
+                          ) : null
+                        },
+                        { icon: Clock, label: "Time", value: schedule.timeText },
+                        { icon: MapPin, label: "Location", value: renderText(event.location) },
+                        { icon: Users, label: "Attendees", value: maxAttendees > 0 ? `${attendeesCount} / ${maxAttendees}` : `${attendeesCount} attending` },
+                      ].map(({ icon: Icon, label, value }) => Boolean(value) && (
+                        <div key={label} className="flex items-start gap-2.5">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center mt-0.5"
+                            style={{ background: "#F5F3FF", color: "#7C3AED" }}>
+                            <Icon style={{ width: "16px", height: "16px" }}/>
+                          </div>
+                          <div>
+                            <p style={{ fontSize: "11px", color: "#64748B", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</p>
+                            <p style={{ fontSize: "14px", fontWeight: 500, color: "#0F172A", marginTop: "1px" }}>{value}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div>
-                      <p style={{ fontSize: "11px", color: "#64748B", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</p>
-                      <p style={{ fontSize: "14px", fontWeight: 500, color: "#0F172A", marginTop: "1px" }}>{value}</p>
-                    </div>
+
+                    {schedule.hasCustomSchedule && schedule.dailySchedule?.length > 0 && (
+                      <div className="rounded-xl border border-border bg-purple-50/50 dark:bg-purple-950/20 p-3 space-y-1.5 text-xs mt-2">
+                        <p className="font-bold text-foreground flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-primary" /> Daily Schedule
+                        </p>
+                        <div className="space-y-1 text-muted-foreground">
+                          {schedule.dailySchedule.map((day) => (
+                            <div key={day.date} className="flex justify-between items-center py-0.5">
+                              <span className="font-medium text-foreground">{day.dayLabel}</span>
+                              <span>{formatTime12(day.startTime)} – {formatTime12(day.endTime)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                );
+              })()}
 
               {/* C. Seat Availability */}
               {maxAttendees > 0 && (

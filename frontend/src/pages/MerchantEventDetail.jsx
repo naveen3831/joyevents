@@ -6,7 +6,7 @@ import MerchantLayout from "@/components/MerchantLayout";
 import { Button } from "@/components/ui/button";
 import { apiGetEventById } from "@/lib/api";
 import { API_URL } from "@/lib/config";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatEventSchedule, formatTime12 } from "@/lib/utils";
 import { toast } from "sonner";
 
 const imgSrc = (image) =>
@@ -137,20 +137,7 @@ const MerchantEventDetail = () => {
   const totalSold = tickets.reduce((s, t) => s + t.sold, 0);
   const totalCapacity = tickets.reduce((s, t) => s + t.available, 0);
 
-  const formattedDate = event.datetime
-    ? new Date(event.datetime).toLocaleDateString("en-IN", {
-        weekday: "long",
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      })
-    : null;
-  const formattedTime = event.datetime
-    ? new Date(event.datetime).toLocaleTimeString("en-IN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : null;
+  const schedule = formatEventSchedule(event);
 
   const priceLabel = (() => {
     if (event.eventType !== "ticketed") return formatCurrency(event.price || 0);
@@ -224,16 +211,38 @@ const MerchantEventDetail = () => {
 
             {/* Meta grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-muted-foreground">
-              {formattedDate && (
+              {schedule.dateText && (
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-primary shrink-0" />
-                  <span>{formattedDate}</span>
+                  <span>
+                    {schedule.dateText}
+                    {schedule.isMultiDay && (
+                      <span className="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary">
+                        {schedule.badgeText}
+                      </span>
+                    )}
+                  </span>
                 </div>
               )}
-              {formattedTime && (
+              {schedule.timeText && (
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-primary shrink-0" />
-                  <span>{formattedTime}</span>
+                  <span>{schedule.timeText}</span>
+                </div>
+              )}
+              {schedule.hasCustomSchedule && schedule.dailySchedule?.length > 0 && (
+                <div className="sm:col-span-2 rounded-xl border border-border bg-muted/40 p-3 space-y-1.5 text-xs">
+                  <p className="font-bold text-foreground flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-primary" /> Daily Schedule Breakdown
+                  </p>
+                  <div className="space-y-1 text-muted-foreground">
+                    {schedule.dailySchedule.map((day) => (
+                      <div key={day.date} className="flex justify-between items-center py-0.5">
+                        <span className="font-medium text-foreground">{day.dayLabel}</span>
+                        <span>{formatTime12(day.startTime)} – {formatTime12(day.endTime)}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               {event.location && (

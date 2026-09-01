@@ -131,24 +131,24 @@ router.get("/merchant/:merchantId", async (req, res) => {
 // Temporary migration endpoint to assign ownership of legacy services
 router.post("/assign-legacy-services", verifyToken, requireRole("merchant"), async (req, res) => {
   try {
-    
+
     // Find services without createdBy
     const legacyServices = await Service.find({ createdBy: { $exists: false } });
-    
+
     if (legacyServices.length > 0) {
       // Assign all legacy services to this merchant
       const result = await Service.updateMany(
         { createdBy: { $exists: false } },
         { $set: { createdBy: req.user._id } }
       );
-      
-      
-      res.json({ 
+
+
+      res.json({
         message: `Assigned ${result.modifiedCount} legacy services to your account`,
         updatedCount: result.modifiedCount
       });
     } else {
-      res.json({ 
+      res.json({
         message: "No legacy services found to assign",
         updatedCount: 0
       });
@@ -211,12 +211,12 @@ router.post("/", verifyToken, requireRole("merchant", "admin"), upload.fields([
         return res.status(400).json({ error: `Service limit reached. You can only add up to ${max} services. Please raise a ticket to request more.` });
       }
     }
-    
+
     if (name.length > 100) return res.status(400).json({ error: "Name cannot exceed 100 characters" });
     if (description && description.length > 1000) return res.status(400).json({ error: "Description cannot exceed 1000 characters" });
     if (category && category.length > 50) return res.status(400).json({ error: "Category cannot exceed 50 characters" });
     if (highlights && highlights.length > 200) return res.status(400).json({ error: "Highlights cannot exceed 200 characters" });
-    
+
     const numPrice = Number(price);
     if (isNaN(numPrice) || numPrice < 1 || !Number.isInteger(numPrice)) {
       return res.status(400).json({ error: "Price must be a whole number of 1 or greater" });
@@ -228,7 +228,7 @@ router.post("/", verifyToken, requireRole("merchant", "admin"), upload.fields([
       const cloudinaryResult = await uploadToCloudinary(req.files.image[0].buffer, 'services');
       imageUrl = cloudinaryResult.url;
     }
-    
+
     // Upload gallery images to Cloudinary
     let galleryUrls = [];
     if (req.files && req.files.gallery && req.files.gallery.length > 0) {
@@ -236,15 +236,15 @@ router.post("/", verifyToken, requireRole("merchant", "admin"), upload.fields([
       const results = await Promise.all(uploadPromises);
       galleryUrls = results.map(r => r.url);
     }
-    
+
     let parsedHighlights = [];
     if (highlights) {
       try { parsedHighlights = JSON.parse(highlights); } catch { parsedHighlights = [highlights]; }
     }
     let parsedAddOns = [];
     if (req.body.addOns) {
-      try { 
-        parsedAddOns = JSON.parse(req.body.addOns); 
+      try {
+        parsedAddOns = JSON.parse(req.body.addOns);
         for (const addon of parsedAddOns) {
           if (addon.name) {
             if (addon.name.length > 100) {
@@ -256,8 +256,8 @@ router.post("/", verifyToken, requireRole("merchant", "admin"), upload.fields([
             }
           }
         }
-      } catch { 
-        parsedAddOns = []; 
+      } catch {
+        parsedAddOns = [];
       }
     }
     const service = await Service.create({
@@ -307,7 +307,7 @@ router.patch("/:id", verifyToken, requireRole("merchant", "admin"), upload.field
       if (category.length > 50) return res.status(400).json({ error: "Category cannot exceed 50 characters" });
       update.category = category;
     }
-    if (active !== undefined)      update.active = active !== "false";
+    if (active !== undefined) update.active = active !== "false";
     if (allowGuests !== undefined) update.allowGuests = allowGuests === "true" || allowGuests === true;
     if (maxGuests !== undefined) {
       const numMaxGuests = Number(maxGuests);
@@ -341,27 +341,27 @@ router.patch("/:id", verifyToken, requireRole("merchant", "admin"), upload.field
       }
     }
     if (qrCodeActive !== undefined) update.qrCodeActive = qrCodeActive;
-    
+
     // Upload new main image to Cloudinary if provided
     if (req.files && req.files.image && req.files.image[0]) {
       const cloudinaryResult = await uploadToCloudinary(req.files.image[0].buffer, 'services');
       update.image = cloudinaryResult.url;
     }
-    
+
     // Upload new gallery images to Cloudinary if provided
     if (req.files && req.files.gallery && req.files.gallery.length > 0) {
       const uploadPromises = req.files.gallery.map(file => uploadToCloudinary(file.buffer, 'services/gallery'));
       const results = await Promise.all(uploadPromises);
       update.gallery = results.map(r => r.url);
     }
-    
+
     if (highlights !== undefined) {
       if (highlights.length > 200) return res.status(400).json({ error: "Highlights cannot exceed 200 characters" });
       try { update.highlights = JSON.parse(highlights); } catch { update.highlights = [highlights]; }
     }
     if (req.body.addOns !== undefined) {
-      try { 
-        const parsedAddOns = JSON.parse(req.body.addOns); 
+      try {
+        const parsedAddOns = JSON.parse(req.body.addOns);
         for (const addon of parsedAddOns) {
           if (addon.name) {
             if (addon.name.length > 100) {
@@ -374,20 +374,20 @@ router.patch("/:id", verifyToken, requireRole("merchant", "admin"), upload.field
           }
         }
         update.addOns = parsedAddOns;
-      } catch { 
-        update.addOns = []; 
+      } catch {
+        update.addOns = [];
       }
     }
-    
+
     // Find service and check ownership
     const service = await Service.findById(req.params.id);
     if (!service) return res.status(404).json({ error: "Service not found" });
-    
+
     // Check if user is creator of the service
     if (req.user.role !== "admin" && service.createdBy?.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: "Not authorized to update this service" });
     }
-    
+
     const updatedService = await Service.findByIdAndUpdate(req.params.id, update, { new: true });
     res.json({ service: updatedService });
   } catch (error) {
@@ -400,12 +400,12 @@ router.delete("/:id", verifyToken, requireRole("merchant", "admin"), async (req,
   try {
     const service = await Service.findById(req.params.id);
     if (!service) return res.status(404).json({ error: "Service not found" });
-    
+
     // Check if user is creator of the service
     if (req.user.role !== "admin" && service.createdBy?.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: "Not authorized to delete this service" });
     }
-    
+
     await Service.findByIdAndDelete(req.params.id);
     res.json({ message: "Service deleted" });
   } catch {

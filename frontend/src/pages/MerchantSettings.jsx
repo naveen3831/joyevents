@@ -24,6 +24,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiChangePassword, apiUpdateMerchantDetails } from "@/lib/api";
 import { toast } from "sonner";
+import LocationAutocomplete from "@/components/LocationAutocomplete";
 import {
   validateNewPasswordForm,
   validatePassword,
@@ -306,11 +307,17 @@ const MerchantSettings = () => {
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     BUSINESS LOCATION / ADDRESS
                   </Label>
-                  <Input
+                  <LocationAutocomplete
                     value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+                    onChange={(val) => setAddress(val)}
+                    onSelect={(payload) => {
+                      if (payload?.address) {
+                        setAddress(payload.address);
+                      }
+                    }}
                     placeholder="City, State / Full address"
-                    className="bg-card border-border rounded-lg text-xs h-10 font-medium"
+                    inputClassName="bg-card border-border rounded-lg text-xs h-10 font-medium"
+                    maxLength={150}
                   />
                 </div>
               </div>

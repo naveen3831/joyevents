@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatEventSchedule, formatTime12 } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, Clock, MapPin, Users, IndianRupee, Share2, Heart, Image as ImageIcon, X, ChevronLeft, ChevronRight, Ticket, Check, Tag, Video, Star, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -434,16 +434,55 @@ const EventDetail = () => {
                   </div>)}
 
                 {/* ── Event meta — always visible ──────────────────────── */}
-                <div className="space-y-3">
-                  {[
-            { icon: Calendar, label: event.datetime ? new Date(event.datetime).toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : null },
-            { icon: Clock, label: event.datetime ? new Date(event.datetime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : null },
-            { icon: MapPin, label: event.location },
-        ].map(({ icon: Icon, label }) => label ? (<div key={String(label)} className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <Icon className="h-4 w-4 text-primary"/>
-                      {label}
-                    </div>) : null)}
-                </div>
+                {(() => {
+                  const schedule = formatEventSchedule(event);
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4 text-primary shrink-0"/>
+                        <span>
+                          {schedule.dateText}
+                          {schedule.isMultiDay && (
+                            <span className="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary">
+                              {schedule.badgeText}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+
+                      {schedule.timeText && (
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4 text-primary shrink-0"/>
+                          <span>{schedule.timeText}</span>
+                        </div>
+                      )}
+
+                      {event.location && (
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4 text-primary shrink-0"/>
+                          <span>{event.location}</span>
+                        </div>
+                      )}
+
+                      {/* Custom Schedule Details if present */}
+                      {schedule.hasCustomSchedule && schedule.dailySchedule?.length > 0 && (
+                        <div className="rounded-xl border border-border bg-secondary/30 p-3 space-y-2 text-xs">
+                          <p className="font-bold text-foreground flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5 text-primary" /> Event Schedule
+                          </p>
+                          <div className="space-y-1 text-muted-foreground">
+                            {schedule.dailySchedule.map((day) => (
+                              <div key={day.date} className="flex justify-between items-center py-0.5">
+                                <span className="font-medium text-foreground">{day.dayLabel}</span>
+                                <span>{formatTime12(day.startTime)} – {formatTime12(day.endTime)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* ── Attendees bar (fullService) — always visible ─────── */}
                 {event.eventType === "fullService" && (<div>

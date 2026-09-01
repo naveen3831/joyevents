@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { apiListServices, apiListCategories, apiValidatePromoCode, apiGetAllPromoCodes } from "@/lib/api";
 import { API_URL } from "@/lib/config";
+import LocationAutocomplete from "@/components/LocationAutocomplete";
 import LocationPicker from "@/components/LocationPicker";
 import ManageCategoriesModal from "@/components/ManageCategoriesModal";
 import SimplePayment from "@/components/SimplePayment";
@@ -36,7 +37,7 @@ const PROCESS = [
 import { useHomepageSettings } from "@/hooks/useHomepageSettings";
 
 const normalizeCategory = (value) =>
-  String(value || "")
+  String(typeof value === "object" ? value?.name || "" : value || "")
     .trim()
     .toLowerCase();
 
@@ -634,80 +635,55 @@ const Services = () => {
                 </div>)}
 
               {/* Location Section */}
-              <div className="border-t border-border pt-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <MapPin className="h-4 w-4 text-primary"/>
-                  <h4 className="font-semibold text-sm">Service Location</h4>
-                </div>
-                <Button type="button" variant="outline" className="w-full mb-3" onClick={() => {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition((position) => {
-                        setCustomerLocation({
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        });
-                        setCustomerAddress("Current location selected");
-                        toast.success("Location detected!");
-                    }, () => {
-                        toast.error("Unable to get your location");
-                        setShowLocationPicker(true);
-                    });
-                }
-                else {
-                    toast.error("Geolocation is not supported by your browser");
-                    setShowLocationPicker(true);
-                }
-            }}>
-                  <Navigation className="mr-2 h-4 w-4"/>
-                  Use My Current Location
-                </Button>
-
-                {/* Address Input */}
-                <div className="mb-3">
-                  <Label className="text-xs text-muted-foreground mb-1 block">Complete Address</Label>
-                  <Textarea placeholder="Enter your complete address (street, city, state, pincode)" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} rows={3} className="w-full resize-none"/>
-                </div>
-
-                {/* Show selected location coordinates */}
-                {customerLocation && (<div className="rounded-lg border border-border bg-secondary p-3 text-sm">
-                    <div className="flex items-start gap-2">
-                      <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0"/>
-                      <div className="flex-1">
-                        <p className="font-medium">Selected Location:</p>
-                        <p className="text-muted-foreground text-xs mt-1">
-                          Lat: {customerLocation.lat.toFixed(6)}, Lng: {customerLocation.lng.toFixed(6)}
-                        </p>
-                        <button type="button" onClick={() => setShowLocationPicker(true)} className="mt-2 text-xs text-primary hover:underline">
-                          Change on map
-                        </button>
-                      </div>
-                    </div>
-                  </div>)}
-
-                {/* Toggle Map Picker */}
-                {!customerLocation && !showLocationPicker && (<button type="button" onClick={() => setShowLocationPicker(true)} className="text-xs text-primary hover:underline mt-2">
-                    Pick location on map
-                  </button>)}
-              </div>
-
-              {/* Location Picker Modal */}
-              {showLocationPicker && (<div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                  <div className="relative w-full max-w-4xl rounded-2xl border border-border bg-card p-6 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                    <button className="absolute top-4 right-4 text-muted-foreground hover:text-foreground" onClick={() => setShowLocationPicker(false)}>
-                      <X className="h-5 w-5"/>
-                    </button>
-                    <h4 className="font-display text-lg font-bold mb-4">Select Your Location</h4>
-                    <LocationPicker onLocationSelect={(lat, lng) => {
-                    setCustomerLocation({ lat, lng });
-                    setCustomerAddress("Location selected from map");
-                    setShowLocationPicker(false);
-                    toast.success("Location selected!");
-                }} initialLat={customerLocation?.lat} initialLng={customerLocation?.lng}/>
-                    <p className="mt-4 text-xs text-muted-foreground text-center">
-                      Click anywhere on the map to select your location
-                    </p>
+              <div className="border-t border-border pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary"/>
+                    <h4 className="font-semibold text-sm">Service Location</h4>
                   </div>
-                </div>)}
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-primary hover:bg-primary/10 gap-1.5" onClick={() => {
+                    if (navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(async (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        setCustomerLocation({ lat, lng });
+                        try {
+                          const { reverseGeocode } = await import("@/lib/geocoding");
+                          const geo = await reverseGeocode(lat, lng);
+                          setCustomerAddress(geo?.fullAddress || `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+                        } catch {
+                          setCustomerAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+                        }
+                        toast.success("Location detected!");
+                      }, () => {
+                        toast.error("Unable to get your location");
+                      });
+                    } else {
+                      toast.error("Geolocation is not supported by your browser");
+                    }
+                  }}>
+                    <Navigation className="h-3 w-3"/>
+                    Use Current Location
+                  </Button>
+                </div>
+
+                <LocationAutocomplete
+                  value={customerAddress}
+                  onChange={(val) => setCustomerAddress(val)}
+                  onSelect={(payload) => {
+                    if (payload) {
+                      setCustomerAddress(payload.address);
+                      setCustomerLocation({ lat: payload.lat, lng: payload.lng });
+                    } else {
+                      setCustomerLocation(null);
+                    }
+                  }}
+                  coordinates={customerLocation}
+                  showMapButton={true}
+                  placeholder="Enter service venue, city, or full address"
+                  maxLength={150}
+                />
+              </div>
 
               {/* Promo Code */}
               <div className="border-t border-border pt-4">

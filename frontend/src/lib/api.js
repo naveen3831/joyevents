@@ -113,6 +113,16 @@ export async function apiMyBookings(token) {
     }
     return res.json();
 }
+export async function apiGetBookingById(bookingId, token) {
+    const res = await fetch(`${API_URL}/api/bookings/${bookingId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to load booking details");
+    }
+    return res.json();
+}
 export async function apiSubmitRating(bookingId, score, comment, token) {
     const res = await fetch(`${API_URL}/api/bookings/${bookingId}/rate`, {
         method: "PATCH",

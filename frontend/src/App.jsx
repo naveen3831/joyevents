@@ -62,6 +62,7 @@ const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
 const AdminEarnings = lazy(() => import("./pages/admin/AdminEarnings"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminMerchantForm = lazy(() => import("./pages/admin/AdminMerchantForm"));
+const AdminSendTicketQuote = lazy(() => import("./pages/admin/AdminSendTicketQuote"));
 const AdminUserDetail = lazy(() => import("./pages/admin/AdminUserDetail"));
 const AdminEvents = lazy(() => import("./pages/admin/AdminEvents"));
 const AdminEventDetail = lazy(() => import("./pages/admin/AdminEventDetail"));
@@ -115,12 +116,15 @@ const RequestCustomServicePage = lazy(() => import("./pages/RequestCustomService
 const MerchantRecommendations = lazy(() => import("./pages/MerchantRecommendations"));
 const AdminRecommendations = lazy(() => import("./pages/admin/AdminRecommendations"));
 const Cart = lazy(() => import("./pages/Cart"));
+const CustomerCheckout = lazy(() => import("./pages/CustomerCheckout"));
+const CustomerTicketDetail = lazy(() => import("./pages/CustomerTicketDetail"));
 const ContactOrganiserPage = lazy(() => import("./pages/ContactOrganiserPage"));
 const CustomerWallet = lazy(() => import("./pages/CustomerWallet"));
 const CustomerAddFunds = lazy(() => import("./pages/CustomerAddFunds"));
 const CustomerWithdraw = lazy(() => import("./pages/CustomerWithdraw"));
 const CustomerReferral = lazy(() => import("./pages/CustomerReferral"));
 const MerchantReferrals = lazy(() => import("./pages/MerchantReferrals"));
+const MerchantPayTicket = lazy(() => import("./pages/MerchantPayTicket"));
 const AdminReferrals = lazy(() => import("./pages/admin/AdminReferrals"));
 const AdminRatings = lazy(() => import("./pages/admin/AdminRatings"));
 const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
@@ -211,6 +215,11 @@ const AppRoutes = () => {
         <Route path="/customer-dashboard/profile" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerProfile /></ProtectedRoute>}/>
         <Route path="/customer-dashboard/ai-recommendations" element={<ProtectedRoute allowedRoles={["customer"]}><AIRecommendations /></ProtectedRoute>}/>
         <Route path="/customer-dashboard/cart" element={<ProtectedRoute allowedRoles={["customer"]}><Cart /></ProtectedRoute>}/>
+        <Route path="/customer-dashboard/checkout" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerCheckout /></ProtectedRoute>}/>
+        <Route path="/checkout" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerCheckout /></ProtectedRoute>}/>
+        <Route path="/customer-dashboard/bookings/:id/ticket" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerTicketDetail /></ProtectedRoute>}/>
+        <Route path="/customer-dashboard/tickets/:id" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerTicketDetail /></ProtectedRoute>}/>
+        <Route path="/tickets/:id" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerTicketDetail /></ProtectedRoute>}/>
         <Route path="/customer-dashboard/wallet" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerWallet /></ProtectedRoute>}/>
         <Route path="/customer-dashboard/wallet/add-funds" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerAddFunds /></ProtectedRoute>}/>
         <Route path="/customer-dashboard/wallet/withdraw" element={<ProtectedRoute allowedRoles={["customer"]}><CustomerWithdraw /></ProtectedRoute>}/>
@@ -249,6 +258,7 @@ const AppRoutes = () => {
         <Route path="/merchant-dashboard/qr-codes" element={<ProtectedRoute allowedRoles={["merchant"]}><QRCodeGenerator /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/settings" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantSettings /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/upgrade-slots" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantUpgradeSlots /></ProtectedRoute>}/>
+        <Route path="/merchant-dashboard/pay-ticket/:ticketId" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantPayTicket /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/ai-recommendations" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantRecommendations /></ProtectedRoute>}/>
         {/* Legacy merchant routes (kept for backwards compat) */}
         <Route path="/merchant-settings" element={<ProtectedRoute allowedRoles={["merchant", "admin"]}><MerchantSettings /></ProtectedRoute>}/>
@@ -264,6 +274,7 @@ const AppRoutes = () => {
         <Route path="/admin-dashboard/users/create-merchant" element={<ProtectedRoute allowedRoles={["admin"]}><AdminMerchantForm /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/create-merchant" element={<ProtectedRoute allowedRoles={["admin"]}><AdminMerchantForm /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/users/:id" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUserDetail /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/tickets/:ticketId/send-quote" element={<ProtectedRoute allowedRoles={["admin"]}><AdminSendTicketQuote /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/events" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEvents /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/events/:id" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEventDetail /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/events/:id/edit" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEventForm /></ProtectedRoute>}/>

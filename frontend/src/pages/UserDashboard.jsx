@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import SimplePayment from "@/components/SimplePayment";
 import ContactMerchantModal from "@/components/ContactMerchantModal";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
+import LocationAutocomplete from "@/components/LocationAutocomplete";
 
 const STATUS_BADGE = {
   pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
@@ -321,9 +322,19 @@ const UserDashboard = () => {
 
             {/* Search Bar */}
             <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="relative hidden sm:block sm:w-[200px]">
-                <MapPin className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
-                <Input type="text" placeholder={t("location_placeholder")} value={locationQuery} maxLength={100} onChange={(e) => setLocationQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(e); } }} className="border-border bg-secondary pl-10 w-full rounded-2xl h-12 text-sm"/>
+              <div className="relative hidden sm:block sm:w-[240px]">
+                <LocationAutocomplete
+                  value={locationQuery}
+                  onChange={(val) => setLocationQuery(val)}
+                  onSelect={(payload) => {
+                    const place = payload?.address || payload?.name || "";
+                    setLocationQuery(place);
+                  }}
+                  placeholder={t("location_placeholder")}
+                  showPinIcon={true}
+                  inputClassName="border-border bg-secondary w-full rounded-2xl h-12 text-sm"
+                  maxLength={100}
+                />
               </div>
               
               <form onSubmit={handleSearch} className="relative flex-1">

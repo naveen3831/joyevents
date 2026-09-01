@@ -295,10 +295,7 @@ const MerchantServices = ({ layout = "merchant" } = {}) => {
             </div>) : services.length === 0 ? (<div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground flex flex-col items-center">
               <AlertCircle className="mx-auto mb-3 h-10 w-10 opacity-30"/>
               <p className="font-medium">No services yet</p>
-              <p className="text-xs mt-1 mb-4">Click "New Service" to create your first service. Only your services are shown here.</p>
-              <Button onClick={openCreate} className="bg-gradient-primary text-primary-foreground hover:opacity-90 min-h-[44px]">
-                <Plus className="mr-2 h-4 w-4"/> New Service
-              </Button>
+              <p className="text-xs mt-1">Click "New Service" to create your first service. Only your services are shown here.</p>
             </div>) : (<div ref={gridRef} className="grid grid-cols-2 gap-3 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
               {services.map((svc) => (<div
                   key={svc._id}

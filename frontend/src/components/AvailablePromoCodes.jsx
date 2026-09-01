@@ -12,7 +12,7 @@ const AvailablePromoCodes = ({ onApply, appliedCode, eventId, serviceId, merchan
     useEffect(() => {
         apiGetAllPromoCodes()
             .then((res) => {
-            const all = (res.promoCodes || []).filter((p) => p.isActive);
+            const all = (res.promoCodes || []).filter((p) => p.isActive !== false);
             // Show active codes that match the context, category, AND merchant
             let relevant = all;
             // Merchant-specific filter (CRITICAL)

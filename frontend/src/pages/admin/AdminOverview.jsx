@@ -348,9 +348,9 @@ const AdminOverview = () => {
 
               {/* Header Quick Actions */}
               <div className="flex items-center gap-2.5 flex-wrap shrink-0">
-                <Link to="/admin-dashboard/users">
+                <Link to="/admin-dashboard/users?role=merchant">
                   <Button size="sm" variant="outline" className="bg-card hover:bg-secondary text-foreground border-border text-xs font-semibold shadow-xs">
-                    <Users className="h-3.5 w-3.5 mr-1.5 text-indigo-600 dark:text-indigo-400" /> Merchants
+                    <Store className="h-3.5 w-3.5 mr-1.5 text-indigo-600 dark:text-indigo-400" /> Merchants
                   </Button>
                 </Link>
                 <Link to="/admin-dashboard/events">
@@ -369,45 +369,53 @@ const AdminOverview = () => {
 
           {/* Platform Health Metrics Bar */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm flex items-center gap-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <IndianRupee className="h-5 w-5" />
+            <Link to="/admin-dashboard/payments" className="block group">
+              <div className="rounded-2xl border border-border bg-card p-4 shadow-sm flex items-center gap-3.5 group-hover:border-primary/40 transition-colors h-full">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <IndianRupee className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Today's Revenue</p>
+                  <p className="text-lg sm:text-xl font-bold font-display text-foreground truncate">{loading ? "…" : formatCurrency(todaysRevenue)}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Today's Revenue</p>
-                <p className="text-lg sm:text-xl font-bold font-display text-foreground truncate">{loading ? "…" : formatCurrency(todaysRevenue)}</p>
-              </div>
-            </div>
+            </Link>
 
-            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm flex items-center gap-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-                <Store className="h-5 w-5" />
+            <Link to="/admin-dashboard/users?role=merchant" className="block group">
+              <div className="rounded-2xl border border-border bg-card p-4 shadow-sm flex items-center gap-3.5 group-hover:border-primary/40 transition-colors h-full">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                  <Store className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Active Merchants</p>
+                  <p className="text-lg sm:text-xl font-bold font-display text-foreground">{loading ? "…" : activeMerchantsCount}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Active Merchants</p>
-                <p className="text-lg sm:text-xl font-bold font-display text-foreground">{loading ? "…" : activeMerchantsCount}</p>
-              </div>
-            </div>
+            </Link>
 
-            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm flex items-center gap-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
-                <CalendarCheck className="h-5 w-5" />
+            <Link to="/admin-dashboard/bookings" className="block group">
+              <div className="rounded-2xl border border-border bg-card p-4 shadow-sm flex items-center gap-3.5 group-hover:border-primary/40 transition-colors h-full">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                  <CalendarCheck className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Total Bookings</p>
+                  <p className="text-lg sm:text-xl font-bold font-display text-foreground">{loading ? "…" : allBookings.length}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Total Bookings</p>
-                <p className="text-lg sm:text-xl font-bold font-display text-foreground">{loading ? "…" : allBookings.length}</p>
-              </div>
-            </div>
+            </Link>
 
-            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm flex items-center gap-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                <Video className="h-5 w-5" />
+            <Link to="/admin-dashboard/events" className="block group">
+              <div className="rounded-2xl border border-border bg-card p-4 shadow-sm flex items-center gap-3.5 group-hover:border-primary/40 transition-colors h-full">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                  <Video className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Total Events</p>
+                  <p className="text-lg sm:text-xl font-bold font-display text-foreground">{loading ? "…" : events.length}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Total Events</p>
-                <p className="text-lg sm:text-xl font-bold font-display text-foreground">{loading ? "…" : events.length}</p>
-              </div>
-            </div>
+            </Link>
           </div>
 
           {/* Today at a Glance Section */}

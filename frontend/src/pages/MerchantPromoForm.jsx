@@ -211,7 +211,8 @@ const MerchantPromoForm = () => {
         maxUses: promoForm.maxUses ? parseInt(promoForm.maxUses) : null,
         expiryDate: promoForm.expiryDate || null,
         minBookingAmount: promoForm.minBookingAmount,
-        maxDiscount: promoForm.maxDiscount ? parseFloat(promoForm.maxDiscount) : null
+        maxDiscount: promoForm.maxDiscount ? parseFloat(promoForm.maxDiscount) : null,
+        isActive: true
       };
 
       if (isEdit) {

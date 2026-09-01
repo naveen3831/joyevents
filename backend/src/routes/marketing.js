@@ -59,6 +59,7 @@ router.post("/promo-codes", verifyToken, async (req, res) => {
       discountValue,
       maxUses,
       expiryDate,
+      isActive: req.body.isActive !== undefined ? req.body.isActive : true,
       applicableEvents,
       applicableServices,
       minBookingAmount,
@@ -71,11 +72,15 @@ router.post("/promo-codes", verifyToken, async (req, res) => {
   }
 });
 
-// Merchant: Get promo codes
+// Merchant / Admin: Get promo codes
 router.get("/promo-codes", verifyToken, async (req, res) => {
   try {
-    const merchantId = req.user._id;
-    const promoCodes = await PromoCode.find({ merchant: merchantId })
+    const userId = req.user._id;
+    const isAdmin = req.user.role === "admin";
+    const query = isAdmin ? {} : { merchant: userId };
+
+    const promoCodes = await PromoCode.find(query)
+      .populate("merchant", "name email role")
       .populate("applicableEvents", "title")
       .populate("applicableServices", "name")
       .sort({ createdAt: -1 });
@@ -89,7 +94,7 @@ router.get("/promo-codes", verifyToken, async (req, res) => {
 // Public: Get all active promo codes (for home page display)
 router.get("/all-promo-codes", async (req, res) => {
   try {
-    const promoCodes = await PromoCode.find({ isActive: true })
+    const promoCodes = await PromoCode.find({ isActive: { $ne: false } })
       .populate("merchant", "name")
       .populate("applicableEvents", "title")
       .populate("applicableServices", "name")
@@ -124,8 +129,8 @@ router.post("/validate-promo", async (req, res) => {
       return res.status(400).json({ error: "Promo code is required" });
     }
 
-    const normalizedCode = code.toUpperCase();
-    const promo = await PromoCode.findOne({ code: normalizedCode, isActive: true });
+    const normalizedCode = code.toUpperCase().trim();
+    const promo = await PromoCode.findOne({ code: normalizedCode, isActive: { $ne: false } });
     
     if (!promo) {
       const settings = await getReferralSettings();
@@ -179,9 +184,13 @@ router.post("/validate-promo", async (req, res) => {
       });
     }
 
-    // Check if expired
-    if (promo.expiryDate && new Date(promo.expiryDate) < new Date()) {
-      return res.status(400).json({ error: "Promo code has expired" });
+    // Check if expired (end of expiry day)
+    if (promo.expiryDate) {
+      const exp = new Date(promo.expiryDate);
+      exp.setHours(23, 59, 59, 999);
+      if (exp < new Date()) {
+        return res.status(400).json({ error: "Promo code has expired" });
+      }
     }
 
     // Check if max uses reached
@@ -189,20 +198,14 @@ router.post("/validate-promo", async (req, res) => {
       return res.status(400).json({ error: "Promo code usage limit reached" });
     }
 
-    // MANDATORY: Check "one promo code per user" for ANY promo code
-    // This ensures a user can only use ONE promo code across the entire platform (events/services)
-    if (userId) {
-      console.log(`🔍 Checking if user ${userId} has already used ANY promo code...`);
-      
-      const PromoCodeModel = (await import("../models/PromoCode.js")).default;
-      const previouslyUsedPromo = await PromoCodeModel.findOne({
-        "usedBy.customer": userId
-      });
-      
-      if (previouslyUsedPromo) {
-        console.log(`✅ User has already used promo code: ${previouslyUsedPromo.code}`);
+    // Check if user has already used this specific promo code
+    if (userId && promo.usedBy && promo.usedBy.length > 0) {
+      const usedAlready = promo.usedBy.some(
+        u => u.customer && u.customer.toString() === userId.toString()
+      );
+      if (usedAlready) {
         return res.status(400).json({ 
-          error: `You have already used a promo code (${previouslyUsedPromo.code}). Each user can only use ONE promo code across all events and services.` 
+          error: `You have already used this promo code (${promo.code}).` 
         });
       }
     }
@@ -215,7 +218,16 @@ router.post("/validate-promo", async (req, res) => {
     }
 
     // Check appliesTo (separate promo codes for ticketed events, full-service events, and services)
+    let eventDoc = null;
+    let serviceDoc = null;
+
     if (serviceId) {
+      const Service = (await import("../models/Service.js")).default;
+      serviceDoc = await Service.findById(serviceId).select("category createdBy name");
+      if (!serviceDoc) {
+        return res.status(404).json({ error: "Service not found" });
+      }
+
       if (!["all", "services"].includes(promo.appliesTo || "all")) {
         return res.status(400).json({ error: "This promo code is not applicable to services" });
       }
@@ -223,18 +235,18 @@ router.post("/validate-promo", async (req, res) => {
 
     if (eventId) {
       const Event = (await import("../models/Event.js")).default;
-      const event = await Event.findById(eventId).select("eventType category");
-      if (!event) {
+      eventDoc = await Event.findById(eventId).select("eventType category createdBy title");
+      if (!eventDoc) {
         return res.status(404).json({ error: "Event not found" });
       }
 
-      if (event.eventType === "ticketed") {
+      if (eventDoc.eventType === "ticketed") {
         if (!["all", "ticketedEvents"].includes(promo.appliesTo || "all")) {
           return res.status(400).json({ error: "This promo code is not applicable to ticketed events" });
         }
-      } else if (event.eventType === "fullService") {
+      } else if (eventDoc.eventType === "fullService") {
         if (!["all", "fullServiceEvents"].includes(promo.appliesTo || "all")) {
-          return res.status(400).json({ error: "This promo code is not applicable to full-service events" });
+          return res.status(400).json({ error: "This promo code is not applicable to single ticket events" });
         }
       } else {
         if (!["all"].includes(promo.appliesTo || "all")) {
@@ -243,25 +255,47 @@ router.post("/validate-promo", async (req, res) => {
       }
     }
 
-    // Check applicableCategories
-    let itemCategory = "all";
-    if (serviceId) {
-      const Service = (await import("../models/Service.js")).default;
-      const service = await Service.findById(serviceId).select("category");
-      if (service && service.category) {
-        itemCategory = service.category;
-      }
-    } else if (eventId) {
-      const Event = (await import("../models/Event.js")).default;
-      const event = await Event.findById(eventId).select("category");
-      if (event && event.category) {
-        itemCategory = event.category;
+    // ── STRICT MERCHANT OWNERSHIP VALIDATION ──────────────────────────────
+    // A promo code created by a merchant must ONLY work for that merchant's items
+    if (promo.merchant) {
+      const promoCreator = await User.findById(promo.merchant).select("role");
+      const isPlatformAdmin = promoCreator && promoCreator.role === "admin";
+
+      if (!isPlatformAdmin) {
+        if (!eventId && !serviceId) {
+          return res.status(400).json({ error: "Please select an event or service to apply this promo code." });
+        }
+
+        if (eventId && eventDoc) {
+          const eventOwnerId = eventDoc.createdBy?._id ? eventDoc.createdBy._id.toString() : eventDoc.createdBy ? eventDoc.createdBy.toString() : null;
+          if (!eventOwnerId || eventOwnerId !== promo.merchant.toString()) {
+            return res.status(400).json({ error: "This promo code is not applicable to this event." });
+          }
+        }
+
+        if (serviceId && serviceDoc) {
+          const serviceOwnerId = serviceDoc.createdBy?._id ? serviceDoc.createdBy._id.toString() : serviceDoc.createdBy ? serviceDoc.createdBy.toString() : null;
+          if (!serviceOwnerId || serviceOwnerId !== promo.merchant.toString()) {
+            return res.status(400).json({ error: "This promo code is not applicable to this service." });
+          }
+        }
       }
     }
 
+    // Check applicableCategories
+    let itemCategory = "all";
+    if (serviceDoc && serviceDoc.category) {
+      itemCategory = serviceDoc.category;
+    } else if (eventDoc && eventDoc.category) {
+      itemCategory = eventDoc.category;
+    }
+
     if (promo.applicableCategories && promo.applicableCategories.length > 0 && !promo.applicableCategories.includes("all")) {
-      // If promo category is restricted, check if item category matches
-      if (!promo.applicableCategories.includes(itemCategory)) {
+      const normalizedItemCat = (itemCategory || "").toLowerCase().trim();
+      const matchesCategory = promo.applicableCategories.some(
+        c => c && (c.toLowerCase().trim() === "all" || c.toLowerCase().trim() === normalizedItemCat)
+      );
+      if (!matchesCategory) {
         return res.status(400).json({ error: `This promo code is only applicable to specific categories` });
       }
     }
@@ -339,20 +373,24 @@ router.post("/track-usage/:promoCodeId", async (req, res) => {
   }
 });
 
-// Merchant: Update promo code
+// Merchant / Admin: Update promo code
 router.patch("/promo-codes/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const merchantId = req.user._id;
+    const userId = req.user._id;
+    const isAdmin = req.user.role === "admin";
     const { description, maxUses, expiryDate, isActive, minBookingAmount, appliesTo, applicableCategories } = req.body;
 
-    const promoCode = await PromoCode.findOne({ _id: id, merchant: merchantId });
+    const query = isAdmin ? { _id: id } : { _id: id, merchant: userId };
+    const promoCode = await PromoCode.findOne(query);
     if (!promoCode) {
-      return res.status(404).json({ error: "Promo code not found" });
+      return res.status(404).json({ error: "Promo code not found or unauthorized" });
     }
 
+    const updatedIsActive = isActive !== undefined ? isActive : promoCode.isActive !== undefined ? promoCode.isActive : true;
+
     Object.assign(promoCode, { 
-      description, maxUses, expiryDate, isActive, minBookingAmount, appliesTo,
+      description, maxUses, expiryDate, isActive: updatedIsActive, minBookingAmount, appliesTo,
       applicableCategories: applicableCategories && applicableCategories.length > 0 ? applicableCategories : promoCode.applicableCategories 
     });
     await promoCode.save();
@@ -363,15 +401,17 @@ router.patch("/promo-codes/:id", verifyToken, async (req, res) => {
   }
 });
 
-// Merchant: Delete promo code
+// Merchant / Admin: Delete promo code
 router.delete("/promo-codes/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const merchantId = req.user._id;
+    const userId = req.user._id;
+    const isAdmin = req.user.role === "admin";
+    const query = isAdmin ? { _id: id } : { _id: id, merchant: userId };
 
-    const promoCode = await PromoCode.findOneAndDelete({ _id: id, merchant: merchantId });
+    const promoCode = await PromoCode.findOneAndDelete(query);
     if (!promoCode) {
-      return res.status(404).json({ error: "Promo code not found" });
+      return res.status(404).json({ error: "Promo code not found or unauthorized" });
     }
 
     res.json({ success: true, message: "Promo code deleted" });

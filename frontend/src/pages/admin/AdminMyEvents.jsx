@@ -1,4 +1,4 @@
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatEventSchedule } from "@/lib/utils";
 import { Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, Ticket, Calendar, MapPin, Eye } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -75,19 +75,7 @@ const AdminMyEvents = () => {
           </div>) : (<div ref={gridRef} className="grid grid-cols-1 xs:grid-cols-2 gap-6 lg:grid-cols-3">
             {events.map((ev) => {
               const itemName = ev.title;
-              const formattedDate = ev.datetime
-                ? new Date(ev.datetime).toLocaleDateString("en-IN", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })
-                : null;
-              const formattedTime = ev.datetime
-                ? new Date(ev.datetime).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : null;
+              const schedule = formatEventSchedule(ev);
 
               const allTickets = [];
               if (ev.hasMultipleSessions && ev.sessions) {
@@ -138,10 +126,13 @@ const AdminMyEvents = () => {
                       
                       {/* Date & Location Metadata */}
                       <div className="space-y-[6px] text-xs text-muted-foreground mt-2.5">
-                        {formattedDate && (
+                        {schedule.dateText && (
                           <div className="flex items-center gap-1.5 h-[18px]">
                             <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
-                            <span className="truncate">{formattedDate} at {formattedTime}</span>
+                            <span className="truncate">
+                              {schedule.dateText}
+                              {schedule.isMultiDay ? ` • ${schedule.badgeText}` : schedule.timeText ? ` at ${schedule.timeText}` : ""}
+                            </span>
                           </div>
                         )}
                         {ev.location && (

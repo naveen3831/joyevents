@@ -11,6 +11,8 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { apiGetEventById, apiCreateEventWithImage, apiUpdateEventWithImage, apiListCategories, apiCreateCategory } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
+import LocationAutocomplete from "@/components/LocationAutocomplete";
+import EventDurationSchedulePicker from "@/components/EventDurationSchedulePicker";
 
 const imgSrc = (image) => !image ? "" : image.startsWith("http") ? image : `${API_URL}${image}`;
 
@@ -69,14 +71,40 @@ const AdminEventForm = ({ layout = "admin" } = {}) => {
     const [formErrors, setFormErrors] = useState({});
     const [ticketError, setTicketError] = useState("");
     const [creatingCat, setCreatingCat] = useState(false);
+    const [mapLocation, setMapLocation] = useState(null);
+
+    // Duration & Multi-Day states
+    const [durationType, setDurationType] = useState("single");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [startTime, setStartTime] = useState("");
+    const [endTime, setEndTime] = useState("");
+    const [hasCustomSchedule, setHasCustomSchedule] = useState(false);
+    const [dailySchedule, setDailySchedule] = useState([]);
 
     const populateFromEvent = (ev) => {
         const dt = new Date(ev.datetime);
+        const parsedDate = !isNaN(dt.getTime()) ? dt.toISOString().slice(0, 10) : "";
+        const parsedTime = !isNaN(dt.getTime()) ? dt.toTimeString().slice(0, 5) : "";
+
+        const sDate = ev.startDate || parsedDate;
+        const eDate = ev.endDate || (ev.durationType === "multiple" ? parsedDate : sDate);
+        const sTime = ev.startTime || parsedTime;
+        const eTime = ev.endTime || "";
+
+        setDurationType(ev.durationType || (ev.startDate && ev.endDate && ev.startDate !== ev.endDate ? "multiple" : "single"));
+        setStartDate(sDate);
+        setEndDate(eDate);
+        setStartTime(sTime);
+        setEndTime(eTime);
+        setHasCustomSchedule(Boolean(ev.hasCustomSchedule));
+        setDailySchedule(Array.isArray(ev.dailySchedule) ? ev.dailySchedule : []);
+
         setForm({
             title: ev.title || "",
             description: ev.description || "",
-            date: dt.toISOString().slice(0, 10),
-            time: dt.toTimeString().slice(0, 5),
+            date: sDate,
+            time: sTime,
             location: ev.location || "",
             price: String(ev.price || ""),
             category: ev.category || "General",
@@ -204,18 +232,72 @@ const AdminEventForm = ({ layout = "admin" } = {}) => {
                 toast.error("Event description cannot exceed 1000 characters");
                 return;
             }
-            if (!form.date) {
-                toast.error("Event date is required");
-                return;
+            // Duration & Schedule Validations
+            const todayStr = getTodayString();
+            if (durationType === "single") {
+                if (!startDate) {
+                    setFormErrors({ date: "Event date is required" });
+                    toast.error("Event date is required");
+                    return;
+                }
+                if (!isEdit && startDate < todayStr) {
+                    setFormErrors({ date: "Event date cannot be in the past" });
+                    toast.error("Event date cannot be in the past");
+                    return;
+                }
+                if (!startTime) {
+                    setFormErrors({ startTime: "Start time is required" });
+                    toast.error("Start time is required");
+                    return;
+                }
+                if (!endTime) {
+                    setFormErrors({ endTime: "End time is required" });
+                    toast.error("End time is required");
+                    return;
+                }
+                if (startTime && endTime && endTime <= startTime) {
+                    setFormErrors({ endTime: "End time must be after start time" });
+                    toast.error("End time must be after start time");
+                    return;
+                }
+            } else {
+                if (!startDate) {
+                    setFormErrors({ startDate: "Start date is required" });
+                    toast.error("Start date is required");
+                    return;
+                }
+                if (!isEdit && startDate < todayStr) {
+                    setFormErrors({ startDate: "Start date cannot be in the past" });
+                    toast.error("Start date cannot be in the past");
+                    return;
+                }
+                if (!endDate) {
+                    setFormErrors({ endDate: "End date is required" });
+                    toast.error("End date is required");
+                    return;
+                }
+                if (endDate < startDate) {
+                    setFormErrors({ endDate: "End date cannot be before start date" });
+                    toast.error("End date cannot be before start date");
+                    return;
+                }
+                if (!startTime) {
+                    setFormErrors({ startTime: "Daily start time is required" });
+                    toast.error("Daily start time is required");
+                    return;
+                }
+                if (!endTime) {
+                    setFormErrors({ endTime: "Daily end time is required" });
+                    toast.error("Daily end time is required");
+                    return;
+                }
+                if (startTime && endTime && endTime <= startTime && !hasCustomSchedule) {
+                    setFormErrors({ endTime: "End time must be after start time" });
+                    toast.error("End time must be after start time");
+                    return;
+                }
             }
-            if (form.date < getTodayString()) {
-                toast.error("Event date cannot be in the past. Please select today or a future date.");
-                return;
-            }
-            if (!form.time) {
-                toast.error("Event time is required");
-                return;
-            }
+
             if (!form.location || !form.location.trim()) {
                 setFormErrors({ location: "Event location is required" });
                 toast.error("Event location is required");
@@ -288,8 +370,17 @@ const AdminEventForm = ({ layout = "admin" } = {}) => {
             const formData = new FormData();
             formData.append('title', form.title);
             formData.append('description', form.description);
-            formData.append('date', form.date);
-            formData.append('time', form.time);
+            formData.append('durationType', durationType);
+            formData.append('startDate', startDate);
+            formData.append('endDate', durationType === 'multiple' ? endDate : startDate);
+            formData.append('startTime', startTime);
+            formData.append('endTime', endTime);
+            formData.append('date', startDate);
+            formData.append('time', startTime);
+            formData.append('hasCustomSchedule', String(hasCustomSchedule && durationType === 'multiple'));
+            if (hasCustomSchedule && durationType === 'multiple' && dailySchedule.length > 0) {
+                formData.append('dailySchedule', JSON.stringify(dailySchedule));
+            }
             formData.append('location', form.location);
             formData.append('category', form.category);
             formData.append('status', form.status);
@@ -708,22 +799,28 @@ const AdminEventForm = ({ layout = "admin" } = {}) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Event Date */}
-              <div>
-                <Label className="text-sm font-semibold text-foreground flex items-center gap-1.5 mb-1.5">
-                  <Calendar className="h-4 w-4 text-primary"/> Start Date *
-                </Label>
-                <Input type="date" value={form.date} min={getTodayString()} onChange={(e) => setForm({ ...form, date: e.target.value })} required className="h-11 rounded-xl bg-background border-border focus:ring-2 focus:ring-primary"/>
-              </div>
-
-              {/* Event Time */}
-              <div>
-                <Label className="text-sm font-semibold text-foreground flex items-center gap-1.5 mb-1.5">
-                  <Clock className="h-4 w-4 text-primary"/> Start Time *
-                </Label>
-                <Input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} required className="h-11 rounded-xl bg-background border-border focus:ring-2 focus:ring-primary"/>
-              </div>
+            <div className="space-y-4">
+              <EventDurationSchedulePicker
+                durationType={durationType}
+                onDurationTypeChange={(type) => {
+                  setDurationType(type);
+                  setFormErrors((prev) => ({ ...prev, date: "", startDate: "", endDate: "", startTime: "", endTime: "" }));
+                }}
+                startDate={startDate}
+                onStartDateChange={setStartDate}
+                endDate={endDate}
+                onEndDateChange={setEndDate}
+                startTime={startTime}
+                onStartTimeChange={setStartTime}
+                endTime={endTime}
+                onEndTimeChange={setEndTime}
+                hasCustomSchedule={hasCustomSchedule}
+                onHasCustomScheduleChange={setHasCustomSchedule}
+                dailySchedule={dailySchedule}
+                onDailyScheduleChange={setDailySchedule}
+                errors={formErrors}
+                onClearError={(field) => setFormErrors((prev) => ({ ...prev, [field]: "" }))}
+              />
 
               {/* Venue & Location Address (Full Width) */}
               <div className="md:col-span-2">
@@ -733,12 +830,26 @@ const AdminEventForm = ({ layout = "admin" } = {}) => {
                   </Label>
                   <span className="text-[11px] text-muted-foreground">{(form.location || '').length}/150</span>
                 </div>
-                <Input value={form.location} onChange={(e) => {
-            setForm({ ...form, location: e.target.value });
-            if (formErrors.location)
-                setFormErrors((prev) => ({ ...prev, location: "" }));
-        }} placeholder="Enter event venue name or full address" maxLength={150} required className="h-11 rounded-xl bg-background border-border focus:ring-2 focus:ring-primary" aria-invalid={Boolean(formErrors.location)}/>
-                {formErrors.location && <p className="text-xs text-destructive mt-1.5 font-medium">{formErrors.location}</p>}
+                <LocationAutocomplete
+                  value={form.location}
+                  onChange={(val) => {
+                    setForm({ ...form, location: val });
+                    if (formErrors.location) setFormErrors((prev) => ({ ...prev, location: "" }));
+                  }}
+                  onCoordinatesSelect={(coords) => {
+                    if (coords) {
+                      setMapLocation(coords);
+                      setForm(prev => ({ ...prev, location: coords.address || coords.name }));
+                      if (formErrors.location) setFormErrors((prev) => ({ ...prev, location: "" }));
+                    } else {
+                      setMapLocation(null);
+                    }
+                  }}
+                  coordinates={mapLocation}
+                  showMapButton={true}
+                  error={formErrors.location}
+                  placeholder="Enter event venue name or address"
+                />
               </div>
             </div>
           </div>

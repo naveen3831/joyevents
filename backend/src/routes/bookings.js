@@ -297,10 +297,14 @@ router.post("/", verifyToken, async (req, res) => {
     }
 
     let referralData = {};
+    let validatedPromoData = {};
+    let finalBookingPrice = Number(price);
+
     if (promoCode?.code) {
+      const normalizedCode = String(promoCode.code).toUpperCase().trim();
       const settings = await getReferralSettings();
       const referrer = settings.isActive
-        ? await User.findOne({ referralCode: String(promoCode.code).toUpperCase(), status: "active" })
+        ? await User.findOne({ referralCode: normalizedCode, status: "active" })
         : null;
 
       if (referrer && referrer._id.toString() === req.user._id.toString()) {
@@ -308,7 +312,7 @@ router.post("/", verifyToken, async (req, res) => {
       }
 
       if (referrer) {
-        const normalizedReferralCode = String(referrer.referralCode || promoCode.code).toUpperCase();
+        const normalizedReferralCode = String(referrer.referralCode || normalizedCode).toUpperCase();
         const reuseQuery = buildReferralReuseQuery({
           customer: req.user._id,
           referralCode: normalizedReferralCode,
@@ -327,12 +331,117 @@ router.post("/", verifyToken, async (req, res) => {
           });
         }
 
+        const baseAmount = Number(originalPrice) || Number(price);
+        const referralDiscount = Math.min(Number(settings.discountAmount) || 0, baseAmount);
+        finalBookingPrice = Math.max(0, baseAmount - referralDiscount);
+
         referralData = {
           code: normalizedReferralCode,
           referrer: referrer._id,
-          discountAmount: Math.min(Number(discount) || 0, Number(originalPrice) || Number(price)),
+          discountAmount: referralDiscount,
           bonusAmount: Number(settings.bonusAmount) || 0,
           bonusCredited: false
+        };
+
+        validatedPromoData = {
+          code: normalizedReferralCode,
+          promoCodeId: null,
+          discountType: "fixed",
+          discountValue: referralDiscount,
+          discountAmount: referralDiscount,
+          originalPrice: baseAmount,
+          finalPrice: finalBookingPrice,
+          appliedAt: new Date()
+        };
+      } else {
+        // Standard promo code validation
+        const PromoCode = (await import("../models/PromoCode.js")).default;
+        const promo = await PromoCode.findOne({ code: normalizedCode, isActive: { $ne: false } });
+
+        if (!promo) {
+          return res.status(400).json({ error: "Invalid promo code" });
+        }
+
+        // Check if expired
+        if (promo.expiryDate) {
+          const exp = new Date(promo.expiryDate);
+          exp.setHours(23, 59, 59, 999);
+          if (exp < new Date()) {
+            return res.status(400).json({ error: "Promo code has expired" });
+          }
+        }
+
+        // Check if max uses reached
+        if (promo.maxUses && promo.currentUses >= promo.maxUses) {
+          return res.status(400).json({ error: "Promo code usage limit reached" });
+        }
+
+        // Check if user has already used this promo code
+        if (req.user?._id && promo.usedBy && promo.usedBy.length > 0) {
+          const usedAlready = promo.usedBy.some(
+            u => u.customer && u.customer.toString() === req.user._id.toString()
+          );
+          if (usedAlready) {
+            return res.status(400).json({ 
+              error: `You have already used this promo code (${promo.code}).` 
+            });
+          }
+        }
+
+        // ── STRICT MERCHANT OWNERSHIP VALIDATION ──────────────────────────
+        if (promo.merchant) {
+          const promoCreator = await User.findById(promo.merchant).select("role");
+          const isPlatformAdmin = promoCreator && promoCreator.role === "admin";
+
+          if (!isPlatformAdmin) {
+            let itemOwnerId = null;
+            if (eventId) {
+              const Event = (await import("../models/Event.js")).default;
+              const eventDoc = await Event.findById(eventId).select("createdBy");
+              itemOwnerId = eventDoc?.createdBy ? eventDoc.createdBy.toString() : null;
+              if (!itemOwnerId || itemOwnerId !== promo.merchant.toString()) {
+                return res.status(400).json({ error: "This promo code is not applicable to this event." });
+              }
+            } else if (req.body.serviceId) {
+              const Service = (await import("../models/Service.js")).default;
+              const serviceDoc = await Service.findById(req.body.serviceId).select("createdBy");
+              itemOwnerId = serviceDoc?.createdBy ? serviceDoc.createdBy.toString() : null;
+              if (!itemOwnerId || itemOwnerId !== promo.merchant.toString()) {
+                return res.status(400).json({ error: "This promo code is not applicable to this service." });
+              }
+            }
+          }
+        }
+
+        // Recalculate discount securely on backend
+        const baseAmount = Number(originalPrice) || Number(price);
+        if (promo.minBookingAmount && baseAmount < promo.minBookingAmount) {
+          return res.status(400).json({ 
+            error: `Minimum booking amount of ${formatCurrency(promo.minBookingAmount)} required` 
+          });
+        }
+
+        let calculatedDiscount = 0;
+        if (promo.discountType === "percentage") {
+          calculatedDiscount = (baseAmount * promo.discountValue) / 100;
+          if (promo.maxDiscount) {
+            calculatedDiscount = Math.min(calculatedDiscount, promo.maxDiscount);
+          }
+        } else {
+          calculatedDiscount = promo.discountValue;
+        }
+        calculatedDiscount = Math.min(calculatedDiscount, baseAmount);
+        finalBookingPrice = Math.max(0, baseAmount - calculatedDiscount);
+
+        validatedPromoData = {
+          code: promo.code,
+          promoCodeId: promo._id,
+          discountType: promo.discountType,
+          discountValue: promo.discountValue,
+          discountAmount: calculatedDiscount,
+          originalPrice: baseAmount,
+          finalPrice: finalBookingPrice,
+          appliedAt: new Date()
         };
       }
     }
@@ -344,7 +453,7 @@ router.post("/", verifyToken, async (req, res) => {
       serviceName: serviceName || eventName,
       eventName: eventName || "",
       eventId: eventId || "",
-      price: Number(price),
+      price: finalBookingPrice,
       datetime: dt,
       status: initialStatus,
       assignedTo: merchantToNotify ? merchantToNotify._id : null,
@@ -362,16 +471,7 @@ router.post("/", verifyToken, async (req, res) => {
       walletAmountPaid: useWallet ? walletAmountPaid : 0,
       customerLocation: customerLocation || null,
       // Promo code data
-      promoCode: promoCode ? {
-        code: promoCode.code || "",
-        promoCodeId: promoCode._id || null,
-        discountType: promoCode.discountType || "",
-        discountValue: promoCode.discountValue || 0,
-        discountAmount: Number(discount) || 0,
-        originalPrice: Number(originalPrice) || Number(price),
-        finalPrice: Number(price),
-        appliedAt: new Date()
-      } : {},
+      promoCode: Object.keys(validatedPromoData).length > 0 ? validatedPromoData : {},
       referral: referralData,
       // Add-ons selected by customer
       addOns: Array.isArray(req.body.addOns) ? req.body.addOns : [],
@@ -839,6 +939,35 @@ router.get("/assigned", verifyToken, requireRole("merchant", "admin"), async (re
     res.status(500).json({ error: "Server error" });
   }
 });
+
+// Get booking by ID (Customer / Merchant / Admin)
+router.get("/:id", verifyToken, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate("customer", "name email phone")
+      .populate("assignedTo", "name email")
+      .populate("service", "name price category image")
+      .populate("event", "title datetime location price category tickets image eventType");
+
+    if (!booking) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    // Ownership check: must be customer, assigned merchant, or admin
+    const isCustomer = booking.customer && (booking.customer._id?.toString() === req.user._id.toString() || booking.customer.toString() === req.user._id.toString());
+    const isMerchant = booking.assignedTo && (booking.assignedTo._id?.toString() === req.user._id.toString() || booking.assignedTo.toString() === req.user._id.toString());
+    const isAdmin = req.user.role === "admin";
+
+    if (!isCustomer && !isMerchant && !isAdmin) {
+      return res.status(403).json({ error: "Unauthorized access to this booking" });
+    }
+
+    res.json({ booking });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch booking details" });
+  }
+});
+
 
 // Admin/Merchant: Fix orphaned service bookings (match by serviceName â†’ Service.name)
 router.post("/fix-service-bookings", verifyToken, async (req, res) => {

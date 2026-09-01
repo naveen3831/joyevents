@@ -20,6 +20,21 @@ const eventSchema = new mongoose.Schema(
     eventType: { type: String, enum: ["ticketed", "fullService"], default: "fullService" },
     maxAttendees: { type: Number, default: 0 }, // 0 = unlimited, for fullService events
     attendeesCount: { type: Number, default: 0 }, // real-time booked count
+    // Duration & Multi-day scheduling
+    durationType: { type: String, enum: ["single", "multiple"], default: "single" },
+    startDate: { type: String, default: "" }, // "YYYY-MM-DD"
+    endDate: { type: String, default: "" },   // "YYYY-MM-DD"
+    startTime: { type: String, default: "" }, // "HH:mm"
+    endTime: { type: String, default: "" },   // "HH:mm"
+    hasCustomSchedule: { type: Boolean, default: false },
+    dailySchedule: [
+      {
+        date: { type: String }, // "YYYY-MM-DD"
+        dayLabel: { type: String }, // e.g. "Sat, 05 Sep"
+        startTime: { type: String },
+        endTime: { type: String }
+      }
+    ],
     // Day/Night session support
     hasMultipleSessions: { type: Boolean, default: false },
     sessions: {

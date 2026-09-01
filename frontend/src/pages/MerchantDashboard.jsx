@@ -22,6 +22,7 @@ import { StatusBadge } from "@/components/common/table/StatusBadge";
 import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
 import { TableSkeleton } from "@/components/common/table/TableSkeleton";
 import { TableEmptyState } from "@/components/common/table/TableEmptyState";
+import LocationAutocomplete from "@/components/LocationAutocomplete";
 const STATUS_BADGE = {
     assigned: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
     pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
@@ -594,7 +595,19 @@ const MerchantDashboard = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="address">Business Address / Location *</Label>
-                    <Input id="address" required maxLength={150} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g. 123 Main St, New York, NY"/>
+                    <LocationAutocomplete
+                      id="address"
+                      required
+                      maxLength={150}
+                      value={address}
+                      onChange={(val) => setAddress(val)}
+                      onSelect={(payload) => {
+                        if (payload?.address) {
+                          setAddress(payload.address);
+                        }
+                      }}
+                      placeholder="e.g. 123 Main St, New York, NY"
+                    />
                     <p className="text-[10px] text-muted-foreground">Up to 150 characters</p>
                   </div>
 
@@ -769,14 +782,7 @@ const MerchantDashboard = () => {
                   </p>
                 </div>
               </div>
-              <Button size="sm" onClick={() => {
-                setSelectedTicketForPayment(ticket);
-                setCardNumber("");
-                setCardholderName("");
-                setExpiryDate("");
-                setCvv("");
-                setIsPayTicketModalOpen(true);
-            }} className="bg-gradient-primary text-white font-bold whitespace-nowrap">
+              <Button size="sm" onClick={() => navigate(`/merchant-dashboard/pay-ticket/${ticket._id}`)} className="bg-gradient-primary text-white font-bold whitespace-nowrap">
                 Pay {formatCurrency(ticket.quotationAmount)} Now
               </Button>
             </motion.div>))}
@@ -1428,14 +1434,7 @@ const MerchantDashboard = () => {
                       <div className="flex items-center gap-2">
                         {t.status === "quotation_sent" && (<div className="flex items-center gap-3">
                             <span className="font-bold text-sm text-primary">Quote: {formatCurrency(t.quotationAmount)}</span>
-                            <Button size="sm" onClick={() => {
-                        setSelectedTicketForPayment(t);
-                        setCardNumber("");
-                        setCardholderName("");
-                        setExpiryDate("");
-                        setCvv("");
-                        setIsPayTicketModalOpen(true);
-                    }} className="bg-gradient-primary text-white">
+                            <Button size="sm" onClick={() => navigate(`/merchant-dashboard/pay-ticket/${t._id}`)} className="bg-gradient-primary text-white">
                               Pay Now
                             </Button>
                           </div>)}
@@ -1515,64 +1514,7 @@ const MerchantDashboard = () => {
 
 
 
-      {/* Pay Ticket Modal */}
-      <Dialog open={isPayTicketModalOpen} onOpenChange={setIsPayTicketModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-primary"/> Pay Slot Upgrade Quotation
-            </DialogTitle>
-            <DialogDescription>
-              Card details simulation to pay for the slot upgrade request.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedTicketForPayment && (<form onSubmit={handlePayTicketSubmit} className="space-y-4 py-2">
-              <div className="p-3 bg-secondary/30 rounded-lg text-xs space-y-1 mb-2 border border-border">
-                <p className="font-semibold text-foreground">Upgrade Details:</p>
-                <p>Requested: +{selectedTicketForPayment.requestedEvents} Events, +{selectedTicketForPayment.requestedServices} Services</p>
-                <p className="text-sm font-bold text-primary mt-1">Amount Due: {formatCurrency(selectedTicketForPayment.quotationAmount)}</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ticketCardNumber">Card Number</Label>
-                <Input id="ticketCardNumber" required placeholder="4111 2222 3333 4444" value={cardNumber} onChange={(e) => {
-                const val = e.target.value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
-                const matches = val.match(/\d{4,16}/g);
-                const match = (matches && matches[0]) || "";
-                const parts = [];
-                for (let i = 0, len = match.length; i < len; i += 4) {
-                    parts.push(match.substring(i, i + 4));
-                }
-                setCardNumber(parts.length ? parts.join(" ") : val);
-            }} maxLength={19}/>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="ticketExpiry">Expiry Date</Label>
-                  <Input id="ticketExpiry" required placeholder="MM/YY" value={expiryDate} onChange={(e) => {
-                const val = e.target.value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
-                setExpiryDate(val.length >= 2 ? val.substring(0, 2) + "/" + val.substring(2, 4) : val);
-            }} maxLength={5}/>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="ticketCvv">CVV</Label>
-                  <Input id="ticketCvv" required placeholder="123" type="password" value={cvv} onChange={(e) => setCvv(e.target.value.replace(/[^0-9]/g, ""))} maxLength={3}/>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ticketCardholder">Cardholder Name</Label>
-                <Input id="ticketCardholder" required placeholder="John Doe" value={cardholderName} onChange={(e) => setCardholderName(e.target.value)}/>
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsPayTicketModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={paymentLoading} className="bg-gradient-primary text-white">
-                  {paymentLoading ? "Processing Payment..." : `Pay ${formatCurrency(selectedTicketForPayment.quotationAmount)}`}
-                </Button>
-              </DialogFooter>
-            </form>)}
-        </DialogContent>
-      </Dialog>
+
       {/* Approve Cancellation Modal */}
       <Dialog open={cancellationModal} onOpenChange={setCancellationModal}>
         <DialogContent className="max-w-md">

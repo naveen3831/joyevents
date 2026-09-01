@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatEventSchedule } from "@/lib/utils";
 import { useGsapStagger } from "@/lib/gsapAnimations";
 import { Calendar, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, IndianRupee, Upload, Ticket, Eye } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiListMyEvents, apiCreateEventWithImage, apiUpdateEventWithImage, apiDeleteEvent, apiListCategories, apiCreateCategory } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
+import LocationAutocomplete from "@/components/LocationAutocomplete";
 const imgSrc = (image) => !image ? "" : image.startsWith("http") ? image : `${API_URL}${image}`;
 const EMPTY_FORM = {
     title: "", description: "", date: "", time: "", location: "", price: "", category: "General", status: "upcoming", maxAttendees: ""
@@ -390,26 +391,11 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
             <Loader2 className="h-5 w-5 animate-spin"/> Loading…
           </div>) : events.length === 0 ? (<div className="rounded-xl border border-border bg-card p-10 text-center flex flex-col items-center">
             <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-30 text-muted-foreground"/>
-            <p className="text-muted-foreground mb-4">No events yet. Create your first event to get started. Only your events are shown here.</p>
-            <Button onClick={openCreate} className="bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow">
-              <Plus className="mr-2 h-4 w-4"/> Add Event
-            </Button>
+            <p className="text-muted-foreground">No events yet. Create your first event to get started. Only your events are shown here.</p>
           </div>) : (<div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:grid-cols-3">
             {events.map((ev) => {
               const itemName = ev.title;
-              const formattedDate = ev.datetime
-                ? new Date(ev.datetime).toLocaleDateString("en-IN", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })
-                : null;
-              const formattedTime = ev.datetime
-                ? new Date(ev.datetime).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : null;
+              const schedule = formatEventSchedule(ev);
 
               const allTickets = [];
               if (ev.hasMultipleSessions && ev.sessions) {
@@ -460,10 +446,13 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                       
                       {/* Date & Location Metadata */}
                       <div className="space-y-[6px] text-xs text-muted-foreground mt-2.5">
-                        {formattedDate && (
+                        {schedule.dateText && (
                           <div className="flex items-center gap-1.5 h-[18px]">
                             <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
-                            <span className="truncate">{formattedDate} at {formattedTime}</span>
+                            <span className="truncate">
+                              {schedule.dateText}
+                              {schedule.isMultiDay ? ` • ${schedule.badgeText}` : schedule.timeText ? ` at ${schedule.timeText}` : ""}
+                            </span>
                           </div>
                         )}
                         {ev.location && (
@@ -929,16 +918,27 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center mb-1">
                     <Label className="text-sm text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3"/> Location</Label>
                     <span className="text-xs text-muted-foreground">{(form.location || '').length}/150</span>
                   </div>
-                  <Input value={form.location} onChange={(e) => {
-                setForm({ ...form, location: e.target.value });
-                if (formErrors.location)
-                    setFormErrors(prev => ({ ...prev, location: "" }));
-            }} placeholder="Event venue" maxLength={150} required aria-invalid={Boolean(formErrors.location)}/>
-                  {formErrors.location && <p className="text-xs text-destructive mt-1">{formErrors.location}</p>}
+                  <LocationAutocomplete
+                    value={form.location}
+                    onChange={(val) => {
+                      setForm(prev => ({ ...prev, location: val }));
+                      if (formErrors.location) setFormErrors(prev => ({ ...prev, location: "" }));
+                    }}
+                    onSelect={(payload) => {
+                      if (payload?.address) {
+                        setForm(prev => ({ ...prev, location: payload.address }));
+                        if (formErrors.location) setFormErrors(prev => ({ ...prev, location: "" }));
+                      }
+                    }}
+                    placeholder="Event venue name or address"
+                    maxLength={150}
+                    required
+                    error={formErrors.location}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

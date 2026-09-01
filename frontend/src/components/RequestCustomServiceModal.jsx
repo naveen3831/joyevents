@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiCreateCustomServiceRequest } from "@/lib/api";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import LocationAutocomplete from "@/components/LocationAutocomplete";
 
 export default function RequestCustomServiceModal({ open, onOpenChange, onSuccess }) {
   const { token, isLoggedIn } = useAuth();
@@ -146,13 +147,18 @@ export default function RequestCustomServiceModal({ open, onOpenChange, onSucces
               <Label htmlFor="location" className="font-semibold text-xs flex items-center gap-1">
                 <MapPin className="h-3.5 w-3.5 text-muted-foreground" /> Location / City <span className="text-destructive">*</span>
               </Label>
-              <Input
+              <LocationAutocomplete
                 id="location"
                 placeholder="e.g., Grand Hyatt, Mumbai"
                 required
-                className="h-10 text-sm"
+                inputClassName="h-10 rounded-md text-sm"
                 value={form.location}
-                onChange={(e) => setForm({ ...form, location: e.target.value })}
+                onChange={(val) => setForm((prev) => ({ ...prev, location: val }))}
+                onSelect={(payload) => {
+                  if (payload?.address) {
+                    setForm((prev) => ({ ...prev, location: payload.address }));
+                  }
+                }}
               />
             </div>
 

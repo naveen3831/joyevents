@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import { savePendingServiceBooking, getPendingServiceBooking, clearPendingServiceBooking } from "@/lib/bookingState";
-import LocationPicker from "@/components/LocationPicker";
+import LocationAutocomplete from "@/components/LocationAutocomplete";
 import AvailablePromoCodes from "@/components/AvailablePromoCodes";
 import { useGsapStagger } from "@/lib/gsapAnimations";
 const CustomerServiceDetail = () => {
@@ -415,23 +415,24 @@ const CustomerServiceDetail = () => {
                 {/* Location */}
                 <div className="border-t border-border pt-6">
                   <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-primary"/> Your Location
+                    <MapPin className="h-4 w-4 text-primary"/> Service Location
                   </p>
-                  {customerAddress ? (<div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-                      <span className="text-sm text-foreground">{customerAddress}</span>
-                      <button onClick={() => { setCustomerAddress(""); setCustomerLocation(null); }} className="text-muted-foreground hover:text-foreground ml-2">
-                        <X className="h-4 w-4"/>
-                      </button>
-                    </div>) : (<Button variant="outline" className="w-full" onClick={() => setShowLocationPicker(v => !v)}>
-                      <MapPin className="h-4 w-4 mr-2"/> Pick Location on Map
-                    </Button>)}
-                  {showLocationPicker && (<div className="mt-3">
-                      <LocationPicker onLocationSelect={(lat, lng, addr) => {
-                setCustomerLocation({ lat, lng });
-                setCustomerAddress(addr);
-                setShowLocationPicker(false);
-            }}/>
-                    </div>)}
+                  <LocationAutocomplete
+                    value={customerAddress}
+                    onChange={(val) => setCustomerAddress(val)}
+                    onSelect={(payload) => {
+                      if (payload) {
+                        setCustomerAddress(payload.address);
+                        setCustomerLocation({ lat: payload.lat, lng: payload.lng });
+                      } else {
+                        setCustomerLocation(null);
+                      }
+                    }}
+                    coordinates={customerLocation}
+                    showMapButton={true}
+                    placeholder="Enter service venue, city, or full address"
+                    maxLength={150}
+                  />
                 </div>
 
                 {/* Promo Code */}

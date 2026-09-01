@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Video, Heart, Mail, MapPin, Calendar, Eye, CalendarCheck } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatEventSchedule } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -66,13 +66,7 @@ const EventCard = ({ event, index = 0, onBookNow, onViewDetails, isFavorited, on
         return `From ${formatCurrency(event.price || 0)}`;
       })();
 
-  const formattedDate = event.datetime
-    ? new Date(event.datetime).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : null;
+  const schedule = formatEventSchedule(event);
 
   return (
     <motion.div
@@ -150,10 +144,13 @@ const EventCard = ({ event, index = 0, onBookNow, onViewDetails, isFavorited, on
 
             {/* Date & Location Metadata */}
             <div className="space-y-[6px] text-[14px] leading-[20px] text-muted-foreground">
-              {formattedDate && (
+              {schedule.dateText && (
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-primary shrink-0" />
-                  <span className="truncate">{formattedDate}</span>
+                  <span className="truncate">
+                    {schedule.dateText}
+                    {schedule.isMultiDay && ` • ${schedule.badgeText}`}
+                  </span>
                 </div>
               )}
               {event.location && (

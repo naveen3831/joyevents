@@ -12,7 +12,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiCreateEventWithImage, apiListCategories, apiCreateCategory } from "@/lib/api";
-import LocationPicker from "@/components/LocationPicker";
+import LocationAutocomplete from "@/components/LocationAutocomplete";
+import EventDurationSchedulePicker from "@/components/EventDurationSchedulePicker";
 const CreateEvent = () => {
     const navigate = useNavigate();
     const { token } = useAuth();
@@ -20,6 +21,14 @@ const CreateEvent = () => {
     const [imagePreview, setImagePreview] = useState(null);
     const [eventType, setEventType] = useState("fullService");
     const [hasMultipleSessions, setHasMultipleSessions] = useState(false);
+    // Duration & Multi-Day states
+    const [durationType, setDurationType] = useState("single");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [startTime, setStartTime] = useState("");
+    const [endTime, setEndTime] = useState("");
+    const [hasCustomSchedule, setHasCustomSchedule] = useState(false);
+    const [dailySchedule, setDailySchedule] = useState([]);
     const [formData, setFormData] = useState({
         title: "",
         description: "",
@@ -142,10 +151,45 @@ const CreateEvent = () => {
         else if (formData.description.length > 1000) {
             newErrors.description = "Event description cannot exceed 1000 characters";
         }
-        if (!formData.date)
-            newErrors.date = "Event date is required";
-        if (!formData.time)
-            newErrors.time = "Event time is required";
+        // Duration & Schedule Validations
+        const todayStr = new Date().toISOString().split("T")[0];
+        if (durationType === "single") {
+            if (!startDate) {
+                newErrors.date = "Event date is required";
+            } else if (startDate < todayStr) {
+                newErrors.date = "Event date cannot be in the past";
+            }
+            if (!startTime) {
+                newErrors.startTime = "Start time is required";
+            }
+            if (!endTime) {
+                newErrors.endTime = "End time is required";
+            }
+            if (startTime && endTime && endTime <= startTime) {
+                newErrors.endTime = "End time must be after start time";
+            }
+        } else {
+            if (!startDate) {
+                newErrors.startDate = "Start date is required";
+            } else if (startDate < todayStr) {
+                newErrors.startDate = "Start date cannot be in the past";
+            }
+            if (!endDate) {
+                newErrors.endDate = "End date is required";
+            } else if (endDate < startDate) {
+                newErrors.endDate = "End date cannot be before start date";
+            }
+            if (!startTime) {
+                newErrors.startTime = "Daily start time is required";
+            }
+            if (!endTime) {
+                newErrors.endTime = "Daily end time is required";
+            }
+            if (startTime && endTime && endTime <= startTime && !hasCustomSchedule) {
+                newErrors.endTime = "End time must be after start time";
+            }
+        }
+
         if (!formData.location.trim()) {
             newErrors.location = "Event location is required";
         }
@@ -168,13 +212,6 @@ const CreateEvent = () => {
             if (!ticketTypes[2]?.price || parseFloat(ticketTypes[2].price) <= 0)
                 newErrors.diamondPrice = "Diamond ticket price is required";
         }
-        // Validate date is not in the past
-        if (formData.date && formData.time) {
-            const eventDateTime = new Date(`${formData.date}T${formData.time}`);
-            if (eventDateTime < new Date()) {
-                newErrors.date = "Event date and time cannot be in the past";
-            }
-        }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -195,8 +232,17 @@ const CreateEvent = () => {
             const formDataObj = new FormData();
             formDataObj.append('title', formData.title.trim());
             formDataObj.append('description', formData.description.trim());
-            formDataObj.append('date', formData.date);
-            formDataObj.append('time', formData.time);
+            formDataObj.append('durationType', durationType);
+            formDataObj.append('startDate', startDate);
+            formDataObj.append('endDate', durationType === 'multiple' ? endDate : startDate);
+            formDataObj.append('startTime', startTime);
+            formDataObj.append('endTime', endTime);
+            formDataObj.append('date', startDate);
+            formDataObj.append('time', startTime);
+            formDataObj.append('hasCustomSchedule', String(hasCustomSchedule && durationType === 'multiple'));
+            if (hasCustomSchedule && durationType === 'multiple' && dailySchedule.length > 0) {
+                formDataObj.append('dailySchedule', JSON.stringify(dailySchedule));
+            }
             formDataObj.append('location', formData.location.trim());
             formDataObj.append('category', formData.category);
             formDataObj.append('status', 'upcoming');
@@ -570,38 +616,57 @@ const CreateEvent = () => {
                   </div>)}
               </motion.div>)}
 
-            <div className="grid gap-4 md:grid-cols-2">
+            {/* Event Schedule & Duration Picker */}
+            <div className="md:col-span-2 rounded-xl bg-card border border-border p-4 sm:p-5 shadow-xs space-y-4">
+              <EventDurationSchedulePicker
+                durationType={durationType}
+                onDurationTypeChange={(type) => {
+                  setDurationType(type);
+                  setErrors((prev) => ({ ...prev, date: "", startDate: "", endDate: "", startTime: "", endTime: "" }));
+                }}
+                startDate={startDate}
+                onStartDateChange={setStartDate}
+                endDate={endDate}
+                onEndDateChange={setEndDate}
+                startTime={startTime}
+                onStartTimeChange={setStartTime}
+                endTime={endTime}
+                onEndTimeChange={setEndTime}
+                hasCustomSchedule={hasCustomSchedule}
+                onHasCustomScheduleChange={setHasCustomSchedule}
+                dailySchedule={dailySchedule}
+                onDailyScheduleChange={setDailySchedule}
+                errors={errors}
+                onClearError={(field) => setErrors((prev) => ({ ...prev, [field]: "" }))}
+              />
+            </div>
 
-              <div>
-                <Label className="text-sm text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3"/> Date</Label>
-                <Input name="date" type="date" value={formData.date} onChange={handleInputChange} className="mt-1 bg-card border-border" min={new Date().toISOString().split('T')[0]} required/>
-                {errors.date && <p className="text-sm text-red-500 mt-1">{errors.date}</p>}
-              </div>
-              <div>
-                <Label className="text-sm text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3"/> Time</Label>
-                <Input name="time" type="time" value={formData.time} onChange={handleInputChange} className="mt-1 bg-card border-border" required/>
-                {errors.time && <p className="text-sm text-red-500 mt-1">{errors.time}</p>}
-              </div>
-              <div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="md:col-span-2">
                   <div className="flex justify-between items-center mb-1">
                     <Label className="text-sm text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3"/> Location</Label>
                     <span className="text-[10px] text-muted-foreground">{(formData.location || "").length}/150</span>
                   </div>
-                  <Input name="location" value={formData.location} onChange={handleInputChange} maxLength={150} placeholder="Event venue or click on map to select" className="bg-card border-border" required/>
-                  {errors.location && <p className="text-sm text-red-500">{errors.location}</p>}
-
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowMap(!showMap)} className="w-full">
-                    <Globe className="h-4 w-4 mr-2"/>
-                    {showMap ? "Hide Map" : "Select Location on Map"}
-                  </Button>
-
-                  {showMap && (<div className="rounded-xl overflow-hidden border border-border shadow-lg">
-                      <LocationPicker onLocationSelect={handleLocationSelect}/>
-                    </div>)}
-
-                  {mapLocation && (<div className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 p-2 rounded border border-green-200 dark:border-green-900">
-                      ✓ Selected: {mapLocation.lat.toFixed(4)}, {mapLocation.lng.toFixed(4)}
-                    </div>)}
+                  <LocationAutocomplete
+                    value={formData.location}
+                    onChange={(val) => {
+                      setFormData(prev => ({ ...prev, location: val }));
+                      if (errors.location) setErrors(prev => ({ ...prev, location: "" }));
+                    }}
+                    onCoordinatesSelect={(coords) => {
+                      if (coords) {
+                        setMapLocation(coords);
+                        setFormData(prev => ({ ...prev, location: coords.address || coords.name }));
+                        if (errors.location) setErrors(prev => ({ ...prev, location: "" }));
+                      } else {
+                        setMapLocation(null);
+                      }
+                    }}
+                    coordinates={mapLocation}
+                    showMapButton={true}
+                    error={errors.location}
+                    placeholder="Event venue name or address"
+                  />
                 </div>
               </div>
               <div>

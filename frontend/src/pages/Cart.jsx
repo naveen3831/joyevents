@@ -66,9 +66,13 @@ const Cart = () => {
                 discount: firstEvent.discountAmount
             };
 
-            setCreatedBookingForPayment(bookingDataObj);
-            setPaymentAmount(eventsSubtotal);
-            setPaymentModalOpen(true);
+            navigate("/customer-dashboard/checkout", {
+                state: {
+                    bookingData: bookingDataObj,
+                    amount: eventsSubtotal,
+                    serviceItems
+                }
+            });
         } else {
             // Only service items - submit request for vendor quote
             submitServiceRequestsOnly();
@@ -434,38 +438,6 @@ const Cart = () => {
           </div>
         )}
       </div>
-
-      {/* ── Payment Modal (unchanged) ─────────────────── */}
-      <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-        <DialogContent className="max-w-md w-[95vw] max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
-          <DialogHeader className="mb-2">
-            <DialogTitle className="font-display text-lg font-bold">Complete Event Payment</DialogTitle>
-          </DialogHeader>
-          {createdBookingForPayment && (
-            <SimplePayment
-              amount={paymentAmount}
-              bookingData={createdBookingForPayment}
-              onSuccess={async (paidBooking) => {
-                setPaymentModalOpen(false);
-                setCreatedBookingForPayment(null);
-                clearCart();
-                toast.success("✨ Payment successful! Booking confirmed & ticket downloaded.");
-                try {
-                  downloadTicket(paidBooking, user);
-                } catch (e) {}
-                if (serviceItems.length > 0) {
-                  await submitServiceRequestsOnly();
-                }
-                navigate("/my-requests");
-              }}
-              onError={(err) => {
-                toast.error(err || "Payment failed");
-              }}
-              onClose={() => setPaymentModalOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </CustomerLayout>
   );
 };

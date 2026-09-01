@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { apiCreateUser, apiListUsers, apiUpdateUser, apiDeleteUser, apiResetPassword, apiSendMerchantQuotation, apiActivateMerchant, apiGetTickets, apiSendTicketQuotation, apiApproveTicket, apiGetAdminCustomServiceRequests, apiSendCustomServiceQuote, apiRejectCustomServiceRequest } from "@/lib/api";
+import { apiCreateUser, apiListUsers, apiUpdateUser, apiDeleteUser, apiResetPassword, apiSendMerchantQuotation, apiActivateMerchant, apiGetTickets, apiApproveTicket, apiGetAdminCustomServiceRequests, apiSendCustomServiceQuote, apiRejectCustomServiceRequest } from "@/lib/api";
 import { sanitizeEmailInput, sanitizeNameInput, validateEmail, validateSignupForm, validateNewPasswordForm, validateMobileNumber, formatMobileForApi, formatMobileForInput, EMAIL_HINT, PASSWORD_HINT, EMAIL_MAX_LENGTH, NAME_MAX_LENGTH } from "@/lib/validation";
 import { formatCurrency } from "@/lib/utils";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -396,10 +396,6 @@ const AdminUsers = () => {
     const [maxServices, setMaxServices] = useState("5");
     const [isActivationDialogOpen, setIsActivationDialogOpen] = useState(false);
     const [activatingMerchant, setActivatingMerchant] = useState(false);
-    const [selectedTicketForQuote, setSelectedTicketForQuote] = useState(null);
-    const [ticketQuoteAmount, setTicketQuoteAmount] = useState("");
-    const [isTicketQuoteDialogOpen, setIsTicketQuoteDialogOpen] = useState(false);
-    const [sendingTicketQuote, setSendingTicketQuote] = useState(false);
     const [selectedTicketMessage, setSelectedTicketMessage] = useState(null);
 
     // Custom Service Enquiry States
@@ -643,31 +639,7 @@ const AdminUsers = () => {
         }
     };
 
-    const handleSendTicketQuoteSubmit = async (e) => {
-        e.preventDefault();
-        if (!token || !selectedTicketForQuote)
-            return;
-        const amt = Number(ticketQuoteAmount);
-        if (isNaN(amt) || amt < 1 || amt > 1000000) {
-            toast.error("Quotation amount must be a number between 1 and 1,000,000.");
-            return;
-        }
-        setSendingTicketQuote(true);
-        try {
-            await apiSendTicketQuotation(selectedTicketForQuote._id, amt, token);
-            toast.success("Limit upgrade quotation sent to merchant!");
-            setIsTicketQuoteDialogOpen(false);
-            setSelectedTicketForQuote(null);
-            setTicketQuoteAmount("");
-            loadTickets();
-        }
-        catch (err) {
-            toast.error(err?.message || "Failed to send ticket quotation");
-        }
-        finally {
-            setSendingTicketQuote(false);
-        }
-    };
+
 
     // Custom Service Quotation Submit Handler
     const handleSendCustomQuoteSubmit = async (e) => {
@@ -822,19 +794,19 @@ const AdminUsers = () => {
     return (
     <AdminLayout>
       <PageHeader
-        title={roleFilter === "merchant" ? "Merchant Management" : "User Management"}
+        title={roleFilter === "customer" ? "User Management" : "Merchant Management"}
         subtitle={
-          roleFilter === "merchant"
-            ? "Manage merchant accounts, onboarding requests, slot upgrades, and billing."
-            : "Manage platform users, merchants, onboarding, and system access."
+          roleFilter === "customer"
+            ? "Manage platform customer accounts and user access."
+            : "Manage merchant accounts, onboarding requests, slot upgrades, and billing."
         }
         breadcrumbs={[
           { label: "Admin Portal", to: "/admin-dashboard" },
           { label: "User Management" },
-          { label: roleFilter === "merchant" ? "Merchants" : "Users" },
+          { label: roleFilter === "customer" ? "Users" : "Merchants" },
         ]}
         actions={
-          roleFilter === "merchant" ? (
+          roleFilter !== "customer" ? (
             <Button
               onClick={() => navigate("/admin-dashboard/users/create-merchant")}
               className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold h-9 px-4 rounded-md gap-1.5"
@@ -1232,11 +1204,7 @@ const AdminUsers = () => {
                                   {
                                     label: "Send Quote",
                                     icon: IndianRupee,
-                                    onClick: () => {
-                                      setSelectedTicketForQuote(t);
-                                      setTicketQuoteAmount("");
-                                      setIsTicketQuoteDialogOpen(true);
-                                    },
+                                    onClick: () => navigate(`/admin-dashboard/tickets/${t._id}/send-quote`),
                                   },
                                 ]
                               : []),
@@ -1916,40 +1884,7 @@ const AdminUsers = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Ticket Send Quotation Dialog */}
-        <Dialog open={isTicketQuoteDialogOpen} onOpenChange={setIsTicketQuoteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <IndianRupee className="h-5 w-5 text-indigo-500"/> Send Limit Upgrade Quotation
-              </DialogTitle>
-              <DialogDescription>
-                Set the quotation fee for this limit upgrade request.
-              </DialogDescription>
-            </DialogHeader>
-            {selectedTicketForQuote && (<form onSubmit={handleSendTicketQuoteSubmit} className="space-y-4 py-2">
-                <div className="p-3 bg-secondary/30 rounded-lg text-xs space-y-1 border border-border">
-                  <p><strong>Merchant:</strong> {selectedTicketForQuote.merchant?.name}</p>
-                  <p><strong>Requested slots increase:</strong> +{selectedTicketForQuote.requestedEvents} Events, +{selectedTicketForQuote.requestedServices} Services</p>
-                  {selectedTicketForQuote.message && <p><strong>Message:</strong> "{selectedTicketForQuote.message}"</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="tqAmount">Quotation Amount (in ₹) *</Label>
-                  <Input id="tqAmount" type="text" required placeholder="e.g. 100" value={ticketQuoteAmount} onChange={(e) => {
-                const val = e.target.value.replace(/[^0-9]/g, "");
-                setTicketQuoteAmount(val.slice(0, 7));
-            }}/>
-                  <p className="text-[10px] text-muted-foreground">Enter a positive number (up to 1,000,000)</p>
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsTicketQuoteDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit" disabled={sendingTicketQuote} className="bg-gradient-primary text-white">
-                    {sendingTicketQuote ? "Sending Quote..." : "Send Quote"}
-                  </Button>
-                </DialogFooter>
-              </form>)}
-          </DialogContent>
-        </Dialog>
+
 
         {/* Slot Upgrade Ticket Message View Modal */}
         <Dialog open={!!selectedTicketMessage} onOpenChange={(open) => !open && setSelectedTicketMessage(null)}>

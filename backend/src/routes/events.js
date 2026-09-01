@@ -270,8 +270,10 @@ router.post("/", verifyToken, requireRole("merchant", "admin"), upload.fields([
   { name: 'gallery', maxCount: 4 }
 ]), async (req, res) => {
   try {
-    const { title, description, date, time, location, price, category, status, eventType, tickets, hasMultipleSessions, sessions, maxAttendees } = req.body || {};
-    if (!title || !date || !time || !location) return res.status(400).json({ error: "Missing fields" });
+    const { title, description, date, time, location, price, category, status, eventType, tickets, hasMultipleSessions, sessions, maxAttendees, durationType, startDate, endDate, startTime, endTime, hasCustomSchedule, dailySchedule } = req.body || {};
+    const effectiveDate = startDate || date;
+    const effectiveTime = startTime || time || "00:00";
+    if (!title || !effectiveDate || !location) return res.status(400).json({ error: "Missing fields" });
     
     if (req.user.role === "merchant") {
       if (req.user.merchantStatus !== "active") {
@@ -289,7 +291,7 @@ router.post("/", verifyToken, requireRole("merchant", "admin"), upload.fields([
     if (location.trim().length > 150) return res.status(400).json({ error: "Event location cannot exceed 150 characters" });
     if (category && category.trim().length > 50) return res.status(400).json({ error: "Category cannot exceed 50 characters" });
 
-    const dt = new Date(`${date}T${time}`);
+    const dt = new Date(`${effectiveDate}T${effectiveTime}`);
     if (isNaN(dt.getTime())) return res.status(400).json({ error: "Invalid date/time" });
 
     // Upload main image to Cloudinary
@@ -307,6 +309,16 @@ router.post("/", verifyToken, requireRole("merchant", "admin"), upload.fields([
       galleryUrls = results.map(r => r.url);
     }
 
+    // Parse dailySchedule if provided as string
+    let parsedDailySchedule = [];
+    if (dailySchedule) {
+      try {
+        parsedDailySchedule = typeof dailySchedule === "string" ? JSON.parse(dailySchedule) : dailySchedule;
+      } catch (e) {
+        parsedDailySchedule = [];
+      }
+    }
+
     const eventData = {
       title,
       description: description || "",
@@ -320,7 +332,14 @@ router.post("/", verifyToken, requireRole("merchant", "admin"), upload.fields([
       createdBy: req.user._id,
       eventType: eventType || "fullService",
       maxAttendees: eventType === "fullService" ? (parseInt(maxAttendees) || 0) : 0,
-      attendeesCount: 0
+      attendeesCount: 0,
+      durationType: durationType || "single",
+      startDate: startDate || effectiveDate,
+      endDate: endDate || (durationType === "multiple" ? effectiveDate : (startDate || effectiveDate)),
+      startTime: startTime || effectiveTime,
+      endTime: endTime || "",
+      hasCustomSchedule: hasCustomSchedule === "true" || hasCustomSchedule === true,
+      dailySchedule: Array.isArray(parsedDailySchedule) ? parsedDailySchedule : []
     };
 
     // Add tickets if it's a ticketed event
@@ -462,9 +481,24 @@ router.patch("/:id", verifyToken, upload.fields([
       update.gallery = results.map(r => r.url);
     }
 
-    if (date !== undefined || time !== undefined) {
-      const d = date || new Date().toISOString().slice(0, 10);
-      const t = time || "00:00";
+    const { durationType, startDate, endDate, startTime, endTime, hasCustomSchedule, dailySchedule } = req.body || {};
+    if (durationType !== undefined) update.durationType = durationType;
+    if (startDate !== undefined) update.startDate = startDate;
+    if (endDate !== undefined) update.endDate = endDate;
+    if (startTime !== undefined) update.startTime = startTime;
+    if (endTime !== undefined) update.endTime = endTime;
+    if (hasCustomSchedule !== undefined) update.hasCustomSchedule = hasCustomSchedule === "true" || hasCustomSchedule === true;
+    if (dailySchedule !== undefined) {
+      try {
+        update.dailySchedule = typeof dailySchedule === "string" ? JSON.parse(dailySchedule) : dailySchedule;
+      } catch (e) {
+        update.dailySchedule = [];
+      }
+    }
+
+    if (date !== undefined || time !== undefined || startDate !== undefined || startTime !== undefined) {
+      const d = startDate || date || new Date().toISOString().slice(0, 10);
+      const t = startTime || time || "00:00";
       const dt = new Date(`${d}T${t}`);
       if (isNaN(dt.getTime())) return res.status(400).json({ error: "Invalid date/time" });
       update.datetime = dt;
