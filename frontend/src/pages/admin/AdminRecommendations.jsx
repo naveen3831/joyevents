@@ -112,7 +112,7 @@ const AdminRecommendations = () => {
                     <TableHeaderCell className="w-[13%] whitespace-nowrap">Date</TableHeaderCell>
                     <TableHeaderCell className="w-[11%]">Attendees</TableHeaderCell>
                     <TableHeaderCell className="w-[11%] whitespace-nowrap">Est. Reach</TableHeaderCell>
-                    <TableHeaderCell align="right" className="w-[11%]">Status</TableHeaderCell>
+                    <TableHeaderCell align="center" className="w-[11%] text-center">Status</TableHeaderCell>
                   </TableHeader>
                   <TableBody>
                     {data.topRecommended.map((event) => (
@@ -167,10 +167,11 @@ const AdminRecommendations = () => {
                         </TableCell>
 
                         {/* Status */}
-                        <TableCell align="right">
+                        <TableCell align="center" className="text-center">
                           <StatusBadge
                             status={event.status === "upcoming" ? "active" : event.status === "ongoing" ? "processing" : "pending"}
                             label={event.status}
+                            className="w-[96px] h-[28px] px-0 inline-flex items-center justify-center text-center font-semibold text-[11px] rounded-full border shadow-none"
                           />
                         </TableCell>
                       </TableRow>

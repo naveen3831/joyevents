@@ -153,9 +153,9 @@ const AdminReferrals = () => {
                   <DataTable minWidth="100%">
                     <TableHeader>
                       <TableHeaderCell className="w-[18%]">Referrer</TableHeaderCell>
-                      <TableHeaderCell className="w-[16%]">Customer</TableHeaderCell>
+                      <TableHeaderCell className="w-[15%]">Customer</TableHeaderCell>
                       <TableHeaderCell className="w-[20%]">Event / Service</TableHeaderCell>
-                      <TableHeaderCell className="w-[12%]">Booking Status</TableHeaderCell>
+                      <TableHeaderCell align="center" className="w-[13%] text-center">Booking Status</TableHeaderCell>
                       <TableHeaderCell className="w-[10%]">Payment</TableHeaderCell>
                       <TableHeaderCell className="w-[8%] whitespace-nowrap">Discount</TableHeaderCell>
                       <TableHeaderCell className="w-[8%] whitespace-nowrap">Bonus</TableHeaderCell>
@@ -173,8 +173,8 @@ const AdminReferrals = () => {
                             <p className="font-semibold text-xs text-foreground truncate max-w-[180px]">{booking.serviceName || booking.eventName || "Booking"}</p>
                             <p className="text-[10px] text-muted-foreground">{booking.serviceName ? "Service booking" : "Event booking"}</p>
                           </TableCell>
-                          <TableCell>
-                            <StatusBadge status={booking.status || "pending"} />
+                          <TableCell align="center" className="text-center">
+                            <StatusBadge status={booking.status || "pending"} className="w-[106px] h-[28px] px-0 inline-flex items-center justify-center text-center font-semibold text-[11px] rounded-full border shadow-none" />
                           </TableCell>
                           <TableCell>
                             <StatusBadge status={booking.paymentStatus || "pending"} />

@@ -368,16 +368,18 @@ const AdminUsers = () => {
     const [resetPassword, setResetPassword] = useState("");
     const [isResettingPassword, setIsResettingPassword] = useState(false);
     const queryParams = new URLSearchParams(location.search);
-    const initialTab = queryParams.get("tab") || "users";
-    const [activeTab, setActiveTab] = useState(initialTab);
+    const getNormalizedTab = (tabParam) => {
+        if (!tabParam) return "users";
+        if (tabParam === "custom") return "custom-services";
+        return tabParam;
+    };
+    const [activeTab, setActiveTab] = useState(getNormalizedTab(queryParams.get("tab")));
     const roleFilter = queryParams.get("role"); 
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const tab = params.get("tab");
-        if (tab) {
-            setActiveTab(tab);
-        }
+        setActiveTab(getNormalizedTab(tab));
     }, [location.search]);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedRoleFilter, setSelectedRoleFilter] = useState("all");
@@ -854,7 +856,41 @@ const AdminUsers = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Clean Category Navigation Tabs Bar */}
+        {/* Tab Bar: Users / Customer view */}
+        {roleFilter === "customer" && (
+          <div className="border-b border-border/70 w-full overflow-x-auto no-scrollbar">
+            <nav className="flex items-center gap-6 min-w-max">
+              <button
+                onClick={() => setActiveTab("users")}
+                className={`py-3 text-xs font-semibold transition-all border-b-2 ${
+                  activeTab === "users"
+                    ? "border-primary text-primary font-bold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                All Users
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("custom-services");
+                  loadCustomRequests();
+                }}
+                className={`py-3 text-xs font-semibold transition-all border-b-2 flex items-center gap-1.5 ${
+                  activeTab === "custom-services"
+                    ? "border-primary text-primary font-bold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span>Service Enquiries</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-muted font-bold text-muted-foreground">
+                  {customRequests.length}
+                </span>
+              </button>
+            </nav>
+          </div>
+        )}
+
+        {/* Tab Bar: Merchants view */}
         {roleFilter !== "customer" && (
           <div className="border-b border-border/70 w-full overflow-x-auto no-scrollbar">
             <nav className="flex items-center gap-6 min-w-max">
@@ -879,22 +915,6 @@ const AdminUsers = () => {
                 <span>Registration Requests</span>
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-muted font-bold text-muted-foreground">
                   {users.filter((u) => u.role === "merchant" && (u.merchantStatus === "details_submitted" || u.merchantStatus === "paid")).length}
-                </span>
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab("custom-services");
-                  loadCustomRequests();
-                }}
-                className={`py-3 text-xs font-semibold transition-all border-b-2 flex items-center gap-1.5 ${
-                  activeTab === "custom-services"
-                    ? "border-primary text-primary font-bold"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <span>Service Enquiries</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-muted font-bold text-muted-foreground">
-                  {customRequests.filter((r) => r.status === "pending").length}
                 </span>
               </button>
               <button
@@ -931,6 +951,7 @@ const AdminUsers = () => {
             </nav>
           </div>
         )}
+
 
         {/* TAB CONTENT: USERS / REGISTRATIONS */}
         {(activeTab === "users" || activeTab === "registrations") && (
@@ -1040,32 +1061,20 @@ const AdminUsers = () => {
                             {
                               label: "View Details",
                               icon: Eye,
-                              onClick: () => {
-                                setSelectedCustomForDetails(r);
-                                setIsCustomDetailsOpen(true);
-                              },
+                              onClick: () => navigate(`/admin-dashboard/custom-service-requests/${r._id}`),
                             },
                             ...(r.status === "pending"
                               ? [
                                   {
                                     label: "Send Quote",
                                     icon: IndianRupee,
-                                    onClick: () => {
-                                      setSelectedCustomForQuote(r);
-                                      setCustomQuoteAmount(r.budget ? String(r.budget) : "");
-                                      setCustomQuoteNote("");
-                                      setIsCustomQuoteOpen(true);
-                                    },
+                                    onClick: () => navigate(`/admin-dashboard/custom-service-requests/${r._id}`),
                                   },
                                   {
                                     label: "Decline Request",
                                     icon: XCircle,
                                     destructive: true,
-                                    onClick: () => {
-                                      setSelectedCustomForReject(r);
-                                      setRejectionReason("");
-                                      setIsRejectOpen(true);
-                                    },
+                                    onClick: () => navigate(`/admin-dashboard/custom-service-requests/${r._id}`),
                                   },
                                 ]
                               : []),
@@ -1252,7 +1261,7 @@ const AdminUsers = () => {
                 <TableHeaderCell className="w-[35%]">Description</TableHeaderCell>
                 <TableHeaderCell className="w-[18%] whitespace-nowrap">Payment Date</TableHeaderCell>
                 <TableHeaderCell className="w-[13%] whitespace-nowrap">Amount</TableHeaderCell>
-                <TableHeaderCell align="right" className="w-[12%]">Status</TableHeaderCell>
+                <TableHeaderCell className="w-[12%] text-center">Status</TableHeaderCell>
               </TableHeader>
               <TableBody>
                 {(() => {
@@ -1338,8 +1347,12 @@ const AdminUsers = () => {
                         <TableCell className="font-semibold text-xs text-foreground whitespace-nowrap">
                           {formatCurrency(row.amount)}
                         </TableCell>
-                        <TableCell align="right">
-                          <StatusBadge status={row.statusType} label={row.status} />
+                        <TableCell className="text-center">
+                          <StatusBadge
+                            status={row.statusType}
+                            label={row.status}
+                            className="inline-flex items-center justify-center min-w-[150px] h-[28px] px-3 text-[11px] font-semibold rounded-full whitespace-nowrap"
+                          />
                         </TableCell>
                       </TableRow>
                     );

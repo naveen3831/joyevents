@@ -50,6 +50,8 @@ const routeBreadcrumbMap = {
   "/merchant-dashboard/bookings": [{ label: "Merchant Portal" }, { label: "Events & Services" }, { label: "Bookings" }],
   "/merchant-dashboard/earnings": [{ label: "Merchant Portal" }, { label: "Growth" }, { label: "Earnings" }],
   "/merchant-dashboard/marketing": [{ label: "Merchant Portal" }, { label: "Growth" }, { label: "Marketing Tools" }],
+  "/merchant-dashboard/marketing/notification/new": [{ label: "Merchant Portal" }, { label: "Growth" }, { label: "Marketing Tools", to: "/merchant-dashboard/marketing" }, { label: "Send Notification" }],
+  "/merchant-dashboard/marketing/promo/new": [{ label: "Merchant Portal" }, { label: "Growth" }, { label: "Marketing Tools", to: "/merchant-dashboard/marketing" }, { label: "Create Promo Code" }],
   "/merchant-dashboard/referrals": [{ label: "Merchant Portal" }, { label: "Growth" }, { label: "Referrals" }],
   "/merchant-dashboard/ai-recommendations": [{ label: "Merchant Portal" }, { label: "Growth" }, { label: "AI Reach Stats" }],
   "/merchant-dashboard/analytics": [{ label: "Merchant Portal" }, { label: "Growth" }, { label: "Event Analytics" }],

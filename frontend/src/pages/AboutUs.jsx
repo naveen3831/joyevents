@@ -129,7 +129,7 @@ const AboutUs = () => {
           </div>
           {/* Floating badge */}
           <div className="absolute -bottom-5 -left-5 rounded-2xl border border-border bg-card p-4 shadow-xl">
-            <div className="font-display text-xl sm:text-3xl font-bold text-primary">12+</div>
+            <div className="font-display text-xl sm:text-3xl font-bold text-primary">{settings.aboutExperience || "12+"}</div>
             <div className="text-xs text-muted-foreground">Years of excellence</div>
           </div>
         </motion.div>

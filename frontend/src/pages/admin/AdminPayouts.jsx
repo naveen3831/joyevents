@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/common/table/StatusBadge";
 import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
 import { TableSkeleton } from "@/components/common/table/TableSkeleton";
 import { TableEmptyState } from "@/components/common/table/TableEmptyState";
+import { useNavigate } from "react-router-dom";
 const WITHDRAWAL_STATUS_BADGE = {
     pending: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/30",
     approved: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
@@ -24,6 +25,7 @@ const WITHDRAWAL_STATUS_BADGE = {
     completed: "bg-green-500/15 text-green-400 border border-green-500/30",
 };
 const AdminPayouts = () => {
+    const navigate = useNavigate();
     const { token, user } = useAuth();
     const [bookings, setBookings] = useState([]);
     const [merchants, setMerchants] = useState([]);
@@ -348,7 +350,7 @@ const AdminPayouts = () => {
                     </p>
                   </div>
                 </div>
-                <Button onClick={openAdminWithdrawDialog} disabled={!adminSummary || adminSummary.availableBalance <= 0} className="min-h-[40px] w-full sm:w-auto">
+                <Button onClick={() => navigate("/admin-dashboard/payouts/withdraw-admin")} disabled={!adminSummary || adminSummary.availableBalance <= 0} className="min-h-[40px] w-full sm:w-auto cursor-pointer">
                   <Wallet className="mr-2 h-4 w-4"/>
                   Withdraw Admin Earnings
                 </Button>
@@ -513,7 +515,7 @@ const AdminPayouts = () => {
                         <StatusBadge status={payout.pendingPayout ? "pending" : "completed"} label={payout.pendingPayout ? "Pending" : "Completed"} />
                       </TableCell>
                       <TableCell align="right">
-                        <Button size="sm" variant="outline" className="text-xs h-8 px-2.5 rounded-lg border-primary/30 text-primary hover:bg-primary/10" onClick={() => openPayoutDetailDialog(payout)}>
+                        <Button size="sm" variant="outline" className="text-xs h-8 px-2.5 rounded-lg border-primary/30 text-primary hover:bg-primary/10 cursor-pointer" onClick={() => navigate(`/admin-dashboard/payouts/merchant/${payout.merchant._id}`)}>
                           View
                         </Button>
                       </TableCell>

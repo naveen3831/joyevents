@@ -461,7 +461,7 @@ const AdminOverview = () => {
                 icon={<AlertTriangle className="h-5 w-5" />} 
                 accent="violet" 
                 index={3} 
-                to="/admin-dashboard/users?tab=registrations"
+                to="/admin-dashboard/users?role=merchant&tab=registrations"
               />
             </div>
           </div>
