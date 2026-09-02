@@ -39,8 +39,9 @@ const Auth = () => {
                 ? await apiLogin({ email, password })
                 : await apiRegister({ name, email, password, role: payloadRole });
             const userRole = res?.user?.role === "user" ? "customer" : res?.user?.role;
+            const fullUser = res?.user ? { ...res.user, role: userRole } : null;
             setToken(res?.token || null);
-            setUser(res?.user ? { _id: res.user._id, name: res.user.name, email: res.user.email, role: userRole, createdAt: res.user.createdAt, updatedAt: res.user.updatedAt } : null);
+            setUser(fullUser);
             setRole(userRole);
             setIsLoggedIn(true);
             toast.success(isLogin ? `${roleLabels[userRole]} login successful!` : `${roleLabels[userRole]} account created successfully!`);

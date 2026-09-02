@@ -52,6 +52,29 @@ export async function apiLogin(params) {
     }
     return res.json();
 }
+export async function apiGetMe(token) {
+    const res = await fetch(`${API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to fetch profile");
+    }
+    const data = await res.json();
+    return data.user || data;
+}
+export async function apiUpdateProfile(params, token) {
+    const res = await fetch(`${API_URL}/api/auth/profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(params)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to update profile");
+    }
+    return res.json();
+}
 export async function apiCreateBooking(params, token) {
     const res = await fetch(`${API_URL}/api/bookings`, {
         method: "POST",

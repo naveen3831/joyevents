@@ -96,3 +96,8 @@ export function formatEventSchedule(event) {
     };
 }
 
+export function getAvatarUrl(user) {
+    if (!user) return "";
+    return user.avatar || user.merchantDetails?.avatar || user.profileImage || user.image || "";
+}
+

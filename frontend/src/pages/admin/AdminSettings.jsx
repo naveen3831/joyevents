@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   User,
@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   getPlatformName,
@@ -108,11 +108,53 @@ const AdminSettings = () => {
   });
   const [changingPassword, setChangingPassword] = useState(false);
 
+  const avatarInputRef = useRef(null);
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatar || "");
+
   useEffect(() => {
-    if (user?.name) {
-      setDisplayName(user.name);
-    }
+    if (user?.name) setDisplayName(user.name);
+    if (user?.avatar) setAvatarPreview(user.avatar);
   }, [user]);
+
+  const handleAvatarFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("File size exceeds 2MB limit. Please choose a smaller image.");
+      return;
+    }
+
+    const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Invalid file type. Please upload PNG, JPG, or WEBP.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imgUrl = event.target.result;
+      setAvatarPreview(imgUrl);
+      setUser((prev) => ({
+        ...prev,
+        avatar: imgUrl,
+      }));
+
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          parsed.avatar = imgUrl;
+          localStorage.setItem("user", JSON.stringify(parsed));
+        }
+      } catch (err) {
+        console.error("Failed to persist avatar:", err);
+      }
+
+      toast.success("Profile avatar uploaded successfully!");
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -256,7 +298,10 @@ const AdminSettings = () => {
         <div className="w-full rounded-xl bg-[#1E293B] text-white p-6 sm:p-8 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative overflow-hidden">
           <div className="flex items-center gap-5 z-10">
             {/* Avatar Circle */}
-            <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-white/20 bg-white/10 shrink-0 shadow-inner">
+            <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-white/20 bg-white/10 shrink-0 shadow-inner overflow-hidden">
+              {avatarPreview ? (
+                <AvatarImage src={avatarPreview} alt={userName} className="object-cover h-full w-full" />
+              ) : null}
               <AvatarFallback className="bg-white/15 text-white text-xl sm:text-2xl font-bold">
                 {userInitials}
               </AvatarFallback>
@@ -356,20 +401,29 @@ const AdminSettings = () => {
                 </div>
               </div>
 
-              {/* Upload Profile Avatar Area (Exact Reference Match) */}
+              {/* Upload Profile Avatar Area */}
               <div className="space-y-2 pt-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   UPLOAD PROFILE AVATAR
                 </Label>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  className="hidden"
+                  onChange={handleAvatarFileSelect}
+                />
                 <div className="flex flex-col sm:flex-row items-center gap-4">
                   {/* Dashed Dropzone */}
                   <div
-                    onClick={() => toast.info("Avatar image upload trigger")}
+                    onClick={() => avatarInputRef.current?.click()}
                     className="flex-1 w-full border-2 border-dashed border-border rounded-xl p-6 flex flex-col sm:flex-row items-center justify-center gap-3 text-center sm:text-left cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-all"
                   >
                     <UploadCloud className="h-6 w-6 text-primary shrink-0" />
                     <div>
-                      <p className="text-xs font-semibold text-primary">Click to upload</p>
+                      <p className="text-xs font-semibold text-primary">
+                        {avatarPreview ? "Click to change avatar" : "Click to upload"}
+                      </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         PNG, JPG or WEBP (Max 2MB)
                       </p>
@@ -379,8 +433,8 @@ const AdminSettings = () => {
                   {/* Camera Action Button */}
                   <button
                     type="button"
-                    onClick={() => toast.info("Avatar camera capture")}
-                    className="h-14 w-14 rounded-xl border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="h-14 w-14 rounded-xl border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 cursor-pointer"
                     title="Camera capture"
                   >
                     <Camera className="h-5 w-5" />

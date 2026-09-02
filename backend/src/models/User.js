@@ -33,6 +33,7 @@ const userSchema = new mongoose.Schema(
       required: true
     },
     mobile: { type: String, trim: true },
+    avatar: { type: String },
     merchantStatus: {
       type: String,
       enum: ["details_pending", "details_submitted", "quotation_sent", "paid", "active"],

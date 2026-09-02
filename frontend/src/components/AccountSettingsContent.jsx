@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   User,
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,6 +39,11 @@ const AccountSettingsContent = ({ backLink }) => {
   const [phone, setPhone] = useState(user?.phone || "");
   const [address, setAddress] = useState(user?.address || "");
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Avatar States
+  const avatarInputRef = useRef(null);
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatar || "");
+  const userInitials = user?.name ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) : "UN";
 
   // Password Change Form States
   const [changingPassword, setChangingPassword] = useState(false);
@@ -63,7 +69,48 @@ const AccountSettingsContent = ({ backLink }) => {
     if (user?.name) setDisplayName(user.name);
     if (user?.phone) setPhone(user.phone);
     if (user?.address) setAddress(user.address);
+    if (user?.avatar) setAvatarPreview(user.avatar);
   }, [user]);
+
+  const handleAvatarFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("File size exceeds 2MB limit. Please choose a smaller image.");
+      return;
+    }
+
+    const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Invalid file type. Please upload PNG, JPG, or WEBP.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imgUrl = event.target.result;
+      setAvatarPreview(imgUrl);
+      setUser((prev) => ({
+        ...prev,
+        avatar: imgUrl,
+      }));
+
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          parsed.avatar = imgUrl;
+          localStorage.setItem("user", JSON.stringify(parsed));
+        }
+      } catch (err) {
+        console.error("Failed to persist avatar:", err);
+      }
+
+      toast.success("Profile avatar updated successfully!");
+    };
+    reader.readAsDataURL(file);
+  };
 
   const currentPasswordError = passwordForm.currentPassword.trim() ? null : "Current password is required";
   const newPasswordError = passwordForm.newPassword
@@ -91,6 +138,7 @@ const AccountSettingsContent = ({ backLink }) => {
             name: displayName.trim(),
             phone: phone.trim() || undefined,
             address: address.trim() || undefined,
+            avatar: avatarPreview,
           },
           token
         ).catch(() => {});
@@ -100,6 +148,7 @@ const AccountSettingsContent = ({ backLink }) => {
         name: displayName.trim(),
         phone: phone.trim(),
         address: address.trim(),
+        avatar: avatarPreview,
       }));
       toast.success("Profile details updated successfully!");
     } catch (err) {
@@ -182,9 +231,14 @@ const AccountSettingsContent = ({ backLink }) => {
         {activeTab === "profile" && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="flex items-center gap-3.5 border-b border-border/70 pb-5">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <User className="h-5 w-5" />
-              </div>
+              <Avatar className="h-14 w-14 border-2 border-primary/20 bg-primary/5">
+                {avatarPreview ? (
+                  <AvatarImage src={avatarPreview} alt={displayName} className="object-cover" />
+                ) : null}
+                <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
+                  {userInitials}
+                </AvatarFallback>
+              </Avatar>
               <div>
                 <h2 className="text-lg font-bold text-foreground">
                   Profile & Personal Information
@@ -255,21 +309,37 @@ const AccountSettingsContent = ({ backLink }) => {
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Upload Profile Avatar
               </Label>
-              <div className="flex items-center justify-between gap-4 p-5 rounded-2xl border-2 border-dashed border-border/80 bg-muted/20 hover:bg-muted/30 transition-colors">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                className="hidden"
+                onChange={handleAvatarFileSelect}
+              />
+              <div
+                onClick={() => avatarInputRef.current?.click()}
+                className="flex items-center justify-between gap-4 p-5 rounded-2xl border-2 border-dashed border-border/80 bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer"
+              >
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <UploadCloud className="h-5 w-5" />
                   </div>
                   <div className="text-left">
-                    <p className="text-xs font-bold text-primary cursor-pointer hover:underline">
-                      Click to upload
+                    <p className="text-xs font-bold text-primary hover:underline">
+                      {avatarPreview ? "Click to change avatar" : "Click to upload"}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       PNG, JPG or WEBP (Max 2MB)
                     </p>
                   </div>
                 </div>
-                <div className="h-10 w-10 rounded-xl border border-border/80 bg-card flex items-center justify-center text-muted-foreground shrink-0 shadow-xs">
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    avatarInputRef.current?.click();
+                  }}
+                  className="h-10 w-10 rounded-xl border border-border/80 bg-card flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0 shadow-xs cursor-pointer"
+                >
                   <Camera className="h-5 w-5" />
                 </div>
               </div>

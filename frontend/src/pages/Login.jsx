@@ -70,14 +70,12 @@ const Login = () => {
         try {
             const res = await apiLogin({ email, password });
             const userRole = res?.user?.role === "user" ? "customer" : res?.user?.role;
+            const fullUser = res?.user ? { ...res.user, role: userRole } : null;
             // Update localStorage immediately so ProtectedRoute can see it
             localStorage.setItem("token", res?.token || "");
-            localStorage.setItem("user", JSON.stringify(res?.user ? {
-                _id: res.user._id || res.user.id,
-                name: res.user.name,
-                email: res.user.email,
-                role: userRole,
-            } : {}));
+            if (fullUser) {
+                localStorage.setItem("user", JSON.stringify(fullUser));
+            }
             localStorage.setItem("role", userRole);
 
             const savedReturnTo = localStorage.getItem("authReturnTo") || sessionStorage.getItem("postLoginRedirect");
@@ -100,14 +98,7 @@ const Login = () => {
 
             // Update state
             setToken(res?.token || null);
-            setUser(res?.user ? {
-                _id: res.user._id || res.user.id,
-                name: res.user.name,
-                email: res.user.email,
-                role: userRole,
-                createdAt: res.user.createdAt || "",
-                updatedAt: res.user.updatedAt || "",
-            } : null);
+            setUser(fullUser);
             setRole(userRole);
             setIsLoggedIn(true);
             setSessionActive();

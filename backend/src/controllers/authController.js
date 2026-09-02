@@ -23,16 +23,21 @@ function toSafeUser(user) {
       mStatus = "details_pending";
     }
   }
+  const avatarUrl = user.avatar || user.merchantDetails?.avatar || "";
   return {
     _id: user._id,
     id: user._id,
-    name: user.name,
-    email: user.email,
+    name: user.name && user.name.trim() ? user.name.trim() : "Ajay",
+    email: user.email || "",
     role: user.role,
     status: user.status,
     mobile: user.mobile,
+    avatar: avatarUrl,
     merchantStatus: mStatus,
-    merchantDetails: user.merchantDetails,
+    merchantDetails: user.merchantDetails ? {
+      ...user.merchantDetails,
+      avatar: avatarUrl,
+    } : user.merchantDetails,
     quotationAmount: user.quotationAmount,
     maxEvents: user.maxEvents,
     maxServices: user.maxServices,
@@ -105,7 +110,8 @@ export const login = async (req, res) => {
 };
 
 export const getMe = async (req, res) => {
-  res.json({ user: req.user });
+  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  res.json({ user: toSafeUser(req.user) });
 };
 
 export const verify = async (req, res) => {
@@ -227,15 +233,18 @@ export const updateUser = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name } = req.body || {};
+    const { name, avatar } = req.body || {};
     
-    if (!name || !name.trim()) {
-      return res.status(400).json({ error: "Name is required" });
+    const updates = {};
+    if (name && name.trim()) updates.name = name.trim();
+    if (avatar !== undefined && avatar !== "") {
+      updates.avatar = avatar;
+      updates["merchantDetails.avatar"] = avatar;
     }
     
     const user = await User.findByIdAndUpdate(
       req.user._id, 
-      { name: name.trim() }, 
+      updates, 
       { new: true }
     ).select("-passwordHash");
     

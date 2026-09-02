@@ -24,6 +24,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { clearSession } from "@/lib/session";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { getAvatarUrl } from "@/lib/utils";
 
 const groups = [
   {
@@ -253,10 +254,18 @@ const MerchantSidebar = ({ open, onClose }) => {
         <div className="border-t border-slate-200/80 dark:border-slate-800 p-3 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <Avatar className="h-7 w-7 border border-slate-200 dark:border-slate-800 shrink-0">
-                <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-                  {userInitials}
-                </AvatarFallback>
+              <Avatar className="h-7 w-7 border border-slate-200 dark:border-slate-800 shrink-0 overflow-hidden">
+                {getAvatarUrl(user) ? (
+                  <img
+                    src={getAvatarUrl(user)}
+                    alt={userName}
+                    className="h-full w-full object-cover rounded-full"
+                  />
+                ) : (
+                  <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                    {userInitials}
+                  </AvatarFallback>
+                )}
               </Avatar>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate leading-tight">

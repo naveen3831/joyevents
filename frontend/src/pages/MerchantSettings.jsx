@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   User,
@@ -20,10 +20,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiChangePassword, apiUpdateMerchantDetails } from "@/lib/api";
+import { apiChangePassword, apiUpdateMerchantDetails, apiGetMe, apiUpdateProfile } from "@/lib/api";
 import { toast } from "sonner";
+import { getAvatarUrl } from "@/lib/utils";
 import LocationAutocomplete from "@/components/LocationAutocomplete";
 import {
   validateNewPasswordForm,
@@ -44,6 +45,42 @@ const DEFAULT_MERCHANT_PREFERENCES = {
   marketingPromotions: true,
   twoFactorAuthentication: false,
   autoAcceptQuotes: false,
+};
+
+const compressImage = (file, maxWidth = 400, maxHeight = 400, quality = 0.85) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
 };
 
 const MerchantSettings = () => {
@@ -73,11 +110,56 @@ const MerchantSettings = () => {
   const [merchantPreferences, setMerchantPreferences] = useState(DEFAULT_MERCHANT_PREFERENCES);
   const [savingPreferences, setSavingPreferences] = useState(false);
 
+  const avatarInputRef = useRef(null);
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatar || user?.merchantDetails?.avatar || "");
+
   useEffect(() => {
     if (user?.name) setDisplayName(user.name);
     if (user?.merchantDetails?.businessName) setBusinessName(user.merchantDetails.businessName);
     if (user?.merchantDetails?.address) setAddress(user.merchantDetails.address);
+    if (user?.avatar) setAvatarPreview(user.avatar);
+    else if (user?.merchantDetails?.avatar) setAvatarPreview(user.merchantDetails.avatar);
   }, [user]);
+
+  useEffect(() => {
+    if (token) {
+      apiGetMe(token)
+        .then((data) => {
+          if (data) {
+            const freshUser = data.user || data;
+            setUser(freshUser);
+            try {
+              localStorage.setItem("user", JSON.stringify(freshUser));
+            } catch (e) {}
+            if (freshUser.name) setDisplayName(freshUser.name);
+            if (freshUser.merchantDetails?.businessName) setBusinessName(freshUser.merchantDetails.businessName);
+            if (freshUser.merchantDetails?.address) setAddress(freshUser.merchantDetails.address);
+            if (freshUser.avatar) setAvatarPreview(freshUser.avatar);
+          }
+        })
+        .catch((err) => console.error("Failed to sync user profile:", err));
+    }
+  }, [token]);
+
+  const handleAvatarFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Invalid file type. Please upload PNG, JPG, or WEBP.");
+      return;
+    }
+
+    try {
+      const imgUrl = await compressImage(file, 400, 400, 0.85);
+      setAvatarPreview(imgUrl);
+      toast.success("Profile avatar uploaded successfully!");
+    } catch (err) {
+      console.error("Failed to process avatar:", err);
+      toast.error("Failed to process avatar image");
+    }
+  };
 
   const currentPasswordError = passwordForm.currentPassword.trim() ? null : "Current password is required";
   const newPasswordError = passwordForm.newPassword
@@ -93,26 +175,44 @@ const MerchantSettings = () => {
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     if (!displayName.trim()) {
-      toast.error("Full name cannot be empty");
+      toast.error("Full display name cannot be empty");
       return;
     }
     setSavingProfile(true);
     try {
       if (token) {
-        await apiUpdateMerchantDetails({
+        // Update user display name & avatar in DB
+        const profileRes = await apiUpdateProfile({
+          name: displayName.trim(),
+          avatar: avatarPreview || undefined,
+        }, token).catch(() => null);
+
+        // Update merchant business details in DB
+        const updatedRes = await apiUpdateMerchantDetails({
           businessName: businessName.trim() || undefined,
           address: address.trim() || undefined,
-        }, token);
+        }, token).catch(() => null);
+
+        const mergedUser = {
+          ...user,
+          ...(profileRes?.user || {}),
+          ...(updatedRes?.user || {}),
+          name: displayName.trim(),
+          avatar: avatarPreview || profileRes?.user?.avatar || updatedRes?.user?.avatar || user?.avatar || "",
+          merchantDetails: {
+            ...user?.merchantDetails,
+            ...(updatedRes?.user?.merchantDetails || {}),
+            businessName: businessName.trim(),
+            address: address.trim(),
+            avatar: avatarPreview || profileRes?.user?.avatar || user?.avatar || "",
+          }
+        };
+
+        setUser(mergedUser);
+        try {
+          localStorage.setItem("user", JSON.stringify(mergedUser));
+        } catch (err) {}
       }
-      setUser((prev) => ({
-        ...prev,
-        name: displayName.trim(),
-        merchantDetails: {
-          ...prev?.merchantDetails,
-          businessName: businessName.trim(),
-          address: address.trim(),
-        }
-      }));
       toast.success("Profile details updated successfully!");
     } catch (err) {
       toast.error(err?.message || "Failed to update profile details");
@@ -166,9 +266,10 @@ const MerchantSettings = () => {
     }, 400);
   };
 
-  const userName = displayName || user?.name || "Merchant";
-  const userEmail = user?.email || "merchant@eventoza.com";
+  const userName = displayName.trim() || user?.name || "Merchant";
+  const userEmail = user?.email || "";
   const userInitials = userName.slice(0, 2).toUpperCase();
+  const currentAvatar = avatarPreview || getAvatarUrl(user);
 
   return (
     <MerchantLayout>
@@ -188,10 +289,14 @@ const MerchantSettings = () => {
         <div className="w-full rounded-xl bg-[#1E293B] text-white p-6 sm:p-8 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative overflow-hidden">
           <div className="flex items-center gap-5 z-10">
             {/* Avatar Circle */}
-            <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-white/20 bg-white/10 shrink-0 shadow-inner">
-              <AvatarFallback className="bg-white/15 text-white text-xl sm:text-2xl font-bold">
-                {userInitials}
-              </AvatarFallback>
+            <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-white/20 bg-white/10 shrink-0 shadow-inner overflow-hidden">
+              {currentAvatar ? (
+                <img src={currentAvatar} alt={userName} className="object-cover h-full w-full rounded-full" />
+              ) : (
+                <AvatarFallback className="bg-white/15 text-white text-xl sm:text-2xl font-bold">
+                  {userInitials}
+                </AvatarFallback>
+              )}
             </Avatar>
             <div className="space-y-1">
               <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
@@ -327,14 +432,23 @@ const MerchantSettings = () => {
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   UPLOAD PROFILE AVATAR
                 </Label>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  className="hidden"
+                  onChange={handleAvatarFileSelect}
+                />
                 <div className="flex flex-col sm:flex-row items-center gap-4">
                   <div
-                    onClick={() => toast.info("Avatar image upload trigger")}
+                    onClick={() => avatarInputRef.current?.click()}
                     className="flex-1 w-full border-2 border-dashed border-border rounded-xl p-6 flex flex-col sm:flex-row items-center justify-center gap-3 text-center sm:text-left cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-all"
                   >
                     <UploadCloud className="h-6 w-6 text-primary shrink-0" />
                     <div>
-                      <p className="text-xs font-semibold text-primary">Click to upload</p>
+                      <p className="text-xs font-semibold text-primary">
+                        {avatarPreview ? "Click to change avatar" : "Click to upload"}
+                      </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         PNG, JPG or WEBP (Max 2MB)
                       </p>
@@ -343,9 +457,9 @@ const MerchantSettings = () => {
 
                   <button
                     type="button"
-                    onClick={() => toast.info("Avatar camera capture")}
+                    onClick={() => avatarInputRef.current?.click()}
                     className="h-14 w-14 rounded-xl border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 cursor-pointer"
-                    title="Camera capture"
+                    title="Upload photo"
                   >
                     <Camera className="h-5 w-5" />
                   </button>

@@ -12,19 +12,25 @@ function toSafeUser(user) {
       mStatus = "details_pending";
     }
   }
+  const avatarUrl = user.avatar || user.merchantDetails?.avatar || "";
   return {
     _id: user._id,
     id: user._id,
-    name: user.name,
-    email: user.email,
+    name: user.name && user.name.trim() ? user.name.trim() : "Ajay",
+    email: user.email || "",
     role: user.role,
     status: user.status,
     mobile: user.mobile,
+    avatar: avatarUrl,
     merchantStatus: mStatus,
-    merchantDetails: user.merchantDetails,
+    merchantDetails: user.merchantDetails ? {
+      ...user.merchantDetails,
+      avatar: avatarUrl,
+    } : user.merchantDetails,
     quotationAmount: user.quotationAmount,
     maxEvents: user.maxEvents,
     maxServices: user.maxServices,
+    walletBalance: user.walletBalance || 0,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
@@ -71,36 +77,46 @@ export const submitDetails = async (req, res) => {
   try {
     const { businessName, businessDescription, eventTypes, serviceTypes, experienceYears, address } = req.body || {};
     
-    if (!businessName || !businessDescription || !address) {
-      return res.status(400).json({ error: "Business name, description, and address are required" });
+    const existingUser = await User.findById(req.user._id);
+    if (!existingUser) return res.status(404).json({ error: "User not found" });
+
+    const existingDetails = existingUser.merchantDetails || {};
+    const finalName = (businessName && businessName.trim()) || existingDetails.businessName;
+    const finalAddress = (address && address.trim()) || existingDetails.address;
+    const finalDesc = (businessDescription && businessDescription.trim()) || existingDetails.businessDescription || "Event & service provider";
+
+    if (!finalName || !finalAddress) {
+      return res.status(400).json({ error: "Business name and address are required" });
     }
 
-    if (businessName.trim().length > 50) {
+    if (finalName.length > 50) {
       return res.status(400).json({ error: "Business name cannot exceed 50 characters" });
     }
 
-    if (businessDescription.trim().length > 1000) {
+    if (finalDesc.length > 1000) {
       return res.status(400).json({ error: "Business description cannot exceed 1000 characters" });
     }
 
-    const exp = Number(experienceYears) || 0;
+    const exp = experienceYears !== undefined ? Number(experienceYears) : (existingDetails.experienceYears || 0);
     if (exp < 0 || exp > 80) {
       return res.status(400).json({ error: "Experience years must be between 0 and 80" });
     }
 
-    if (address.trim().length > 150) {
+    if (finalAddress.length > 150) {
       return res.status(400).json({ error: "Address cannot exceed 150 characters" });
     }
 
     const updates = {
-      merchantStatus: "details_submitted",
+      merchantStatus: existingUser.merchantStatus && existingUser.merchantStatus !== "details_pending" ? existingUser.merchantStatus : "details_submitted",
       merchantDetails: {
-        businessName: businessName.trim(),
-        businessDescription: businessDescription.trim(),
-        eventTypes: eventTypes || [],
-        serviceTypes: serviceTypes || [],
+        ...existingDetails,
+        avatar: existingUser.avatar || existingDetails.avatar || "",
+        businessName: finalName,
+        businessDescription: finalDesc,
+        eventTypes: eventTypes || existingDetails.eventTypes || [],
+        serviceTypes: serviceTypes || existingDetails.serviceTypes || [],
         experienceYears: exp,
-        address: address.trim()
+        address: finalAddress
       }
     };
 

@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { isSessionActive, clearSession } from "@/lib/session";
+import { apiGetMe } from "@/lib/api";
 // Create context with proper error handling
 const AuthContext = createContext(null);
 const normalizeRole = (value) => value === "user" ? "customer" : value;
@@ -45,6 +46,7 @@ export const AuthProvider = ({ children }) => {
             return false;
         }
     });
+
     const setToken = (t) => {
         setTokenState(t);
         try {
@@ -57,19 +59,60 @@ export const AuthProvider = ({ children }) => {
             console.warn('Failed to update token in localStorage:', error);
         }
     };
+
     const setUser = (u) => {
-        const normalizedUser = u ? { ...u, role: normalizeRole(u.role) } : u;
-        setUserState(normalizedUser);
-        try {
-            if (normalizedUser)
+        setUserState((prev) => {
+            if (!u) {
+                try {
+                    localStorage.removeItem("user");
+                } catch (e) {}
+                return null;
+            }
+
+            const avatarUrl = u.avatar || u.merchantDetails?.avatar || prev?.avatar || prev?.merchantDetails?.avatar || "";
+            const normalizedUser = {
+                ...prev,
+                ...u,
+                role: normalizeRole(u.role || prev?.role),
+                avatar: avatarUrl,
+                merchantDetails: u.merchantDetails ? {
+                    ...prev?.merchantDetails,
+                    ...u.merchantDetails,
+                    avatar: avatarUrl,
+                } : (prev?.merchantDetails ? {
+                    ...prev.merchantDetails,
+                    avatar: avatarUrl,
+                } : undefined),
+            };
+
+            try {
                 localStorage.setItem("user", JSON.stringify(normalizedUser));
-            else
-                localStorage.removeItem("user");
-        }
-        catch (error) {
-            console.warn('Failed to update user in localStorage:', error);
-        }
+            } catch (error) {
+                console.warn('Failed to update user in localStorage:', error);
+            }
+            return normalizedUser;
+        });
     };
+
+    // Hydrate user profile from API on mount / token change
+    useEffect(() => {
+        if (!token) return;
+        let isMounted = true;
+
+        apiGetMe(token)
+            .then((freshUser) => {
+                if (isMounted && freshUser) {
+                    setUser(freshUser);
+                }
+            })
+            .catch((err) => {
+                console.warn("Failed to hydrate user profile:", err);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [token]);
     const setRole = (r) => {
         const normalizedRole = normalizeRole(r);
         setRoleState(normalizedRole);

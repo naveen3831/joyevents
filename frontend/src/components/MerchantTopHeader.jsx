@@ -37,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { getAvatarUrl } from "@/lib/utils";
 
 const routeBreadcrumbMap = {
   "/merchant-dashboard": [{ label: "Merchant Portal" }, { label: "Overview" }],
@@ -128,8 +129,9 @@ export const MerchantTopHeader = ({ onSidebarToggle }) => {
 
   const breadcrumbs = getBreadcrumbs();
   const userName = user?.name || "Merchant";
-  const userEmail = user?.email || "merchant@eventoza.com";
+  const userEmail = user?.email || "";
   const userInitials = userName.slice(0, 2).toUpperCase();
+  const userAvatar = getAvatarUrl(user);
 
   // Search Input Filter & Debounced Record Search
   useEffect(() => {
@@ -430,12 +432,16 @@ export const MerchantTopHeader = ({ onSidebarToggle }) => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2.5 p-1 rounded-lg hover:bg-muted/70 transition-colors focus:outline-none cursor-pointer">
-              <Avatar className="h-7 w-7 border border-border/80">
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
-                  {userInitials}
-                </AvatarFallback>
+              <Avatar className="h-7 w-7 border border-border/80 overflow-hidden shrink-0">
+                {userAvatar ? (
+                  <img src={userAvatar} alt={userName} className="h-full w-full object-cover rounded-full" />
+                ) : (
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                    {userInitials}
+                  </AvatarFallback>
+                )}
               </Avatar>
-              <div className="hidden xl:flex flex-col text-left">
+              <div className="flex flex-col text-left min-w-0">
                 <span className="text-xs font-semibold text-foreground leading-none truncate max-w-[120px]">
                   {userName}
                 </span>
