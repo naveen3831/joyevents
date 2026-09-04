@@ -121,15 +121,7 @@ const AdminUserDetail = () => {
 
   const handleOpenEdit = () => {
     if (!user) return;
-    setFormState({
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      password: "",
-      role: user.role,
-      mobile: formatMobileForInput(user.mobile)
-    });
-    setIsEditDialogOpen(true);
+    navigate(`/admin-dashboard/users/${user._id}/edit`);
   };
 
   const handleEditSubmit = async (e) => {
@@ -338,10 +330,7 @@ const AdminUserDetail = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setQuoteAmount(user.quotationAmount?.toString() || "");
-                        setIsQuoteDialogOpen(true);
-                      }}
+                      onClick={() => navigate(`/admin-dashboard/users/${user._id}/quote`)}
                       className="h-9 px-3 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800/60 rounded-md"
                       title="Send Onboarding Quotation"
                     >
@@ -353,11 +342,7 @@ const AdminUserDetail = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setMaxEvents(user.maxEvents?.toString() || "5");
-                        setMaxServices(user.maxServices?.toString() || "5");
-                        setIsActivationDialogOpen(true);
-                      }}
+                      onClick={() => navigate(`/admin-dashboard/users/${user._id}/limits`)}
                       className="h-9 px-3 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-800/60 rounded-md"
                       title="Activate Merchant"
                     >
@@ -369,11 +354,7 @@ const AdminUserDetail = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setMaxEvents(user.maxEvents?.toString() || "5");
-                        setMaxServices(user.maxServices?.toString() || "5");
-                        setIsActivationDialogOpen(true);
-                      }}
+                      onClick={() => navigate(`/admin-dashboard/users/${user._id}/limits`)}
                       className="h-9 px-3 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60 rounded-md"
                       title="Configure Slot Limits"
                     >
@@ -546,10 +527,7 @@ const AdminUserDetail = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      setResetPassword("");
-                      setIsResetPasswordDialogOpen(true);
-                    }}
+                    onClick={() => navigate(`/admin-dashboard/users/${user._id}/reset-password`)}
                     className="h-9 px-4 text-xs font-semibold border-border rounded-md"
                   >
                     <KeyRound className="h-3.5 w-3.5 mr-1.5" /> Reset Password
@@ -592,7 +570,7 @@ const AdminUserDetail = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setIsDeleteDialogOpen(true)}
+                    onClick={() => navigate(`/admin-dashboard/users/${user._id}/delete`)}
                     className="h-9 px-4 text-xs font-semibold text-rose-600 bg-white hover:bg-rose-50 border-rose-300 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/60 dark:hover:bg-rose-950/60 rounded-md shrink-0"
                   >
                     <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete User
@@ -603,207 +581,9 @@ const AdminUserDetail = () => {
           </motion.div>
         )}
 
-        {/* Edit User Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit User Profile</DialogTitle>
-              <DialogDescription>Modify user privileges or information.</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleEditSubmit} className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Name</Label>
-                <Input maxLength={NAME_MAX_LENGTH} required value={formState.name} onChange={(e) => setFormState({ ...formState, name: sanitizeNameInput(e.target.value) })} className="h-9 text-xs rounded-md" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Mobile Number (Optional)</Label>
-                <Input
-                  type="text"
-                  maxLength={12}
-                  value={formState.mobile}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/[^0-9]/g, "");
-                    setFormState({ ...formState, mobile: val });
-                  }}
-                  placeholder="Enter 12-digit mobile number"
-                  className="h-9 text-xs rounded-md"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Email Address</Label>
-                <Input type="text" inputMode="email" maxLength={EMAIL_MAX_LENGTH} required value={formState.email} onChange={(e) => setFormState({ ...formState, email: sanitizeEmailInput(e.target.value) })} className="h-9 text-xs rounded-md" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">New Password (Optional)</Label>
-                <Input type="password" maxLength={30} value={formState.password} onChange={(e) => setFormState({ ...formState, password: e.target.value })} placeholder="Leave empty to keep current password" className="h-9 text-xs rounded-md" />
-              </div>
-              <DialogFooter className="pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="h-9 text-xs rounded-md">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="h-9 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md">
-                  {isSubmitting ? "Saving..." : "Save Changes"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
 
-        {/* Reset Password Dialog */}
-        <Dialog open={isResetPasswordDialogOpen} onOpenChange={setIsResetPasswordDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <KeyRound className="h-4.5 w-4.5 text-primary" /> Reset Password
-              </DialogTitle>
-              <DialogDescription className="text-xs">
-                Set a new password for {user?.name} ({user?.email})
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleResetPasswordSubmit} className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">New Password</Label>
-                <Input type="password" maxLength={30} required value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} placeholder="Enter new password" className="h-9 text-xs rounded-md" />
-                <p className="text-[11px] text-muted-foreground">{PASSWORD_HINT}</p>
-              </div>
-              <DialogFooter className="pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsResetPasswordDialogOpen(false)} className="h-9 text-xs rounded-md">Cancel</Button>
-                <Button type="submit" disabled={isResettingPassword} className="h-9 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md">
-                  {isResettingPassword ? "Resetting..." : "Reset Password"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
 
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
-                <Trash2 className="h-4.5 w-4.5" /> Delete Account
-              </DialogTitle>
-              <DialogDescription className="text-xs">
-                This action is permanent and cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-3 space-y-3">
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/30 rounded-md border border-rose-200/60 dark:border-rose-900/40 text-xs space-y-1.5">
-                <p><strong>Name:</strong> {user?.name}</p>
-                <p><strong>Email:</strong> {user?.email}</p>
-                <p><strong>Role:</strong> {user?.role === "merchant" ? "Merchant" : "User"}</p>
-                <p><strong>ID:</strong> <span className="font-mono text-[11px]">{user?._id}</span></p>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Are you sure you want to permanently delete this {user?.role === "merchant" ? "merchant" : "user"} account? All associated data will be removed.
-              </p>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting} className="h-9 text-xs rounded-md">
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={handleDeleteConfirm}
-                disabled={isDeleting}
-                className="h-9 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-md"
-              >
-                {isDeleting ? "Deleting..." : "Delete Account"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
-        {/* Limits Configuration Dialog */}
-        <Dialog open={isActivationDialogOpen} onOpenChange={setIsActivationDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-base">
-                <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" /> Configure Merchant Limits
-              </DialogTitle>
-              <DialogDescription className="text-xs">
-                Set slot limits for maximum events and services allowed on the platform.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleActivateMerchantSubmit} className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="maxEv" className="text-xs font-semibold">Maximum Events Limit</Label>
-                  <Input
-                    id="maxEv"
-                    type="number"
-                    min={1}
-                    max={1000}
-                    required
-                    value={maxEvents}
-                    onChange={(e) => setMaxEvents(e.target.value)}
-                    className="h-9 text-xs rounded-md"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="maxSe" className="text-xs font-semibold">Maximum Services Limit</Label>
-                  <Input
-                    id="maxSe"
-                    type="number"
-                    min={1}
-                    max={1000}
-                    required
-                    value={maxServices}
-                    onChange={(e) => setMaxServices(e.target.value)}
-                    className="h-9 text-xs rounded-md"
-                  />
-                </div>
-              </div>
-              <DialogFooter className="pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsActivationDialogOpen(false)} className="h-9 text-xs rounded-md">Cancel</Button>
-                <Button type="submit" disabled={activatingMerchant} className="h-9 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md">
-                  {activatingMerchant ? "Saving..." : "Save Limits"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Send Onboarding Quotation Dialog */}
-        <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-base">
-                <IndianRupee className="h-4.5 w-4.5 text-primary" /> Send Onboarding Quotation
-              </DialogTitle>
-              <DialogDescription className="text-xs">
-                Set the setup fee amount for this merchant. The merchant will pay this amount before activation.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSendQuoteSubmit} className="space-y-4 py-2">
-              <div className="p-3 bg-muted/40 rounded-md text-xs space-y-1 border border-border/60">
-                <p><strong>Merchant:</strong> {user?.name}</p>
-                <p><strong>Email:</strong> {user?.email}</p>
-                <p><strong>Business:</strong> {user?.merchantDetails?.businessName || "—"}</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="qAmount" className="text-xs font-semibold">Quotation Amount (in ₹) *</Label>
-                <Input
-                  id="qAmount"
-                  type="text"
-                  required
-                  placeholder="e.g. 250"
-                  value={quoteAmount}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/[^0-9]/g, "");
-                    setQuoteAmount(val.slice(0, 7));
-                  }}
-                  className="h-9 text-xs rounded-md"
-                />
-                <p className="text-[11px] text-muted-foreground">Enter a positive number (up to 1,000,000)</p>
-              </div>
-              <DialogFooter className="pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)} className="h-9 text-xs rounded-md">Cancel</Button>
-                <Button type="submit" disabled={sendingQuote} className="h-9 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md">
-                  {sendingQuote ? "Sending Quote..." : "Send Quote"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
     </AdminLayout>
   );

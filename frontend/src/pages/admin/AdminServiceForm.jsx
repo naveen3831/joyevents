@@ -1,4 +1,4 @@
-import { ImageIcon, Loader2, AlertCircle, X, Upload, Plus, ArrowLeft } from "lucide-react";
+import { ImageIcon, Loader2, AlertCircle, X, Upload, Plus, ArrowLeft, Sparkles, RotateCw, Check, Info } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import MerchantLayout from "@/components/MerchantLayout";
 import { Input } from "@/components/ui/input";
@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useParams } from "react-router-dom";
-import { apiGetServiceById, apiCreateService, apiUpdateService, apiListCategories, apiCreateCategory } from "@/lib/api";
+import { apiGetServiceById, apiCreateService, apiUpdateService, apiListCategories, apiCreateCategory, apiGenerateServiceAISuggestions } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const imgSrc = (image) => !image ? "" : image.startsWith("http") ? image : `${API_URL}${image}`;
 
@@ -56,6 +57,84 @@ const AdminServiceForm = ({ layout = "admin" } = {}) => {
     const [creatingCat, setCreatingCat] = useState(false);
     const fileRef = useRef(null);
     const galleryRef = useRef(null);
+
+    // AI Modal & Selection States
+    const [showAIModal, setShowAIModal] = useState(false);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiData, setAiData] = useState(null); // { descriptions, highlightSets, vagueNote, serviceName }
+    const [selectedDescId, setSelectedDescId] = useState(null);
+    const [editedDescText, setEditedDescText] = useState("");
+    const [selectedHlId, setSelectedHlId] = useState(null);
+    const [editedHlText, setEditedHlText] = useState("");
+    const [activeTab, setActiveTab] = useState("descriptions"); // "descriptions" | "highlights"
+
+    const openAISuggestionsModal = async (initialTab = "descriptions") => {
+        const serviceName = form.name?.trim();
+        if (!serviceName) {
+            toast.error("Enter a service name first to generate AI suggestions.");
+            return;
+        }
+        setActiveTab(initialTab);
+        setShowAIModal(true);
+        if (!aiData || aiData.serviceName !== serviceName) {
+            await fetchAISuggestions(serviceName);
+        }
+    };
+
+    const fetchAISuggestions = async (serviceName = form.name?.trim()) => {
+        if (!serviceName) return;
+        setAiLoading(true);
+        try {
+            const res = await apiGenerateServiceAISuggestions({
+                serviceName,
+                category: form.category || "",
+                currentDescription: form.description || "",
+                type: "service_content"
+            }, token);
+
+            if (res && res.descriptions && res.descriptions.length > 0) {
+                setAiData({ ...res, serviceName });
+                setSelectedDescId(res.descriptions[0].id);
+                setEditedDescText(res.descriptions[0].text);
+                if (res.highlightSets && res.highlightSets.length > 0) {
+                    setSelectedHlId(res.highlightSets[0].id);
+                    setEditedHlText(res.highlightSets[0].items.join(", "));
+                }
+            } else {
+                toast.error("We couldn't generate suggestions right now. Try again or continue manually.");
+            }
+        } catch (err) {
+            toast.error(err?.message || "We couldn't generate suggestions right now. Try again or continue manually.");
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+    const handleApplyDescription = () => {
+        if (!editedDescText) return;
+        setForm((prev) => ({ ...prev, description: editedDescText }));
+        toast.success("Description updated from AI suggestion!");
+        setShowAIModal(false);
+    };
+
+    const handleApplyHighlights = () => {
+        if (!editedHlText) return;
+        setForm((prev) => ({ ...prev, highlights: editedHlText }));
+        toast.success("Highlights updated from AI suggestion!");
+        setShowAIModal(false);
+    };
+
+    const handleApplyAll = () => {
+        setForm((prev) => ({
+            ...prev,
+            description: editedDescText || prev.description,
+            highlights: editedHlText || prev.highlights
+        }));
+        toast.success("Applied AI description & highlights to form!");
+        setShowAIModal(false);
+    };
+
+
 
     useEffect(() => {
         let cancelled = false;
@@ -337,7 +416,18 @@ const AdminServiceForm = ({ layout = "admin" } = {}) => {
 
             <div className="md:col-span-2">
               <div className="flex justify-between items-center mb-1">
-                <label className="text-xs font-medium text-muted-foreground">Description</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-muted-foreground">Description</label>
+                  <button
+                    type="button"
+                    onClick={() => openAISuggestionsModal("descriptions")}
+                    disabled={aiLoading}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 bg-purple-50/80 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 px-2.5 py-0.5 rounded-md border border-purple-200/80 dark:border-purple-800/80 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Sparkles className="h-3 w-3 text-purple-500" />
+                    <span>{form.description?.trim() ? "✨ Improve with AI" : "✨ Generate with AI"}</span>
+                  </button>
+                </div>
                 <span className="text-[10px] text-muted-foreground">{(form.description || "").length}/1000</span>
               </div>
               <textarea placeholder="Provide a detailed description of the service..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} maxLength={1000} className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"/>
@@ -435,6 +525,259 @@ const AdminServiceForm = ({ layout = "admin" } = {}) => {
             </Button>
           </div>
         </form>
+
+        {/* AI Assist Suggestions Modal */}
+        <Dialog open={showAIModal} onOpenChange={setShowAIModal}>
+          <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl border-purple-100 dark:border-purple-900/50 shadow-2xl">
+            <DialogHeader className="p-5 border-b border-border bg-gradient-to-r from-purple-500/10 via-purple-500/5 to-transparent text-left shrink-0">
+              <div className="flex items-center justify-between">
+                <DialogTitle className="flex items-center gap-2 text-lg font-bold text-foreground">
+                  <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <span>✨ AI Suggestions</span>
+                </DialogTitle>
+              </div>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                Suggestions for <strong className="text-purple-700 dark:text-purple-300 font-semibold">"{form.name || "Service"}"</strong>
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Vague Service Name Warning Note */}
+            {aiData?.vagueNote && (
+              <div className="mx-5 mt-3 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-xl flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300">
+                <Info className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                <span className="leading-relaxed">{aiData.vagueNote}</span>
+              </div>
+            )}
+
+            {/* Modal Navigation Tabs */}
+            <div className="px-5 pt-3 shrink-0 flex gap-2 border-b border-border bg-card">
+              <button
+                type="button"
+                onClick={() => setActiveTab("descriptions")}
+                className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${
+                  activeTab === "descriptions"
+                    ? "border-purple-600 text-purple-600 dark:text-purple-400 bg-purple-50/50 dark:bg-purple-950/20"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                DESCRIPTION IDEAS ({aiData?.descriptions?.length || 4})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("highlights")}
+                className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${
+                  activeTab === "highlights"
+                    ? "border-purple-600 text-purple-600 dark:text-purple-400 bg-purple-50/50 dark:bg-purple-950/20"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                HIGHLIGHT SETS ({aiData?.highlightSets?.length || 3})
+              </button>
+            </div>
+
+            {/* Scrollable Content Body */}
+            <div className="p-5 overflow-y-auto flex-1 space-y-4 max-h-[55vh]">
+              {aiLoading ? (
+                <div className="py-14 text-center space-y-3">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto text-purple-600 dark:text-purple-400" />
+                  <p className="text-sm font-semibold text-foreground">
+                    ✨ Creating ideas for "{form.name}"...
+                  </p>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    Generating 4 unique marketing angles and 3 highlight sets tailored to your service.
+                  </p>
+                </div>
+              ) : activeTab === "descriptions" ? (
+                <div className="space-y-4">
+                  <p className="text-xs text-muted-foreground">
+                    Select an option below. You can preview and edit it before applying to your service description.
+                  </p>
+
+                  <div className="grid gap-3">
+                    {(aiData?.descriptions || []).map((item) => {
+                      const isSelected = selectedDescId === item.id;
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => {
+                            setSelectedDescId(item.id);
+                            setEditedDescText(item.text);
+                          }}
+                          className={`p-4 rounded-xl border-2 transition-all cursor-pointer relative ${
+                            isSelected
+                              ? "border-purple-600 dark:border-purple-500 bg-purple-50/40 dark:bg-purple-950/30 shadow-sm"
+                              : "border-border hover:border-purple-300 dark:hover:border-purple-700 bg-card"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                              {item.style || "Suggested"}
+                            </span>
+                            <button
+                              type="button"
+                              className={`text-xs font-semibold px-3 py-1 rounded-lg transition-colors ${
+                                isSelected
+                                  ? "bg-purple-600 text-white"
+                                  : "bg-secondary hover:bg-purple-100 dark:hover:bg-purple-900/50 text-foreground"
+                              }`}
+                            >
+                              {isSelected ? "✓ Selected" : "Select"}
+                            </button>
+                          </div>
+                          <p className="text-xs leading-relaxed text-foreground/90 font-normal">
+                            {item.text}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Editable preview for selected description */}
+                  {selectedDescId && (
+                    <div className="pt-3 border-t border-border space-y-2">
+                      <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                        <span>Preview & Edit Selected Description:</span>
+                        <span className="text-[10px] text-muted-foreground font-normal">
+                          {editedDescText.length}/1000
+                        </span>
+                      </label>
+                      <textarea
+                        value={editedDescText}
+                        onChange={(e) => setEditedDescText(e.target.value)}
+                        rows={4}
+                        maxLength={1000}
+                        className="w-full rounded-xl border border-purple-200 dark:border-purple-800 bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Highlight Sets Tab */
+                <div className="space-y-4">
+                  <p className="text-xs text-muted-foreground">
+                    Choose a service highlight set to display key features on your page.
+                  </p>
+
+                  <div className="grid gap-3">
+                    {(aiData?.highlightSets || []).map((set, idx) => {
+                      const isSelected = selectedHlId === set.id;
+                      return (
+                        <div
+                          key={set.id || idx}
+                          onClick={() => {
+                            setSelectedHlId(set.id);
+                            setEditedHlText(set.items.join(", "));
+                          }}
+                          className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                            isSelected
+                              ? "border-purple-600 dark:border-purple-500 bg-purple-50/40 dark:bg-purple-950/30 shadow-sm"
+                              : "border-border hover:border-purple-300 dark:hover:border-purple-700 bg-card"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs font-bold text-foreground">
+                              {set.styleName || `SET ${String.fromCharCode(65 + idx)}`}
+                            </span>
+                            <button
+                              type="button"
+                              className={`text-xs font-semibold px-3 py-1 rounded-lg transition-colors ${
+                                isSelected
+                                  ? "bg-purple-600 text-white"
+                                  : "bg-secondary hover:bg-purple-100 text-foreground"
+                              }`}
+                            >
+                              {isSelected ? "✓ Selected" : "Use this set"}
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {set.items.map((item, i) => (
+                              <div key={i} className="flex items-center gap-1.5 text-xs text-foreground/80">
+                                <Check className="h-3.5 w-3.5 text-purple-600 shrink-0" />
+                                <span>{item}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Editable preview for selected highlights */}
+                  {selectedHlId && (
+                    <div className="pt-3 border-t border-border space-y-2">
+                      <label className="text-xs font-semibold text-foreground">
+                        Preview & Edit Selected Highlights (comma-separated):
+                      </label>
+                      <Input
+                        value={editedHlText}
+                        onChange={(e) => setEditedHlText(e.target.value)}
+                        maxLength={200}
+                        className="text-xs border-purple-200 dark:border-purple-800"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-4 border-t border-border bg-card flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={aiLoading}
+                onClick={() => fetchAISuggestions()}
+                className="w-full sm:w-auto text-xs gap-1.5 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-medium"
+              >
+                <RotateCw className={`h-3.5 w-3.5 ${aiLoading ? "animate-spin" : ""}`} />
+                <span>↻ Generate More</span>
+              </Button>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAIModal(false)}
+                  className="text-xs"
+                >
+                  Cancel
+                </Button>
+                {activeTab === "descriptions" ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleApplyDescription}
+                    disabled={!editedDescText || aiLoading}
+                    className="text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 shadow-sm"
+                  >
+                    Apply Description
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleApplyHighlights}
+                    disabled={!editedHlText || aiLoading}
+                    className="text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 shadow-sm"
+                  >
+                    Apply Highlights
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleApplyAll}
+                  disabled={!editedDescText || aiLoading}
+                  className="text-xs bg-gradient-primary text-primary-foreground hover:opacity-90 font-semibold px-4 shadow-glow"
+                >
+                  Apply All
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </section>
     </PageLayout>);
 };

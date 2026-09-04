@@ -21,7 +21,7 @@ import AdminLayout from "@/components/AdminLayout";
 import PageHeader from "@/components/common/PageHeader";
 import StatusBadge from "@/components/common/table/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatEventSchedule } from "@/lib/utils";
 import { apiGetEventById } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
@@ -226,22 +226,39 @@ const AdminEventDetail = () => {
               </div>
 
               {/* Date & Time Card */}
-              <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm flex items-start gap-3">
-                <div className="h-9 w-9 rounded-lg bg-muted border border-border/60 flex items-center justify-center text-muted-foreground shrink-0 mt-0.5">
-                  <CalendarDays className="h-4 w-4 text-primary" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                    Date & Time
-                  </span>
-                  <p className="text-xs sm:text-sm font-semibold text-foreground mt-0.5">
-                    {new Date(event.datetime).toLocaleString([], {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </p>
-                </div>
-              </div>
+              {(() => {
+                const schedule = formatEventSchedule(event);
+                return (
+                  <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm flex items-start gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-muted border border-border/60 flex items-center justify-center text-muted-foreground shrink-0 mt-0.5">
+                      <CalendarDays className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Date & Time
+                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                        <p className="text-xs sm:text-sm font-semibold text-foreground">
+                          {schedule.dateText || new Date(event.datetime).toLocaleDateString()}
+                        </p>
+                        {schedule.isMultiDay && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
+                            {schedule.badgeText}
+                          </span>
+                        )}
+                      </div>
+                      {schedule.timeText && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{schedule.timeText}</p>
+                      )}
+                      {schedule.isMultiDay && schedule.lastDateText && (
+                        <p className="text-xs text-muted-foreground mt-1 font-medium">
+                          <span className="font-semibold text-purple-600 dark:text-purple-400">🏁 Last Date:</span> {schedule.lastDateText}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Price / Pricing Card */}
               <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm flex items-start gap-3">

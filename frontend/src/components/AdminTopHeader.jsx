@@ -129,6 +129,21 @@ export const AdminTopHeader = ({ onSidebarToggle }) => {
       return routeBreadcrumbMap[currentPath];
     }
     if (currentPath.startsWith("/admin-dashboard/users/")) {
+      if (currentPath.endsWith("/edit") || currentPath.includes("/edit/")) {
+        return [{ label: "Admin Portal" }, { label: "User Management", to: "/admin-dashboard/users" }, { label: "Edit User Profile" }];
+      }
+      if (currentPath.endsWith("/quote")) {
+        return [{ label: "Admin Portal" }, { label: "User Management", to: "/admin-dashboard/users" }, { label: "Send Quotation" }];
+      }
+      if (currentPath.endsWith("/limits")) {
+        return [{ label: "Admin Portal" }, { label: "User Management", to: "/admin-dashboard/users" }, { label: "Configure Limits" }];
+      }
+      if (currentPath.endsWith("/reset-password")) {
+        return [{ label: "Admin Portal" }, { label: "User Management", to: "/admin-dashboard/users" }, { label: "Reset Password" }];
+      }
+      if (currentPath.endsWith("/delete")) {
+        return [{ label: "Admin Portal" }, { label: "User Management", to: "/admin-dashboard/users" }, { label: "Delete Account" }];
+      }
       return [{ label: "Admin Portal" }, { label: "User Management", to: "/admin-dashboard/users" }, { label: "User Details" }];
     }
     if (currentPath.startsWith("/admin-dashboard/events/")) {

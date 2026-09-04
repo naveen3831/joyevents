@@ -1530,3 +1530,35 @@ export async function apiPayCustomServiceQuote(id, payload, token) {
     return res.json();
 }
 
+export async function apiGenerateAISuggestions(payload, token) {
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(`${API_URL}/api/ai/suggest-event-content`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to generate AI suggestion");
+    }
+    return res.json();
+}
+
+export async function apiGenerateServiceAISuggestions(payload, token) {
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(`${API_URL}/api/ai/service-content`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Couldn't generate service content right now. Please try again.");
+    }
+    return res.json();
+}
+
+
+

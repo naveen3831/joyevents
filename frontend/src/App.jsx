@@ -65,6 +65,11 @@ const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminMerchantForm = lazy(() => import("./pages/admin/AdminMerchantForm"));
 const AdminSendTicketQuote = lazy(() => import("./pages/admin/AdminSendTicketQuote"));
 const AdminUserDetail = lazy(() => import("./pages/admin/AdminUserDetail"));
+const AdminUserEdit = lazy(() => import("./pages/admin/AdminUserEdit"));
+const AdminUserSendQuote = lazy(() => import("./pages/admin/AdminUserSendQuote"));
+const AdminUserLimits = lazy(() => import("./pages/admin/AdminUserLimits"));
+const AdminUserResetPassword = lazy(() => import("./pages/admin/AdminUserResetPassword"));
+const AdminUserDelete = lazy(() => import("./pages/admin/AdminUserDelete"));
 const AdminEvents = lazy(() => import("./pages/admin/AdminEvents"));
 const AdminEventDetail = lazy(() => import("./pages/admin/AdminEventDetail"));
 const AdminMyEvents = lazy(() => import("./pages/admin/AdminMyEvents"));
@@ -281,6 +286,12 @@ const AppRoutes = () => {
         <Route path="/admin-dashboard/users/create-merchant" element={<ProtectedRoute allowedRoles={["admin"]}><AdminMerchantForm /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/create-merchant" element={<ProtectedRoute allowedRoles={["admin"]}><AdminMerchantForm /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/users/:id" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUserDetail /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/users/:id/edit" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUserEdit /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/users/edit/:id" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUserEdit /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/users/:id/quote" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUserSendQuote /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/users/:id/limits" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUserLimits /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/users/:id/reset-password" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUserResetPassword /></ProtectedRoute>}/>
+        <Route path="/admin-dashboard/users/:id/delete" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUserDelete /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/custom-service-requests/:id" element={<ProtectedRoute allowedRoles={["admin"]}><AdminCustomServiceDetail /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/tickets/:ticketId/send-quote" element={<ProtectedRoute allowedRoles={["admin"]}><AdminSendTicketQuote /></ProtectedRoute>}/>
         <Route path="/admin-dashboard/events" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEvents /></ProtectedRoute>}/>

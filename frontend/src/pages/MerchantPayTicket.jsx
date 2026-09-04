@@ -25,6 +25,9 @@ const MerchantPayTicket = () => {
     const [cvv, setCvv] = useState("");
     const [paymentLoading, setPaymentLoading] = useState(false);
 
+    // Field-level errors
+    const [errors, setErrors] = useState({});
+
     useEffect(() => {
         const fetchTicket = async () => {
             if (!token) return;
@@ -53,18 +56,29 @@ const MerchantPayTicket = () => {
         fetchTicket();
     }, [token, ticketId]);
 
+    const validate = () => {
+        const newErrors = {};
+        const rawCard = cardNumber.replace(/\s/g, "");
+        if (!rawCard || rawCard.length !== 16) {
+            newErrors.cardNumber = "Enter a valid 16-digit card number.";
+        }
+        if (!expiryDate || !/^\d{2}\/\d{2}$/.test(expiryDate)) {
+            newErrors.expiryDate = "Enter expiry in MM/YY format.";
+        }
+        if (!cvv || cvv.length < 3 || cvv.length > 4) {
+            newErrors.cvv = "Enter a valid 3 or 4-digit CVV.";
+        }
+        if (!cardholderName.trim()) {
+            newErrors.cardholderName = "Cardholder name is required.";
+        }
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!token || !ticket) return;
-
-        if (!cardNumber || !cardholderName || !expiryDate || !cvv) {
-            toast.error("Please fill in all card details");
-            return;
-        }
-        if (cardNumber.replace(/\s/g, "").length !== 16) {
-            toast.error("Please enter a valid 16-digit card number");
-            return;
-        }
+        if (!validate()) return;
 
         setPaymentLoading(true);
         try {
@@ -78,11 +92,32 @@ const MerchantPayTicket = () => {
         }
     };
 
+    const handleCardNumberChange = (e) => {
+        const raw = e.target.value.replace(/\D/g, "").slice(0, 16);
+        const formatted = raw.replace(/(.{4})/g, "$1 ").trim();
+        setCardNumber(formatted);
+        if (errors.cardNumber) setErrors((prev) => ({ ...prev, cardNumber: undefined }));
+    };
+
+    const handleExpiryChange = (e) => {
+        const raw = e.target.value.replace(/\D/g, "").slice(0, 4);
+        const formatted = raw.length >= 3 ? raw.slice(0, 2) + "/" + raw.slice(2) : raw;
+        setExpiryDate(formatted);
+        if (errors.expiryDate) setErrors((prev) => ({ ...prev, expiryDate: undefined }));
+    };
+
+    const handleCvvChange = (e) => {
+        const raw = e.target.value.replace(/\D/g, "").slice(0, 4);
+        setCvv(raw);
+        if (errors.cvv) setErrors((prev) => ({ ...prev, cvv: undefined }));
+    };
+
     return (
         <MerchantLayout>
-            <div className="w-full min-w-0 py-6 px-3 sm:px-4 font-sans">
+            <div className="w-full min-w-0 py-5 px-3 sm:px-5 font-sans">
+
                 {/* Back nav */}
-                <div className="max-w-[820px] mx-auto mb-4">
+                <div className="max-w-[1100px] mx-auto mb-5">
                     <button
                         onClick={() => navigate("/merchant-dashboard")}
                         className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer group"
@@ -95,23 +130,25 @@ const MerchantPayTicket = () => {
                 {loadingTicket ? (
                     <div className="flex flex-col items-center justify-center py-20 gap-3">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <p className="text-xs text-muted-foreground">Loading payment detailsâ€¦</p>
+                        <p className="text-xs text-muted-foreground">Loading payment details...</p>
                     </div>
                 ) : ticket ? (
                     <motion.div
                         initial={{ opacity: 0, y: 14 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.28, ease: "easeOut" }}
-                        className="w-full max-w-[820px] mx-auto"
+                        className="w-full max-w-[1100px] mx-auto"
                     >
-                        <div className="flex flex-col lg:flex-row gap-5 items-start">
+                        {/* Two-column checkout layout */}
+                        <div className="flex flex-col lg:flex-row gap-6 items-start">
 
-                            {/* â”€â”€ LEFT COLUMN: Order Summary â”€â”€ */}
-                            <div className="w-full lg:w-[288px] lg:shrink-0">
-                                <div className="rounded-[18px] border border-border bg-card shadow-sm overflow-hidden">
-                                    {/* Summary header */}
+                            {/* ── LEFT: Upgrade Summary ── */}
+                            <div className="w-full lg:w-[35%] lg:max-w-[360px] lg:shrink-0">
+                                <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+
+                                    {/* Card header */}
                                     <div className="px-5 pt-5 pb-4 border-b border-border/60">
-                                        <div className="flex items-center gap-2 mb-2.5">
+                                        <div className="flex items-center gap-2 mb-3">
                                             <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                                                 <Zap className="h-3.5 w-3.5 text-primary" />
                                             </div>
@@ -129,10 +166,10 @@ const MerchantPayTicket = () => {
                                     <div className="px-5 py-4 space-y-2.5">
                                         <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Upgrade Includes</p>
                                         <div className="flex flex-wrap gap-1.5">
-                                            <span className="inline-flex items-center h-6 px-2.5 rounded-md bg-primary/8 border border-primary/20 text-[11px] font-semibold text-primary">
+                                            <span className="inline-flex items-center h-6 px-2.5 rounded-md bg-primary/10 border border-primary/20 text-[11px] font-semibold text-primary">
                                                 +{ticket.requestedEvents} Events
                                             </span>
-                                            <span className="inline-flex items-center h-6 px-2.5 rounded-md bg-primary/8 border border-primary/20 text-[11px] font-semibold text-primary">
+                                            <span className="inline-flex items-center h-6 px-2.5 rounded-md bg-primary/10 border border-primary/20 text-[11px] font-semibold text-primary">
                                                 +{ticket.requestedServices} Services
                                             </span>
                                         </div>
@@ -143,12 +180,10 @@ const MerchantPayTicket = () => {
 
                                     {/* Amount due */}
                                     <div className="px-5 py-4">
-                                        <div className="flex items-end justify-between">
-                                            <div>
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Amount Due</p>
-                                                <p className="text-[10px] text-muted-foreground/60 mt-0.5">One-time setup fee</p>
-                                            </div>
-                                            <p className="text-[22px] font-extrabold text-primary font-display tracking-tight leading-none">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Amount Due</p>
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-xs text-muted-foreground">One-time setup fee</p>
+                                            <p className="text-[22px] font-extrabold text-primary tracking-tight leading-none">
                                                 {formatCurrency(ticket.quotationAmount)}
                                             </p>
                                         </div>
@@ -159,17 +194,20 @@ const MerchantPayTicket = () => {
                                         <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
                                         <div>
                                             <p className="text-[11px] font-semibold text-emerald-700">Secure demo payment</p>
-                                            <p className="text-[10px] text-emerald-600/80 mt-0.5 leading-relaxed">No real charges will be made. This is a simulated transaction.</p>
+                                            <p className="text-[10px] text-emerald-600/80 mt-0.5 leading-relaxed">
+                                                No real charges will be made. This is a simulated transaction.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* â”€â”€ RIGHT COLUMN: Payment Form â”€â”€ */}
+                            {/* ── RIGHT: Payment Form ── */}
                             <div className="w-full flex-1 min-w-0">
-                                <div className="rounded-[18px] border border-border bg-card shadow-sm overflow-hidden">
+                                <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+
                                     {/* Form header */}
-                                    <div className="px-6 pt-5 pb-4 border-b border-border/60 flex items-center gap-2.5">
+                                    <div className="px-6 pt-5 pb-4 border-b border-border/60 flex items-center gap-3">
                                         <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                                             <CreditCard className="h-4 w-4 text-primary" />
                                         </div>
@@ -179,107 +217,126 @@ const MerchantPayTicket = () => {
                                         </div>
                                     </div>
 
-                                    <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+                                    <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4" noValidate>
+
                                         {/* Card Number */}
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="cardNumber" className="text-xs font-semibold text-foreground/80">Card Number</Label>
+                                            <Label htmlFor="cardNumber" className="text-xs font-semibold text-foreground/80">
+                                                Card Number
+                                            </Label>
                                             <Input
                                                 id="cardNumber"
                                                 required
-                                                placeholder="4111 2222 3333 4444"
+                                                placeholder="1111 2222 3333 4444"
                                                 value={cardNumber}
-                                                onChange={(e) => {
-                                                    const val = e.target.value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
-                                                    const matches = val.match(/\d{4,16}/g);
-                                                    const match = (matches && matches[0]) || "";
-                                                    const parts = [];
-                                                    for (let i = 0, len = match.length; i < len; i += 4) {
-                                                        parts.push(match.substring(i, i + 4));
-                                                    }
-                                                    setCardNumber(parts.length ? parts.join(" ") : val);
-                                                }}
+                                                onChange={handleCardNumberChange}
+                                                inputMode="numeric"
                                                 maxLength={19}
-                                                className="h-11 text-sm rounded-xl font-mono tracking-widest border-border focus-visible:ring-primary/30 focus-visible:border-primary"
+                                                autoComplete="cc-number"
+                                                className="h-12 text-sm rounded-xl font-mono tracking-widest border-border focus-visible:ring-primary/30 focus-visible:border-primary"
                                             />
+                                            {errors.cardNumber && (
+                                                <p className="text-[11px] text-destructive">{errors.cardNumber}</p>
+                                            )}
                                         </div>
 
-                                        {/* Expiry + CVV */}
-                                        <div className="grid grid-cols-2 gap-3">
+                                        {/* Expiry + CVV — side by side */}
+                                        <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1.5">
-                                                <Label htmlFor="expiryDate" className="text-xs font-semibold text-foreground/80">Expiry Date</Label>
+                                                <Label htmlFor="expiryDate" className="text-xs font-semibold text-foreground/80">
+                                                    Expiry Date
+                                                </Label>
                                                 <Input
                                                     id="expiryDate"
                                                     required
                                                     placeholder="MM/YY"
                                                     value={expiryDate}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
-                                                        setExpiryDate(val.length >= 2 ? val.substring(0, 2) + "/" + val.substring(2, 4) : val);
-                                                    }}
+                                                    onChange={handleExpiryChange}
+                                                    inputMode="numeric"
                                                     maxLength={5}
-                                                    className="h-11 text-sm rounded-xl border-border focus-visible:ring-primary/30 focus-visible:border-primary"
+                                                    autoComplete="cc-exp"
+                                                    className="h-12 text-sm rounded-xl border-border focus-visible:ring-primary/30 focus-visible:border-primary"
                                                 />
+                                                {errors.expiryDate && (
+                                                    <p className="text-[11px] text-destructive">{errors.expiryDate}</p>
+                                                )}
                                             </div>
                                             <div className="space-y-1.5">
-                                                <Label htmlFor="cvv" className="text-xs font-semibold text-foreground/80">CVV</Label>
+                                                <Label htmlFor="cvv" className="text-xs font-semibold text-foreground/80">
+                                                    CVV
+                                                </Label>
                                                 <div className="relative">
                                                     <Input
                                                         id="cvv"
                                                         required
-                                                        placeholder="â€¢â€¢â€¢"
+                                                        placeholder="123"
                                                         type="password"
+                                                        inputMode="numeric"
                                                         value={cvv}
-                                                        onChange={(e) => setCvv(e.target.value.replace(/[^0-9]/g, ""))}
-                                                        maxLength={3}
-                                                        className="h-11 text-sm rounded-xl border-border focus-visible:ring-primary/30 focus-visible:border-primary pr-9"
+                                                        onChange={handleCvvChange}
+                                                        maxLength={4}
+                                                        autoComplete="cc-csc"
+                                                        className="h-12 text-sm rounded-xl border-border focus-visible:ring-primary/30 focus-visible:border-primary pr-9"
                                                     />
                                                     <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40 pointer-events-none" />
                                                 </div>
+                                                {errors.cvv && (
+                                                    <p className="text-[11px] text-destructive">{errors.cvv}</p>
+                                                )}
                                             </div>
                                         </div>
 
                                         {/* Cardholder Name */}
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="cardholderName" className="text-xs font-semibold text-foreground/80">Cardholder Name</Label>
+                                            <Label htmlFor="cardholderName" className="text-xs font-semibold text-foreground/80">
+                                                Cardholder Name
+                                            </Label>
                                             <Input
                                                 id="cardholderName"
                                                 required
                                                 placeholder="John Doe"
                                                 value={cardholderName}
-                                                onChange={(e) => setCardholderName(e.target.value)}
-                                                className="h-11 text-sm rounded-xl border-border focus-visible:ring-primary/30 focus-visible:border-primary"
+                                                onChange={(e) => {
+                                                    setCardholderName(e.target.value);
+                                                    if (errors.cardholderName) setErrors((prev) => ({ ...prev, cardholderName: undefined }));
+                                                }}
+                                                autoComplete="cc-name"
+                                                className="h-12 text-sm rounded-xl border-border focus-visible:ring-primary/30 focus-visible:border-primary"
                                             />
+                                            {errors.cardholderName && (
+                                                <p className="text-[11px] text-destructive">{errors.cardholderName}</p>
+                                            )}
                                         </div>
 
-                                        {/* Bottom total + CTA */}
-                                        <div className="border-t border-border/60 pt-4">
+                                        {/* Footer: Total + Buttons */}
+                                        <div className="border-t border-border/60 pt-4 mt-2">
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                                 {/* Total */}
                                                 <div>
                                                     <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Total Due</p>
-                                                    <p className="text-xl font-extrabold text-foreground font-display tracking-tight mt-0.5">
+                                                    <p className="text-xl font-extrabold text-foreground tracking-tight mt-0.5">
                                                         {formatCurrency(ticket.quotationAmount)}
                                                     </p>
                                                 </div>
-                                                {/* Action buttons */}
+                                                {/* Buttons */}
                                                 <div className="flex items-center gap-2.5 w-full sm:w-auto">
                                                     <Button
                                                         type="button"
                                                         variant="outline"
                                                         onClick={() => navigate("/merchant-dashboard")}
-                                                        className="h-11 px-5 text-xs font-semibold rounded-xl cursor-pointer border-border hover:bg-secondary/60 flex-1 sm:flex-none"
+                                                        className="h-10 px-5 text-xs font-semibold rounded-xl cursor-pointer border-border hover:bg-secondary/60 flex-1 sm:flex-none"
                                                     >
                                                         Cancel
                                                     </Button>
                                                     <Button
                                                         type="submit"
                                                         disabled={paymentLoading}
-                                                        className="h-11 px-6 text-xs font-bold rounded-xl cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all flex-1 sm:flex-none min-w-[148px]"
+                                                        className="h-10 px-6 text-xs font-bold rounded-xl cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all flex-1 sm:flex-none min-w-[148px]"
                                                     >
                                                         {paymentLoading ? (
                                                             <span className="flex items-center gap-1.5">
                                                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                                Processingâ€¦
+                                                                Processing...
                                                             </span>
                                                         ) : (
                                                             <span className="flex items-center gap-1.5">
@@ -294,10 +351,14 @@ const MerchantPayTicket = () => {
                                     </form>
                                 </div>
 
-                                {/* Bottom trust line */}
-                                <p className="text-center text-[10px] text-muted-foreground/50 mt-3 flex items-center justify-center gap-1.5">
+                                {/* Security trust line — clean text, no special characters */}
+                                <p className="text-center text-[10px] text-muted-foreground/50 mt-3 flex items-center justify-center gap-2 flex-wrap">
                                     <ShieldCheck className="h-3 w-3 text-emerald-500 shrink-0" />
-                                    256-bit SSL encrypted &nbsp;Â·&nbsp; Simulated payment &nbsp;Â·&nbsp; No real charges
+                                    <span>256-bit SSL encrypted</span>
+                                    <span className="opacity-40">&bull;</span>
+                                    <span>Simulated payment</span>
+                                    <span className="opacity-40">&bull;</span>
+                                    <span>No real charges</span>
                                 </p>
                             </div>
 

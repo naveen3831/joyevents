@@ -20,6 +20,7 @@ import contactRoutes from "./routes/contact.js";
 import recommendationRoutes from "./routes/recommendations.js";
 import referralRoutes from "./routes/referrals.js";
 import customServiceRoutes from "./routes/customServiceRequests.js";
+import aiRoutes from "./routes/ai.js";
 import { connectDB } from "./config/db.js";
 import { getSmtpConfig, isSmtpConfigured } from "./utils/sendEmail.js";
 import { emitResourceChanged, setupRealtime } from "./realtime.js";
@@ -131,6 +132,7 @@ app.use("/api/recommendations", recommendationRoutes);
 app.use("/api/merchant", merchantRoutes);
 app.use("/api/referrals", referralRoutes);
 app.use("/api/custom-service-requests", customServiceRoutes);
+app.use("/api/ai", aiRoutes);
 
 if (process.env.SERVE_FRONTEND === "true") {
   const frontendDist = resolve(__dirname, "../../frontend/dist");

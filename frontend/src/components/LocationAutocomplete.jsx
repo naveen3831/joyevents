@@ -148,6 +148,27 @@ const LocationAutocomplete = ({
         if (onCoordinatesSelect) onCoordinatesSelect(payload);
     };
 
+    const handleSelectManual = () => {
+        isSelectionRef.current = true;
+        const manualAddress = query.trim();
+        setQuery(manualAddress);
+        setSuggestions([]);
+        setIsOpen(false);
+        setHighlightedIndex(-1);
+        setSearchError(false);
+
+        if (onChange) onChange(manualAddress);
+        const payload = {
+            lat: null,
+            lng: null,
+            address: manualAddress,
+            name: manualAddress,
+            isManual: true
+        };
+        if (onSelect) onSelect(payload);
+        if (onCoordinatesSelect) onCoordinatesSelect(payload);
+    };
+
     const handleKeyDown = (e) => {
         if (!isOpen || suggestions.length === 0) {
             if (e.key === "Escape") {
@@ -271,7 +292,7 @@ const LocationAutocomplete = ({
 
                 {/* Suggestions Dropdown */}
                 {isOpen && !disabled && (
-                    <div className="absolute top-full left-0 right-0 z-50 mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-border bg-card shadow-xl p-1 animate-in fade-in-50 zoom-in-95 duration-150">
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1.5 max-h-72 overflow-y-auto rounded-xl border border-border bg-card shadow-xl p-1 animate-in fade-in-50 zoom-in-95 duration-150">
                         {suggestions.length > 0 ? (
                             suggestions.map((item, index) => {
                                 const isHighlighted = index === highlightedIndex;
@@ -302,21 +323,39 @@ const LocationAutocomplete = ({
                                 );
                             })
                         ) : query.trim().length >= 3 && !loading ? (
-                            <div className="px-3 py-4 text-center text-xs text-muted-foreground">
+                            <div className="px-3 py-3 text-center text-xs text-muted-foreground">
                                 {searchError ? (
                                     <div className="flex flex-col items-center gap-1 text-muted-foreground">
                                         <AlertCircle className="h-4 w-4 text-muted-foreground/60" />
                                         <span>Unable to load location suggestions</span>
-                                        <span className="text-[10px] text-muted-foreground/75">You can still enter location manually</span>
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center gap-1">
                                         <MapPin className="h-4 w-4 text-muted-foreground/50" />
-                                        <span>No locations found for "{query}"</span>
+                                        <span>No exact places found for "{query}"</span>
                                     </div>
                                 )}
                             </div>
                         ) : null}
+
+                        {/* Manual Location Option */}
+                        {query.trim().length >= 3 && (
+                            <button
+                                type="button"
+                                onClick={handleSelectManual}
+                                className="w-full text-left px-3 py-2.5 rounded-lg border-t border-border flex items-center gap-2.5 hover:bg-primary/5 text-primary transition-colors cursor-pointer mt-1"
+                            >
+                                <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                                    <Check className="h-3.5 w-3.5 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-semibold text-foreground truncate">
+                                        Use <span className="text-primary font-bold">"{query}"</span> as entered
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">Save as custom venue name / manual location</p>
+                                </div>
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

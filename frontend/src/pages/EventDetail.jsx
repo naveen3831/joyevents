@@ -438,16 +438,23 @@ const EventDetail = () => {
                   const schedule = formatEventSchedule(event);
                   return (
                     <div className="space-y-3">
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4 text-primary shrink-0"/>
-                        <span>
-                          {schedule.dateText}
-                          {schedule.isMultiDay && (
-                            <span className="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary">
-                              {schedule.badgeText}
-                            </span>
+                      <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4 text-primary shrink-0 mt-0.5"/>
+                        <div className="space-y-0.5">
+                          <div className="flex flex-wrap items-center gap-1.5 font-medium text-foreground">
+                            <span>{schedule.dateText}</span>
+                            {schedule.isMultiDay && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary">
+                                {schedule.badgeText}
+                              </span>
+                            )}
+                          </div>
+                          {schedule.isMultiDay && schedule.lastDateText && (
+                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                              <span className="font-semibold text-purple-600 dark:text-purple-400">🏁 Last Date of Event:</span> {schedule.lastDateText}
+                            </p>
                           )}
-                        </span>
+                        </div>
                       </div>
 
                       {schedule.timeText && (
