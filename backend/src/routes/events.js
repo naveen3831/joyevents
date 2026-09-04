@@ -10,7 +10,7 @@ const router = Router();
 // Public: list all events
 router.get("/", async (_req, res) => {
   try {
-    const events = await Event.find().populate("createdBy", "name email").sort({ createdAt: -1 });
+    const events = await Event.find().populate("createdBy", "name email role").sort({ createdAt: -1 });
     
     // Fetch average ratings and rating counts for all events
     const ratings = await Booking.aggregate([
@@ -32,12 +32,21 @@ router.get("/", async (_req, res) => {
       };
     });
 
-    // Normalize tickets for all events and merge ratings
+    // Normalize tickets for all events and merge ratings & permissions
     const normalizedEvents = events.map((event) => {
       const eventObj = event.toObject();
       const ratingInfo = ratingsMap[eventObj._id.toString()] || { averageRating: 0, ratingCount: 0 };
       eventObj.averageRating = ratingInfo.averageRating;
       eventObj.ratingCount = ratingInfo.ratingCount;
+
+      const createdByRole = eventObj.createdBy?.role || "merchant";
+      const isCreatedByAdmin = createdByRole === "admin";
+      eventObj.createdByRole = createdByRole;
+      eventObj.permissions = {
+        canView: true,
+        canEdit: isCreatedByAdmin,
+        canManageLive: isCreatedByAdmin
+      };
 
       if (eventObj.eventType === "ticketed" && eventObj.tickets) {
         eventObj.tickets = eventObj.tickets.map((t) => ({
@@ -173,10 +182,19 @@ router.get("/merchant/:merchantId", async (req, res) => {
 // Public: get single event by ID (must come after /my-events)
 router.get("/:id", async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id).populate("createdBy", "name email");
+    const event = await Event.findById(req.params.id).populate("createdBy", "name email role");
     if (!event) return res.status(404).json({ error: "Event not found" });
     
     const eventObj = event.toObject();
+
+    const createdByRole = eventObj.createdBy?.role || "merchant";
+    const isCreatedByAdmin = createdByRole === "admin";
+    eventObj.createdByRole = createdByRole;
+    eventObj.permissions = {
+      canView: true,
+      canEdit: isCreatedByAdmin,
+      canManageLive: isCreatedByAdmin
+    };
 
     // Fetch average ratings and rating counts for this single event
     const ratings = await Booking.aggregate([
@@ -564,17 +582,28 @@ router.patch("/:id", verifyToken, upload.fields([
       }
     }
 
-    // Check if user is admin or the creator of the event
-    const event = await Event.findById(req.params.id);
+    // Check authorization based on event ownership
+    const event = await Event.findById(req.params.id).populate("createdBy", "role");
     if (!event) return res.status(404).json({ error: "Event not found" });
 
+    const creatorRole = event.createdBy?.role || "merchant";
+    const isMerchantEvent = creatorRole === "merchant";
+    const includesLiveUpdate = 'live' in update;
 
-    // For live status updates, allow any merchant to toggle
-    // For other updates, require admin or creator
-    const isLiveUpdateOnly = Object.keys(update).length === 1 && 'live' in update;
-
-    if (req.user.role !== "admin" && event.createdBy?.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: "Not authorized to update this event" });
+    if (req.user.role === "admin") {
+      // Admin is ONLY allowed to edit or manage live status for Admin-created events
+      if (isMerchantEvent) {
+        if (includesLiveUpdate) {
+          return res.status(403).json({ error: "Live status for merchant-created events is controlled by the merchant." });
+        }
+        return res.status(403).json({ error: "This event is managed by its merchant and cannot be edited from the Admin Portal." });
+      }
+    } else {
+      // Merchant can ONLY update their own events
+      const creatorIdStr = event.createdBy?._id ? event.createdBy._id.toString() : (event.createdBy ? event.createdBy.toString() : "");
+      if (creatorIdStr !== req.user._id.toString()) {
+        return res.status(403).json({ error: "Not authorized to update this event" });
+      }
     }
 
     const updatedEvent = await Event.findByIdAndUpdate(req.params.id, update, { new: true });

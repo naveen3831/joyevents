@@ -96,9 +96,11 @@ const AdminEventDetail = () => {
                 <ArrowLeft className="h-4 w-4" /> Back to Events
               </Button>
               {event && (
+                (event.createdByRole || (typeof event.createdBy === "object" ? event.createdBy?.role : null)) === "admin" || event.permissions?.canEdit === true
+              ) && (
                 <Button
                   size="sm"
-                  onClick={() => navigate(`/admin-dashboard/events/${id}/edit`)}
+                  onClick={() => navigate(`/admin-dashboard/my-events/${id}/edit`)}
                   className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-xs font-semibold h-9 px-4 gap-1.5 shadow-sm"
                 >
                   <Pencil className="h-3.5 w-3.5" /> Edit Event

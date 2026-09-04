@@ -12,6 +12,7 @@ import {
   ToggleLeft,
   ToggleRight,
   Video,
+  Pencil,
 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import PageHeader from "@/components/common/PageHeader";
@@ -295,25 +296,30 @@ const AdminEvents = () => {
                         {/* Actions */}
                         <td className="px-4 py-3 align-middle text-center">
                           <div className="flex items-center justify-center">
-                            <ActionMenu
-                              items={[
+                            {(() => {
+                              const createdRole = ev.createdByRole || (typeof ev.createdBy === "object" ? ev.createdBy?.role : null);
+                              const isCreatedByAdmin = createdRole === "admin" || ev.permissions?.canEdit === true;
+                              const menuItems = [
                                 {
                                   label: "View Event",
                                   icon: Eye,
                                   onClick: () => navigate(`/admin-dashboard/events/${ev._id}`),
-                                },
-                                {
+                                }
+                              ];
+                              if (isCreatedByAdmin) {
+                                menuItems.push({
                                   label: isToggling
                                     ? "Updating..."
                                     : ev.live
-                                    ? "Remove from Live"
+                                    ? "Stop Live"
                                     : "Go Live",
                                   icon: ev.live ? ToggleRight : ToggleLeft,
                                   disabled: isToggling,
                                   onClick: () => handleToggleLive(ev),
-                                },
-                              ]}
-                            />
+                                });
+                              }
+                              return <ActionMenu items={menuItems} />;
+                            })()}
                           </div>
                         </td>
                       </tr>

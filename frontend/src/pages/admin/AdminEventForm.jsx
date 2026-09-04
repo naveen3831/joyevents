@@ -138,13 +138,25 @@ const AdminEventForm = ({ layout = "admin" } = {}) => {
         apiListCategories("event").then((res) => { if (!cancelled) setCategories((res.categories || []).map((c) => c.name)); }).catch(() => {});
         if (isEdit) {
             apiGetEventById(editingId)
-                .then((res) => { if (!cancelled && res.event) populateFromEvent(res.event); })
+                .then((res) => {
+                    if (!cancelled && res.event) {
+                        const ev = res.event;
+                        const createdRole = ev.createdByRole || (typeof ev.createdBy === "object" ? ev.createdBy?.role : null);
+                        const isMerchantCreated = createdRole ? createdRole === "merchant" : false;
+                        if (layout === "admin" && isMerchantCreated) {
+                            toast.error("This event is managed by its merchant and cannot be edited from the Admin Portal.");
+                            navigate("/admin-dashboard/events", { replace: true });
+                            return;
+                        }
+                        populateFromEvent(ev);
+                    }
+                })
                 .catch((e) => { if (!cancelled) setLoadError(e?.message || "Failed to load event"); })
                 .finally(() => { if (!cancelled) setPageLoading(false); });
         }
         return () => { cancelled = true; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editingId]);
+    }, [editingId, layout]);
 
     const handleCreateCategory = async () => {
         const trimmed = newCatName.trim();
