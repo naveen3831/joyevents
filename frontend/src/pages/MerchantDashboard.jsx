@@ -1058,7 +1058,7 @@ const MerchantDashboard = () => {
               <h2 className="font-display text-sm sm:text-2xl font-bold flex items-center gap-2">
                 <Video className="h-5 w-5 text-primary"/> Your Live Events
               </h2>
-              <Link to="/merchant-dashboard/live-events">
+              <Link to="/merchant-dashboard/events">
                 <Button size="sm" variant="outline">Manage All</Button>
               </Link>
             </div>

@@ -36,7 +36,6 @@ const groups = [
     icon: Calendar,
     items: [
       { to: "/merchant-dashboard/events", label: "My Events", icon: Calendar },
-      { to: "/merchant-dashboard/live-events", label: "Live Events", icon: Video },
       { to: "/merchant-dashboard/services", label: "My Services", icon: Briefcase },
       { to: "/merchant-dashboard/bookings", label: "Bookings", icon: CheckCircle2 },
     ],

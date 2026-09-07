@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { User, Edit2, Save, X, Shield, Store, UserCircle, Wallet, Gift, Sparkles, Calendar, ShieldCheck, Mail, CheckCircle, LogOut } from "lucide-react";
+import { User, Edit2, Save, X, Shield, Store, UserCircle, Wallet, Gift, Sparkles, Calendar, ShieldCheck, Mail, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
@@ -7,31 +7,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { API_URL } from "@/lib/config";
 import { sanitizeNameInput, validateName, NAME_MAX_LENGTH, NAME_HINT } from "@/lib/validation";
-import { Link, useNavigate } from "react-router-dom";
-import { clearSession } from "@/lib/session";
+import { Link } from "react-router-dom";
 
 const Profile = () => {
-    const { user, token, updateUser, setIsLoggedIn, setToken, setUser } = useAuth();
-    const navigate = useNavigate();
+    const { user, token, updateUser } = useAuth();
     const [editing, setEditing] = useState(false);
     const [name, setName] = useState("");
     const [loading, setLoading] = useState(false);
-
-    const handleLogout = () => {
-        if (!window.confirm("Are you sure you want to sign out?")) return;
-        sessionStorage.setItem("forceLoginNoRedirect", "1");
-        setIsLoggedIn(false);
-        setToken(null);
-        setUser(null);
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        localStorage.removeItem("role");
-        localStorage.removeItem("authReturnTo");
-        clearSession();
-        sessionStorage.removeItem("bookingReturnTo");
-        toast.success("Signed out successfully");
-        navigate("/login", { replace: true });
-    };
 
     useEffect(() => {
         if (user) {
@@ -137,8 +119,16 @@ const Profile = () => {
                     {/* Compact Profile Summary Banner (Height ~100px-115px) */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg border border-border/80 bg-slate-50/80 dark:bg-slate-900/60 min-h-[100px]">
                         <div className="flex items-center gap-3.5 min-w-0">
-                            <div className="h-14 w-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-xl font-bold shrink-0">
-                                {user.name ? user.name.slice(0, 2).toUpperCase() : "U"}
+                            <div className="h-14 w-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-xl font-bold shrink-0 overflow-hidden">
+                                {user.avatar ? (
+                                    <img
+                                        src={user.avatar}
+                                        alt={user.name}
+                                        className="h-full w-full object-cover rounded-full"
+                                    />
+                                ) : (
+                                    user.name ? user.name.slice(0, 2).toUpperCase() : "U"
+                                )}
                             </div>
                             <div className="min-w-0">
                                 <h2 className="font-semibold text-lg text-foreground leading-tight truncate">{user.name}</h2>
@@ -317,18 +307,7 @@ const Profile = () => {
                         </div>
                     </div>
 
-                    {/* Sign Out Action Button */}
-                    <div className="pt-4 border-t border-border/60 flex items-center justify-between gap-4">
-                        <span className="text-xs text-muted-foreground hidden sm:inline">Signed in as <strong className="text-foreground">{user.email}</strong></span>
-                        <Button
-                            onClick={handleLogout}
-                            variant="destructive"
-                            size="sm"
-                            className="w-full sm:w-auto h-9 px-4 rounded-md font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                            <LogOut className="h-3.5 w-3.5" /> Sign Out
-                        </Button>
-                    </div>
+
 
                 </div>
             </motion.div>

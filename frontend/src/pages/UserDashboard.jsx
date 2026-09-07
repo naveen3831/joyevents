@@ -204,6 +204,46 @@ const UserDashboard = () => {
     setFilteredServices([]);
   };
 
+  const goToCheckoutPage = (b) => {
+    const { amount, paymentType } = (() => {
+      if (
+        b.status === "awaiting_final_payment" ||
+        (b.paymentType === "advance" && b.isAdvancePaid && !b.isRemainingPaid)
+      ) {
+        const rem = b.remainingAmount > 0 
+          ? b.remainingAmount 
+          : ((b.price || 0) - (b.advanceAmount || 0));
+        return { amount: rem > 0 ? rem : (b.price || 0), paymentType: "remaining" };
+      }
+      if (
+        b.paymentType === "advance" &&
+        !b.isAdvancePaid
+      ) {
+        const adv = b.advanceAmount > 0 
+          ? b.advanceAmount 
+          : Math.round((b.price || 0) * 0.3);
+        return { amount: adv > 0 ? adv : (b.price || 0), paymentType: "advance" };
+      }
+      return { amount: b.price || 0, paymentType: "full" };
+    })();
+
+    navigate("/customer-dashboard/checkout", {
+      state: {
+        bookingId: b._id,
+        amount,
+        bookingData: {
+          eventName: b.event?.title || b.serviceName || "Service Booking",
+          serviceName: b.serviceName || b.event?.title || "Service Booking",
+          paymentType,
+          datetime: b.datetime,
+          location: b.customerLocation?.address || b.event?.location,
+          image: b.event?.image || b.serviceImage || b.service?.image,
+          price: b.price
+        }
+      }
+    });
+  };
+
   const loadBookings = async () => {
     if (!token) return;
     try {
@@ -505,10 +545,27 @@ const UserDashboard = () => {
                               )}
                             </div>
 
-                            <div className="pt-2">
+                            <div className="pt-2 flex items-center gap-2.5 flex-wrap">
+                              {(() => {
+                                const isPayable = (
+                                  ["awaiting_payment", "approved", "assigned", "awaiting_final_payment"].includes(b.status) ||
+                                  (b.paymentType === "advance" && !b.isAdvancePaid && !["cancelled", "rejected", "refunded"].includes(b.status)) ||
+                                  (b.paymentType === "advance" && b.isAdvancePaid && !b.isRemainingPaid && !["cancelled", "rejected", "refunded"].includes(b.status)) ||
+                                  (b.approvedAt && b.paymentStatus === "pending" && !["cancelled", "rejected", "refunded"].includes(b.status))
+                                ) && b.paymentStatus !== "paid";
+
+                                return isPayable ? (
+                                  <Button
+                                    onClick={() => goToCheckoutPage(b)}
+                                    className="bg-gradient-primary text-white font-bold h-11 sm:h-12 px-6 rounded-2xl shadow-glow hover:scale-105 transition-all flex items-center gap-2 text-xs sm:text-sm animate-pulse cursor-pointer"
+                                  >
+                                    <CreditCard className="h-4 w-4" /> Pay Requested Amount <ArrowRight className="h-4 w-4" />
+                                  </Button>
+                                ) : null;
+                              })()}
                               <Button
                                 onClick={() => navigate(`/my-requests`)}
-                                className="bg-gradient-primary text-white font-bold h-11 sm:h-12 px-6 rounded-2xl shadow-glow hover:scale-105 transition-all flex items-center gap-2 text-xs sm:text-sm"
+                                className="bg-white/10 hover:bg-white/20 text-white font-bold h-11 sm:h-12 px-6 rounded-2xl backdrop-blur-md transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
                               >
                                 <FileText className="h-4 w-4" /> View My Bookings <ArrowRight className="h-4 w-4" />
                               </Button>
@@ -615,11 +672,29 @@ const UserDashboard = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 ml-auto sm:ml-0">
+                    <div className="flex items-center gap-2.5 ml-auto sm:ml-0">
                       <span className="font-bold text-sm text-primary">{formatCurrency(b.price)}</span>
                       <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold capitalize ${STATUS_BADGE[b.status] || "bg-secondary text-muted-foreground"}`}>
                         {b.status}
                       </span>
+                      {(() => {
+                        const isPayable = (
+                          ["awaiting_payment", "approved", "assigned", "awaiting_final_payment"].includes(b.status) ||
+                          (b.paymentType === "advance" && !b.isAdvancePaid && !["cancelled", "rejected", "refunded"].includes(b.status)) ||
+                          (b.paymentType === "advance" && b.isAdvancePaid && !b.isRemainingPaid && !["cancelled", "rejected", "refunded"].includes(b.status)) ||
+                          (b.approvedAt && b.paymentStatus === "pending" && !["cancelled", "rejected", "refunded"].includes(b.status))
+                        ) && b.paymentStatus !== "paid";
+
+                        return isPayable ? (
+                          <Button
+                            size="sm"
+                            className="h-7 px-2.5 text-[11px] font-bold rounded-xl bg-gradient-primary text-white hover:opacity-90 gap-1 flex items-center justify-center shadow-xs animate-pulse cursor-pointer"
+                            onClick={() => goToCheckoutPage(b)}
+                          >
+                            <CreditCard className="h-3 w-3 shrink-0" /> Pay Now
+                          </Button>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
                 ))}
@@ -756,6 +831,55 @@ const UserDashboard = () => {
             service={contactService}
           />
         )}
+
+        {/* Standard Booking Payment Modal */}
+        {paymentBooking && (() => {
+          const { amount, paymentType } = (() => {
+            if (
+              paymentBooking.status === "awaiting_final_payment" ||
+              (paymentBooking.paymentType === "advance" && paymentBooking.isAdvancePaid && !paymentBooking.isRemainingPaid)
+            ) {
+              const rem = paymentBooking.remainingAmount > 0 
+                ? paymentBooking.remainingAmount 
+                : ((paymentBooking.price || 0) - (paymentBooking.advanceAmount || 0));
+              return { amount: rem > 0 ? rem : (paymentBooking.price || 0), paymentType: "remaining" };
+            }
+            if (
+              paymentBooking.paymentType === "advance" &&
+              !paymentBooking.isAdvancePaid
+            ) {
+              const adv = paymentBooking.advanceAmount > 0 
+                ? paymentBooking.advanceAmount 
+                : Math.round((paymentBooking.price || 0) * 0.3);
+              return { amount: adv > 0 ? adv : (paymentBooking.price || 0), paymentType: "advance" };
+            }
+            return { amount: paymentBooking.price || 0, paymentType: "full" };
+          })();
+
+          return (
+            <Dialog open={showPaymentModal} onOpenChange={(open) => !open && setShowPaymentModal(false)}>
+              <DialogContent className="sm:max-w-[500px] bg-card border-border">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-display font-bold">Complete Payment</DialogTitle>
+                </DialogHeader>
+                <div className="mt-4">
+                  <SimplePayment 
+                    amount={amount} 
+                    bookingId={paymentBooking._id} 
+                    bookingData={{ paymentType }}
+                    onSuccess={() => {
+                      setShowPaymentModal(false);
+                      setPaymentBooking(null);
+                      loadBookings();
+                      toast.success("Payment completed successfully!");
+                    }} 
+                    onClose={() => setShowPaymentModal(false)}
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
       </section>
     </CustomerLayout>
   );

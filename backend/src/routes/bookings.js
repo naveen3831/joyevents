@@ -486,12 +486,15 @@ router.post("/", verifyToken, async (req, res) => {
       if (customerUser) {
         customerUser.walletBalance = Math.max(0, (customerUser.walletBalance || 0) - walletAmountPaid);
         await customerUser.save();
+        try {
+          emitWalletUpdated(customerUser._id, customerUser.walletBalance);
+        } catch (e) {}
 
         // Log transaction for customer spending
         await Transaction.create({
           merchant: req.user._id, // customer's wallet transaction
           booking: booking._id,
-          type: "withdrawal",
+          type: "booking_payment",
           amount: walletAmountPaid,
           description: `Paid for booking using Wallet balance: ${booking.serviceName || booking.eventName}`,
           status: "completed",
@@ -1337,13 +1340,16 @@ router.patch("/:id/pay", verifyToken, async (req, res) => {
     
     const { paymentType = "full" } = req.body; // "full", "advance", or "remaining"
 
-    // Check if valid status for payment
-    if (booking.paymentStatus === "paid" && booking.status === "confirmed") {
+    // Check if booking is already fully paid
+    const isFullyPaid = booking.paymentStatus === "paid" && (booking.paymentType !== "advance" || booking.isRemainingPaid);
+    if (isFullyPaid) {
       return res.status(400).json({ error: "Booking is already paid and confirmed" });
     }
-    const allowedStatuses = ["pending", "pending_approval", "awaiting_payment", "awaiting_final_payment", "processing", "accepted", "confirmed", "completed"];
-    if (!allowedStatuses.includes(booking.status)) {
-      return res.status(400).json({ error: "Booking is not in a payable status" });
+
+    // Check if booking is cancelled or refunded
+    const unpayableStatuses = ["cancelled", "rejected", "refunded", "cancellation_requested", "refund_pending"];
+    if (unpayableStatuses.includes(booking.status)) {
+      return res.status(400).json({ error: "Booking is cancelled or refunded and cannot be paid" });
     }
 
     // Extract payment details
@@ -1379,7 +1385,7 @@ router.patch("/:id/pay", verifyToken, async (req, res) => {
       await Transaction.create({
         merchant: req.user._id,
         booking: booking._id,
-        type: "withdrawal",
+        type: "booking_payment",
         amount: walletAmountPaid,
         description: `Paid for booking using Wallet balance: ${booking.serviceName || booking.eventName}`,
         status: "completed",

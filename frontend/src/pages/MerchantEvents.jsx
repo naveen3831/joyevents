@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { formatCurrency, formatEventSchedule } from "@/lib/utils";
 import { useGsapStagger } from "@/lib/gsapAnimations";
-import { Calendar, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, IndianRupee, Upload, Ticket, Eye } from "lucide-react";
+import { Calendar, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, IndianRupee, Upload, Ticket, Eye, ToggleLeft, ToggleRight, Video } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import AdminLayout from "@/components/AdminLayout";
 import PageHeader from "@/components/common/PageHeader";
@@ -67,6 +67,26 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
     const [formErrors, setFormErrors] = useState({});
     const [ticketError, setTicketError] = useState("");
     const [creatingCat, setCreatingCat] = useState(false);
+    const [togglingLiveId, setTogglingLiveId] = useState(null);
+
+    const handleToggleLive = async (ev, e) => {
+        if (e) e.stopPropagation();
+        setTogglingLiveId(ev._id);
+        try {
+            const newLiveStatus = !ev.live;
+            const formData = new FormData();
+            formData.append('live', newLiveStatus.toString());
+            await apiUpdateEventWithImage(ev._id, formData, token);
+            setEvents(prev => prev.map(item => item._id === ev._id ? { ...item, live: newLiveStatus } : item));
+            toast.success(`Event ${newLiveStatus ? "marked as" : "removed from"} Live`);
+        }
+        catch (error) {
+            toast.error("Failed to update live status");
+        }
+        finally {
+            setTogglingLiveId(null);
+        }
+    };
     const gridRef = useGsapStagger([events]);
     const handleCreateCategory = async () => {
         const trimmed = newCatName.trim();
@@ -434,6 +454,11 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                     <span className={`absolute top-3 left-3 rounded-full px-2.5 py-0.5 text-[10px] font-semibold capitalize backdrop-blur-md shadow-xs ${ev.status === "upcoming" ? "bg-blue-500/80 text-white" : ev.status === "ongoing" ? "bg-green-500/80 text-white" : "bg-gray-500/80 text-white"}`}>
                       {ev.status}
                     </span>
+                    {ev.live && (
+                      <span className="absolute top-3 right-3 rounded-full bg-red-500 hover:bg-red-600 text-white px-2 py-0.5 text-[10px] font-semibold flex items-center gap-1 backdrop-blur-md shadow-xs animate-pulse">
+                        <Video className="h-3 w-3"/> LIVE
+                      </span>
+                    )}
                     <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-2.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
                       {ev.category}
                     </span>
@@ -509,8 +534,31 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                       </span>
                     </div>
 
+                    {/* Live Event Toggle */}
+                    <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-2.5" onClick={(e) => e.stopPropagation()}>
+                      <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <Video className={`h-3.5 w-3.5 ${ev.live ? "text-red-500 animate-pulse" : "text-muted-foreground"}`} />
+                        {ev.live ? <span className="text-red-500 font-semibold">Live Event</span> : "Regular Event"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleLive(ev, e)}
+                        disabled={togglingLiveId === ev._id}
+                        className="focus:outline-none cursor-pointer transition-transform active:scale-95 disabled:opacity-50"
+                        title={ev.live ? "Remove from live events" : "Mark as live event"}
+                      >
+                        {togglingLiveId === ev._id ? (
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        ) : ev.live ? (
+                          <ToggleRight className="h-7 w-7 text-red-500 transition-colors" />
+                        ) : (
+                          <ToggleLeft className="h-7 w-7 text-gray-400 transition-colors" />
+                        )}
+                      </button>
+                    </div>
+
                     {/* Actions */}
-                    <div className="mt-3 flex gap-2 border-t border-border/50 pt-2.5" onClick={(e) => e.stopPropagation()}>
+                    <div className="mt-2.5 flex gap-2 border-t border-border/50 pt-2.5" onClick={(e) => e.stopPropagation()}>
                       <Button
                         size="sm"
                         variant="outline"

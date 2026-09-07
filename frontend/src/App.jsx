@@ -57,7 +57,6 @@ const MerchantEventDetail = lazy(() => import("./pages/MerchantEventDetail"));
 const MerchantPromoForm = lazy(() => import("./pages/MerchantPromoForm"));
 const MerchantSendNotification = lazy(() => import("./pages/MerchantSendNotification"));
 const MerchantServices = lazy(() => import("./pages/MerchantServices"));
-const MerchantLiveEvents = lazy(() => import("./pages/MerchantLiveEvents"));
 const TicketValidation = lazy(() => import("./pages/TicketValidation"));
 const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
 const AdminEarnings = lazy(() => import("./pages/admin/AdminEarnings"));
@@ -243,7 +242,6 @@ const AppRoutes = () => {
         <Route path="/merchant-dashboard/events/:id/edit" element={<ProtectedRoute allowedRoles={["merchant"]}><AdminEventForm layout="merchant" /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/events/:id" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantEventDetail /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/create-event" element={<ProtectedRoute allowedRoles={["merchant"]}><CreateEvent /></ProtectedRoute>}/>
-        <Route path="/merchant-dashboard/live-events" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantLiveEvents /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/services" element={<ProtectedRoute allowedRoles={["merchant"]}><MerchantServices /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/services/new" element={<ProtectedRoute allowedRoles={["merchant"]}><AdminServiceForm layout="merchant" /></ProtectedRoute>}/>
         <Route path="/merchant-dashboard/services/:id" element={<ProtectedRoute allowedRoles={["merchant"]}><AdminServiceDetail layout="merchant" /></ProtectedRoute>}/>

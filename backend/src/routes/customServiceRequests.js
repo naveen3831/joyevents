@@ -243,6 +243,21 @@ router.post("/:id/pay", verifyToken, async (req, res) => {
 
     await booking.save();
 
+    if (paymentMethod === "wallet") {
+      try {
+        const Transaction = (await import("../models/Transaction.js")).default;
+        await Transaction.create({
+          merchant: req.user._id,
+          booking: booking._id,
+          type: "booking_payment",
+          amount: request.quotationAmount,
+          description: `Paid for booking using Wallet balance: Custom Service: ${request.serviceTitle}`,
+          status: "completed",
+          relatedId: booking._id.toString()
+        });
+      } catch (e) {}
+    }
+
     request.status = "paid";
     request.paymentStatus = "paid";
     request.paymentId = booking.paymentId;

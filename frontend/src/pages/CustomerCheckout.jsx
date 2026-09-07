@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { formatCurrency, formatTime12 } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -217,6 +217,20 @@ const CustomerCheckout = () => {
   };
 
   const handlePaymentSuccess = async (paidBooking) => {
+    if (isCustomPay && checkoutData.customRequestId) {
+      try {
+        await fetch(`${API_URL}/api/custom-services/${checkoutData.customRequestId}/pay`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            paymentMethod: paidBooking?.paymentMethod || "card",
+            paymentId: paidBooking?.paymentId || `PAY-${Date.now()}`
+          })
+        });
+      } catch (e) {
+        console.error("Error confirming custom quote pay:", e);
+      }
+    }
     sessionStorage.removeItem("pendingCheckoutData");
     clearCart();
     toast.success("✨ Payment successful! Booking confirmed & ticket downloaded.");

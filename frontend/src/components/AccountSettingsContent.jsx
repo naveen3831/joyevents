@@ -20,7 +20,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiChangePassword, apiUpdateUser } from "@/lib/api";
+import { apiChangePassword, apiUpdateUser, apiUpdateProfile } from "@/lib/api";
 import { validateNewPasswordForm, validatePassword } from "@/lib/validation";
 
 const TABS = [
@@ -88,14 +88,17 @@ const AccountSettingsContent = ({ backLink }) => {
     }
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const imgUrl = event.target.result;
+
+      // Update local state & context immediately for a responsive UI
       setAvatarPreview(imgUrl);
       setUser((prev) => ({
         ...prev,
         avatar: imgUrl,
       }));
 
+      // Persist to localStorage as a quick cache
       try {
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
@@ -104,10 +107,32 @@ const AccountSettingsContent = ({ backLink }) => {
           localStorage.setItem("user", JSON.stringify(parsed));
         }
       } catch (err) {
-        console.error("Failed to persist avatar:", err);
+        console.error("Failed to update localStorage avatar:", err);
       }
 
-      toast.success("Profile avatar updated successfully!");
+      // ── CRITICAL: Save avatar to the database so it survives logout/login ──
+      try {
+        const res = await apiUpdateProfile({ avatar: imgUrl }, token);
+        // Sync context with what the server actually saved
+        if (res?.user) {
+          setUser((prev) => ({
+            ...prev,
+            avatar: res.user.avatar || imgUrl,
+          }));
+          try {
+            const storedUser = localStorage.getItem("user");
+            if (storedUser) {
+              const parsed = JSON.parse(storedUser);
+              parsed.avatar = res.user.avatar || imgUrl;
+              localStorage.setItem("user", JSON.stringify(parsed));
+            }
+          } catch {}
+        }
+        toast.success("Profile avatar updated successfully!");
+      } catch (err) {
+        console.error("Failed to save avatar to server:", err);
+        toast.error("Avatar saved locally but failed to sync with server. Please try again.");
+      }
     };
     reader.readAsDataURL(file);
   };

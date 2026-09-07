@@ -171,9 +171,64 @@ async function logSmtpStatus() {
   }
 }
 
+async function migrateLegacyWalletTransactions() {
+  try {
+    const Transaction = (await import("./models/Transaction.js")).default;
+
+    // Fix legacy booking payments saved as withdrawal
+    const bookingTxResult = await Transaction.updateMany(
+      {
+        type: "withdrawal",
+        description: { $regex: /^Paid for booking/i }
+      },
+      { $set: { type: "booking_payment" } }
+    );
+
+    // Fix legacy deposits saved as refund
+    const depositTxResult = await Transaction.updateMany(
+      {
+        type: "refund",
+        description: { $regex: /^Wallet deposit/i }
+      },
+      { $set: { type: "deposit" } }
+    );
+
+    // Fix referral_bonus records incorrectly saved as booking_payment or withdrawal
+    const referralFixResult = await Transaction.updateMany(
+      {
+        type: { $in: ["booking_payment", "withdrawal"] },
+        description: { $regex: /^Referral bonus/i }
+      },
+      { $set: { type: "referral_bonus" } }
+    );
+
+    // Fix refund records incorrectly saved as booking_payment or withdrawal
+    const refundFixResult = await Transaction.updateMany(
+      {
+        type: { $in: ["booking_payment", "withdrawal"] },
+        description: { $regex: /^Refund for/i }
+      },
+      { $set: { type: "refund" } }
+    );
+
+    const total = bookingTxResult.modifiedCount + depositTxResult.modifiedCount +
+      referralFixResult.modifiedCount + refundFixResult.modifiedCount;
+    if (total > 0) {
+      console.log(
+        `[migration] Wallet transaction types fixed: ${bookingTxResult.modifiedCount} booking payments, ` +
+        `${depositTxResult.modifiedCount} deposits, ${referralFixResult.modifiedCount} referral bonuses, ` +
+        `${refundFixResult.modifiedCount} refunds.`
+      );
+    }
+  } catch (e) {
+    console.error("[migration] Legacy wallet transaction migration error:", e.message);
+  }
+}
+
 async function start() {
   try {
     await connectDB();
+    await migrateLegacyWalletTransactions();
     logSmtpStatus().catch(() => {});
 
     const server = app.listen(PORT, "0.0.0.0", () => {

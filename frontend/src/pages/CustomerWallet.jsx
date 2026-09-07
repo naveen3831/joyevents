@@ -2,13 +2,94 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/utils";
-import { Wallet, ArrowUpRight, ArrowDownLeft, Landmark, Plus, Loader2, History } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownLeft, Landmark, Plus, Loader2, History, CreditCard, RotateCcw, Gift } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { apiGetTransactions } from "@/lib/api";
 import { useGsapStagger } from "@/lib/gsapAnimations";
+
+// CREDIT types: always positive, green amount
+const CREDIT_TYPES = new Set(["deposit", "refund", "referral_bonus", "cashback", "credit", "adjustment"]);
+// DEBIT types: always negative, red amount
+const DEBIT_TYPES = new Set(["booking_payment", "withdrawal", "debit", "commission_deduction"]);
+
+const getTxClassification = (tx) => {
+    const rawType = tx.type || "";
+    const desc = typeof tx.description === "string" ? tx.description : "";
+
+    // 1. Strict type mapping — always trust the structured type field first.
+    //    Only apply legacy fallback when type is still "withdrawal" AND the
+    //    description clearly indicates a booking payment (not a real withdrawal).
+    let resolvedType = rawType;
+    if (
+        rawType === "withdrawal" &&
+        desc.toLowerCase().startsWith("paid for booking")
+    ) {
+        resolvedType = "booking_payment";
+    } else if (rawType === "deposit" || desc.toLowerCase().startsWith("wallet deposit")) {
+        resolvedType = "deposit";
+    }
+    // referral_bonus, refund, cashback, earning etc. are NEVER overridden by booking checks
+
+    switch (resolvedType) {
+        case "deposit":
+            return {
+                label: "Deposit",
+                badgeClass: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20",
+                Icon: ArrowDownLeft,
+                isPositive: true,
+            };
+        case "booking_payment":
+            return {
+                label: "Booking Payment",
+                badgeClass: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+                Icon: CreditCard,
+                isPositive: false,
+            };
+        case "withdrawal":
+            return {
+                label: "Withdrawal",
+                badgeClass: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+                Icon: ArrowUpRight,
+                isPositive: false,
+            };
+        case "refund":
+            return {
+                label: "Refund",
+                badgeClass: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20",
+                Icon: RotateCcw,
+                isPositive: true,
+            };
+        case "referral_bonus":
+            return {
+                label: "Referral Bonus",
+                badgeClass: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+                Icon: Gift,
+                isPositive: true,
+            };
+        case "cashback":
+            return {
+                label: "Cashback",
+                badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                Icon: ArrowDownLeft,
+                isPositive: true,
+            };
+        default: {
+            // Final fallback: use amount sign or known type sets
+            const isPos = CREDIT_TYPES.has(resolvedType) || (!DEBIT_TYPES.has(resolvedType) && tx.amount > 0);
+            return {
+                label: isPos ? "Credit" : "Debit",
+                badgeClass: isPos
+                    ? "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20"
+                    : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+                Icon: isPos ? ArrowDownLeft : ArrowUpRight,
+                isPositive: isPos,
+            };
+        }
+    }
+};
 
 const CustomerWallet = () => {
     const navigate = useNavigate();
@@ -36,11 +117,11 @@ const CustomerWallet = () => {
     }, [token]);
 
     const refundInflow = transactions
-        .filter(t => t.type === "refund" || t.type === "referral_bonus")
-        .reduce((sum, t) => sum + t.amount, 0);
+        .filter(t => getTxClassification(t).isPositive)
+        .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
     const totalOutflow = transactions
-        .filter(t => t.type === "withdrawal")
+        .filter(t => !getTxClassification(t).isPositive)
         .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
     const formatTxDate = (dateStr) => {
@@ -151,50 +232,63 @@ const CustomerWallet = () => {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse" style={{ tableLayout: "fixed" }}>
+                      <colgroup>
+                        <col style={{ width: "190px", minWidth: "190px" }} />
+                        <col style={{ minWidth: "300px" }} />
+                        <col style={{ width: "160px", minWidth: "160px" }} />
+                        <col style={{ width: "130px", minWidth: "130px" }} />
+                      </colgroup>
                       <thead>
                         <tr className="border-b border-border bg-secondary/50 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                          <th className="w-[15%] px-5 py-3.5">Transaction</th>
-                          <th className="w-[50%] px-5 py-3.5">Description</th>
-                          <th className="w-[22%] px-5 py-3.5">Date & Time</th>
-                          <th className="w-[13%] px-5 py-3.5 text-right">Amount</th>
+                          <th className="px-5 py-3.5">Transaction</th>
+                          <th className="px-5 py-3.5">Description</th>
+                          <th className="px-5 py-3.5">Date & Time</th>
+                          <th className="px-5 py-3.5 text-right">Amount</th>
                         </tr>
                       </thead>
-                      <tbody ref={txRef} className="divide-y divide-border/60 text-sm">
+                      <tbody ref={txRef} className="divide-y divide-border/60">
                         {transactions.map((tx) => {
-                          const isDeposit = tx.type === "refund" || tx.type === "referral_bonus";
+                          const { label, badgeClass, Icon, isPositive } = getTxClassification(tx);
                           const { date, time } = formatTxDate(tx.createdAt);
                           return (
-                            <tr key={tx._id} className="hover:bg-secondary/40 transition-colors">
-                              <td className="px-5 py-3.5 whitespace-nowrap">
-                                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold border ${
-                                  isDeposit
-                                    ? "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20"
-                                    : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
-                                }`}>
-                                  {isDeposit ? (
-                                    <>
-                                      <ArrowDownLeft className="h-3 w-3"/> Deposit
-                                    </>
-                                  ) : (
-                                    <>
-                                      <ArrowUpRight className="h-3 w-3"/> Withdrawal
-                                    </>
-                                  )}
+                            <tr key={tx._id} className="hover:bg-secondary/40 transition-colors align-middle">
+                              {/* Transaction Badge — fixed width container */}
+                              <td className="px-5 py-[18px]">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 rounded-full border text-[12px] font-semibold whitespace-nowrap ${badgeClass}`}
+                                  style={{
+                                    width: "150px",
+                                    minWidth: "150px",
+                                    height: "30px",
+                                    paddingLeft: "10px",
+                                    paddingRight: "10px",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  <Icon className="h-3 w-3 flex-shrink-0" />
+                                  {label}
                                 </span>
                               </td>
-                              <td className="px-5 py-3.5">
-                                <p className="font-medium text-xs sm:text-sm text-foreground leading-snug">{tx.description}</p>
-                                {tx.relatedId && <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">Ref: {tx.relatedId}</p>}
+                              {/* Description */}
+                              <td className="px-5 py-[18px]">
+                                <p className="text-[13.5px] font-medium text-foreground leading-snug">{tx.description}</p>
+                                {tx.relatedId && (
+                                  <p className="text-[11px] text-muted-foreground mt-1 font-mono tracking-tight">
+                                    Ref: {tx.relatedId}
+                                  </p>
+                                )}
                               </td>
-                              <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap text-xs">
-                                <div className="font-medium text-foreground/80">{date}</div>
-                                <div className="text-[11px] text-muted-foreground">{time}</div>
+                              {/* Date & Time */}
+                              <td className="px-5 py-[18px] whitespace-nowrap">
+                                <div className="text-[13px] font-medium text-foreground/80">{date}</div>
+                                <div className="text-[11.5px] text-muted-foreground mt-0.5">{time}</div>
                               </td>
-                              <td className={`px-5 py-3.5 text-right font-bold text-xs sm:text-sm whitespace-nowrap ${
-                                isDeposit ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                              {/* Amount */}
+                              <td className={`px-5 py-[18px] text-right font-bold text-[14px] whitespace-nowrap ${
+                                isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                               }`}>
-                                {isDeposit ? "+" : "-"}{formatCurrency(Math.abs(tx.amount))}
+                                {isPositive ? "+" : "-"}{formatCurrency(Math.abs(tx.amount))}
                               </td>
                             </tr>
                           );

@@ -6,26 +6,26 @@ import {
   Loader2,
   AlertCircle,
   User,
-  Store,
   MapPin,
   Calendar,
   CreditCard,
   ExternalLink,
-  Star,
   CheckCircle2,
-  Clock,
   AlertTriangle,
   RefreshCw,
   Copy,
   Check,
-  ChevronRight,
   ShieldCheck,
   Send,
   MessageSquare,
-  IndianRupee,
-  Info,
   XCircle,
-  FileText
+  FileText,
+  MoreVertical,
+  Play,
+  X,
+  Clock,
+  Sparkles,
+  ChevronRight
 } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,123 +48,38 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 
-const STATUS_OPTIONS = [
-  {
-    group: "BOOKING LIFECYCLE",
-    items: [
-      {
-        value: "pending_approval",
-        label: "Pending Approval",
-        description: "Booking request received, awaiting merchant confirmation.",
-        dot: "bg-amber-400",
-        badgeColor: "text-amber-500 bg-amber-500/10 border-amber-500/20"
-      },
-      {
-        value: "approved",
-        label: "Approved",
-        description: "Booking approved. Customer can proceed with payment.",
-        dot: "bg-sky-400",
-        badgeColor: "text-sky-500 bg-sky-500/10 border-sky-500/20"
-      },
-    ]
-  },
-  {
-    group: "PAYMENT STATUS",
-    items: [
-      {
-        value: "awaiting_payment",
-        label: "Awaiting Payment",
-        description: "Invoice generated and customer prompted for payment.",
-        dot: "bg-indigo-400",
-        badgeColor: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20"
-      },
-      {
-        value: "paid",
-        label: "Paid",
-        description: "Required payment has been received and verified.",
-        dot: "bg-emerald-400",
-        badgeColor: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
-      },
-    ]
-  },
-  {
-    group: "SERVICE FULFILLMENT",
-    items: [
-      {
-        value: "pending",
-        label: "Pending",
-        description: "Queued for fulfillment and preparation.",
-        dot: "bg-yellow-400",
-        badgeColor: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20"
-      },
-      {
-        value: "accepted",
-        label: "Accepted",
-        description: "Merchant accepted schedule and is preparing delivery.",
-        dot: "bg-teal-400",
-        badgeColor: "text-teal-500 bg-teal-500/10 border-teal-500/20"
-      },
-      {
-        value: "processing",
-        label: "Processing",
-        description: "Service or event is actively in progress.",
-        dot: "bg-orange-400",
-        badgeColor: "text-orange-500 bg-orange-500/10 border-orange-500/20"
-      },
-      {
-        value: "completed",
-        label: "Completed",
-        description: "Service fulfilled and event concluded successfully.",
-        dot: "bg-emerald-500",
-        badgeColor: "text-emerald-600 bg-emerald-500/15 border-emerald-500/30"
-      },
-    ]
-  },
-  {
-    group: "OTHER ACTIONS",
-    items: [
-      {
-        value: "cancelled",
-        label: "Cancelled",
-        description: "Booking has been officially cancelled.",
-        dot: "bg-rose-400",
-        badgeColor: "text-rose-500 bg-rose-500/10 border-rose-500/20"
-      }
-    ]
-  }
-];
-
+// 5-Step Progress Tracker
 const LIFECYCLE_STEPS = [
-  { id: "pending_approval", label: "Request Submitted" },
+  { id: "request", label: "Request" },
   { id: "approved", label: "Approved" },
-  { id: "paid", label: "Payment Confirmed" },
-  { id: "processing", label: "In Progress" },
+  { id: "payment", label: "Payment" },
+  { id: "in_progress", label: "In Progress" },
   { id: "completed", label: "Completed" },
 ];
 
 export default function MerchantBookingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { token, user } = useAuth();
+  const { token } = useAuth();
 
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const [updating, setUpdating] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const [showMoreActions, setShowMoreActions] = useState(false);
 
-  // Approval with payment type
-  const [approvalMode, setApprovalMode] = useState("full");
+  // Approval mode selection
+  const [approvalMode, setApprovalMode] = useState("advance");
   const [customAdvance, setCustomAdvance] = useState("");
   const [approving, setApproving] = useState(false);
 
-  // Rejection modal / form
-  const [showRejectForm, setShowRejectForm] = useState(false);
+  // Rejection & Cancel Modal State
+  const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
 
-  // Cancellation handling
+  // Cancellation handling state (customer requested cancellation)
   const [cancelFeeOption, setCancelFeeOption] = useState("preset");
   const [customCancelFee, setCustomCancelFee] = useState("");
   const [processingCancel, setProcessingCancel] = useState(false);
@@ -175,7 +90,6 @@ export default function MerchantBookingDetail() {
       const res = await apiGetBooking(id, token);
       if (res.booking) {
         setBooking(res.booking);
-        setSelectedStatus(res.booking.status);
       } else {
         setError("Booking not found");
       }
@@ -197,26 +111,27 @@ export default function MerchantBookingDetail() {
     if (!booking?._id) return;
     navigator.clipboard.writeText(booking._id);
     setCopiedId(true);
-    toast.success("Booking ID copied to clipboard");
+    toast.success("Booking ID copied");
     setTimeout(() => setCopiedId(false), 2000);
   };
 
-  const handleUpdateStatus = async () => {
-    if (!selectedStatus || selectedStatus === booking?.status) return;
-    setUpdating(true);
+  // Direct status transition API call
+  const handleTransitionStatus = async (targetStatus, successMessage) => {
+    setActionLoading(true);
     try {
-      await apiUpdateBookingStatus(id, selectedStatus, token);
-      toast.success(`Booking status updated to ${selectedStatus.replace(/_/g, " ")}`);
+      await apiUpdateBookingStatus(id, targetStatus, token);
+      toast.success(successMessage || `Booking status updated to ${targetStatus.replace(/_/g, " ")}`);
       await loadBooking();
     } catch (e) {
       toast.error(e?.message || "Failed to update booking status");
     } finally {
-      setUpdating(false);
+      setActionLoading(false);
     }
   };
 
-  const handleQuickComplete = async () => {
-    setUpdating(true);
+  // Complete booking
+  const handleMarkCompleted = async () => {
+    setActionLoading(true);
     try {
       await apiCompleteBooking(id, token);
       toast.success("Booking marked as completed!");
@@ -224,10 +139,11 @@ export default function MerchantBookingDetail() {
     } catch (e) {
       toast.error(e?.message || "Failed to complete booking");
     } finally {
-      setUpdating(false);
+      setActionLoading(false);
     }
   };
 
+  // Approval with payment terms
   const handleApproveWithPaymentType = async () => {
     setApproving(true);
     try {
@@ -249,8 +165,8 @@ export default function MerchantBookingDetail() {
       }
       toast.success(
         approvalMode === "advance"
-          ? `Booking approved with advance payment of ${formatCurrency(customAdvance || Math.round((booking?.price || 0) * 0.3))}!`
-          : "Booking approved with full payment requirement!"
+          ? `Booking approved! Customer notified to pay advance.`
+          : "Booking approved with 100% full payment requirement!"
       );
       await loadBooking();
     } catch (e) {
@@ -260,24 +176,27 @@ export default function MerchantBookingDetail() {
     }
   };
 
-  const handleRejectBooking = async () => {
+  // Reject / Cancel booking action
+  const handleConfirmRejectOrCancel = async () => {
     if (!rejectionReason.trim()) {
-      toast.error("Please enter a rejection reason");
+      toast.error("Please enter a reason");
       return;
     }
     setRejecting(true);
     try {
       await apiRejectBooking(id, rejectionReason, token);
-      toast.success("Booking rejected. Refund/notification initiated.");
-      setShowRejectForm(false);
+      toast.success("Booking cancelled / rejected successfully");
+      setShowRejectModal(false);
+      setRejectionReason("");
       await loadBooking();
     } catch (e) {
-      toast.error(e?.message || "Failed to reject booking");
+      toast.error(e?.message || "Failed to cancel booking");
     } finally {
       setRejecting(false);
     }
   };
 
+  // Customer cancellation approval
   const handleApproveCancel = async () => {
     if (!booking) return;
     setProcessingCancel(true);
@@ -302,7 +221,7 @@ export default function MerchantBookingDetail() {
     setProcessingCancel(true);
     try {
       await apiRejectCancel(booking._id, token);
-      toast.success("Cancellation request rejected");
+      toast.success("Cancellation request declined");
       await loadBooking();
     } catch (e) {
       toast.error(e?.message || "Failed to reject cancellation");
@@ -324,41 +243,81 @@ export default function MerchantBookingDetail() {
     }
   };
 
-  // Determine active step index
-  const getStepIndex = (status) => {
-    switch (status) {
-      case "pending_approval":
-        return 0;
-      case "approved":
-      case "awaiting_payment":
-        return 1;
-      case "paid":
-      case "confirmed":
-      case "accepted":
-        return 2;
-      case "processing":
-      case "pending":
-        return 3;
-      case "completed":
-        return 4;
-      default:
-        return 0;
+  // Compute 5-Step Progress Tracker Index
+  const getStepIndex = (b) => {
+    if (!b) return 0;
+    const { status, paymentStatus } = b;
+
+    if (["cancelled", "rejected"].includes(status)) return -1;
+    if (status === "completed") return 4;
+    if (status === "processing" || status === "in_progress") return 3;
+    if (
+      status === "accepted" ||
+      paymentStatus === "paid" ||
+      paymentStatus === "partially_paid" ||
+      status === "paid" ||
+      status === "confirmed"
+    ) {
+      return 3;
     }
+    if (status === "approved" || status === "awaiting_payment") return 2; // Step 2 is "Payment"
+    return 0; // pending / pending_approval (Step 0 is "Request")
   };
 
-  const currentStep = booking ? getStepIndex(booking.status) : 0;
+  const primaryHeaderStatus = (() => {
+    if (!booking) return "pending";
+    const { status, paymentStatus } = booking;
+    if (["cancelled", "rejected"].includes(status)) return "cancelled";
+    if (status === "completed") return "completed";
+    if (status === "cancellation_requested") return "cancellation_requested";
+    if (status === "refund_pending") return "refund_pending";
+    if (status === "processing" || status === "in_progress") return "in_progress";
+    if (status === "accepted") return "accepted";
+    if (paymentStatus === "paid" || paymentStatus === "partially_paid" || status === "paid" || status === "confirmed") {
+      return "paid";
+    }
+    if (status === "approved" || status === "awaiting_payment") return "awaiting_payment";
+    return "pending_approval";
+  })();
+
+  const currentStepIndex = booking ? getStepIndex(booking) : 0;
   const isCancelled = ["cancelled", "rejected"].includes(booking?.status);
+  const isCompleted = booking?.status === "completed";
+
+  // Financial Breakdown calculations
+  const price = booking?.price || 0;
+  const isAdvanceModel = booking?.paymentType === "advance";
+  const defaultAdvance = Math.round(price * 0.3);
+  const advanceRequired = isAdvanceModel ? (booking?.advanceAmount || defaultAdvance) : price;
+
+  const calculatedAdvanceAmount = customAdvance !== "" && !isNaN(Number(customAdvance))
+    ? Number(customAdvance)
+    : defaultAdvance;
+
+  const advancePercentage = price > 0 ? Math.round((calculatedAdvanceAmount / price) * 100) : 30;
+
+  const paidAmount = (() => {
+    if (!booking) return 0;
+    if (booking.paymentStatus === "paid") return price;
+    if (booking.paymentStatus === "partially_paid" || booking.isAdvancePaid) {
+      return booking.advanceAmount || defaultAdvance;
+    }
+    return booking.walletAmountPaid || 0;
+  })();
+
+  const balanceAmount = Math.max(0, price - paidAmount);
 
   return (
     <MerchantLayout>
-      <div className="w-full min-w-0 space-y-6 pb-12 font-sans">
-        {/* Navigation & Actions Top Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+      <div className="w-full min-w-0 space-y-4 pb-12 font-sans">
+        
+        {/* Navigation Bar */}
+        <div className="flex items-center justify-between gap-3 pt-1">
           <button
             onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg border border-border/70 bg-card hover:bg-secondary cursor-pointer shadow-xs"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg border border-border/70 bg-card hover:bg-secondary cursor-pointer shadow-xs"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to Bookings
           </button>
 
           <div className="flex items-center gap-2">
@@ -371,15 +330,10 @@ export default function MerchantBookingDetail() {
             >
               <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} /> Refresh
             </Button>
-
-            <Link to="/merchant-dashboard/bookings">
-              <Button variant="ghost" size="sm" className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground">
-                All Bookings
-              </Button>
-            </Link>
           </div>
         </div>
 
+        {/* Loading / Error States */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-muted-foreground text-xs gap-3">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -390,659 +344,702 @@ export default function MerchantBookingDetail() {
             <AlertCircle className="mx-auto mb-3 h-10 w-10 text-rose-500/80" />
             <h3 className="text-lg font-bold text-foreground mb-1">{error || "Booking Not Found"}</h3>
             <p className="text-xs text-muted-foreground mb-4">
-              The booking requested does not exist or is not assigned to your merchant account.
+              The requested booking does not exist or is not assigned to your merchant account.
             </p>
-            <Button onClick={() => navigate("/merchant-dashboard")} className="cursor-pointer bg-gradient-primary">
-              Return to Dashboard
+            <Button onClick={() => navigate("/merchant-dashboard/bookings")} className="cursor-pointer bg-gradient-primary">
+              Return to Bookings List
             </Button>
           </div>
         ) : (
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
-            className="space-y-6"
           >
-            {/* Header Card */}
-            <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-sm relative overflow-hidden">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
+            {/* ── ONE UNIFIED BOOKING WORKSPACE CONTAINER ───────────────── */}
+            <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-6">
+              
+              {/* A. TOP BOOKING HEADER */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 pb-4">
+                <div className="space-y-1">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                    {booking.service?.name || booking.event?.title || booking.serviceName || "Service Booking"}
+                  </h1>
+                  
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground/80">
+                      {booking.service ? "Service Booking" : "Event Booking"}
+                    </span>
+                    <span>•</span>
                     <button
                       onClick={handleCopyId}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/80 hover:bg-secondary text-xs font-mono font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer border border-border/60"
-                      title="Click to copy Booking ID"
+                      className="inline-flex items-center gap-1 font-mono text-muted-foreground hover:text-foreground cursor-pointer"
+                      title="Copy Booking ID"
                     >
-                      {booking._id}
+                      #{booking._id?.slice(-8).toUpperCase()}
                       {copiedId ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
                     </button>
-
-                    {booking.service ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        Service Booking
-                      </span>
-                    ) : booking.event ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                        Event Booking
-                      </span>
-                    ) : null}
-
-                    <span className="text-xs text-muted-foreground">
-                      Created on {new Date(booking.createdAt || booking.datetime || Date.now()).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric"
-                      })}
+                    <span>•</span>
+                    <span>
+                      {booking.datetime
+                        ? new Date(booking.datetime).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric"
+                          }) +
+                          " • " +
+                          new Date(booking.datetime).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })
+                        : new Date(booking.createdAt || Date.now()).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric"
+                          })}
                     </span>
                   </div>
-
-                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                    {booking.service?.name || booking.event?.title || booking.serviceName || "Booking Management"}
-                  </h1>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 bg-secondary/40 p-3 rounded-xl border border-border/60">
-                  <div className="text-right">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block mb-0.5">
-                      Current Status
-                    </span>
-                    <StatusBadge status={booking.status} className="text-xs px-3 py-1 font-semibold" />
-                  </div>
-                  <div className="h-8 w-px bg-border/60 mx-1" />
-                  <div className="text-right">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block mb-0.5">
-                      Payment Status
-                    </span>
-                    <StatusBadge status={booking.paymentStatus || "pending"} className="text-xs px-3 py-1 font-semibold" />
-                  </div>
+                {/* Right side SINGLE primary status badge + 3-dot menu */}
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <StatusBadge status={primaryHeaderStatus} className="text-xs px-3 py-1 font-semibold" />
+
+                  {/* Dropdown Menu for Secondary Actions */}
+                  {!isCancelled && booking.status !== "completed" && (
+                    <div className="relative ml-1">
+                      <button
+                        onClick={() => setShowMoreActions(!showMoreActions)}
+                        className="h-8 w-8 rounded-xl border border-border/70 bg-card hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        title="More Actions"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+
+                      {showMoreActions && (
+                        <div
+                          className="absolute right-0 mt-1.5 w-44 rounded-xl border border-border bg-card shadow-lg p-1 z-30 space-y-0.5"
+                          onClick={() => setShowMoreActions(false)}
+                        >
+                          <button
+                            onClick={() => setShowRejectModal(true)}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <XCircle className="h-3.5 w-3.5" /> Cancel Booking
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Progress Tracker (unless cancelled) */}
+              {/* B. PROGRESS TRACKER */}
               {!isCancelled ? (
-                <div className="mt-8 pt-6 border-t border-border/60">
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-0 relative">
+                <div className="pb-1">
+                  <div className="flex items-center justify-between max-w-3xl mx-auto px-2 relative">
                     {LIFECYCLE_STEPS.map((step, idx) => {
-                      const isPast = currentStep > idx;
-                      const isCurrent = currentStep === idx;
+                      const isPast = currentStepIndex > idx;
+                      const isCurrent = currentStepIndex === idx;
+                      const isFullyDone = isCompleted || isPast;
+
                       return (
-                        <div key={step.id} className="flex flex-col items-center text-center relative group">
-                          {/* Connecting line */}
+                        <div key={step.id} className="flex items-center gap-1.5 sm:gap-2 flex-1 last:flex-initial">
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-all ${
+                                isFullyDone
+                                  ? "bg-emerald-500 text-white"
+                                  : isCurrent
+                                  ? "bg-primary text-primary-foreground ring-4 ring-primary/15"
+                                  : "border border-muted-foreground/30 text-muted-foreground/50 bg-background"
+                              }`}
+                            >
+                              {isFullyDone ? (
+                                <Check className="h-3 w-3 stroke-[3]" />
+                              ) : isCurrent ? (
+                                <div className="h-2 w-2 rounded-full bg-current" />
+                              ) : null}
+                            </div>
+
+                            <span
+                              className={`text-xs font-medium whitespace-nowrap ${
+                                isFullyDone || isCurrent
+                                  ? "text-foreground font-semibold"
+                                  : "text-muted-foreground/70"
+                              }`}
+                            >
+                              {step.label}
+                            </span>
+                          </div>
+
                           {idx < LIFECYCLE_STEPS.length - 1 && (
                             <div
-                              className={`hidden sm:block absolute top-3.5 left-1/2 w-full h-0.5 z-0 ${
-                                currentStep > idx ? "bg-emerald-500" : "bg-border"
+                              className={`h-0.5 flex-1 mx-2 transition-colors ${
+                                isPast || (isCompleted && idx < LIFECYCLE_STEPS.length - 1)
+                                  ? "bg-emerald-500"
+                                  : "bg-border"
                               }`}
                             />
                           )}
-                          <div
-                            className={`relative z-10 h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold transition-all shadow-xs ${
-                              isPast
-                                ? "bg-emerald-500 text-white"
-                                : isCurrent
-                                ? "bg-primary text-primary-foreground ring-4 ring-primary/20 animate-pulse"
-                                : "bg-secondary text-muted-foreground border border-border"
-                            }`}
-                          >
-                            {isPast ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : idx + 1}
-                          </div>
-                          <span
-                            className={`mt-2 text-[11px] font-medium transition-colors ${
-                              isCurrent
-                                ? "text-foreground font-bold"
-                                : isPast
-                                ? "text-foreground/80"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {step.label}
-                          </span>
                         </div>
                       );
                     })}
                   </div>
                 </div>
               ) : (
-                <div className="mt-6 pt-4 border-t border-border/60 flex items-center gap-2 text-rose-500 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20 text-xs font-semibold">
+                <div className="flex items-center gap-2 text-rose-500 bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/20 text-xs font-semibold">
                   <AlertTriangle className="h-4 w-4 shrink-0" />
-                  <span>This booking has been cancelled / rejected. Status updates are locked.</span>
+                  <span>This booking has been cancelled / declined. Lifecycle updates are locked.</span>
                 </div>
               )}
-            </div>
 
-            {/* Special Action Alert: Pending Approval */}
-            {booking.service && (booking.status === "pending" || booking.status === "pending_approval") && !booking.approvedAt && (
-              <div className="rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/5 via-card to-primary/5 p-6 shadow-md space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
-                    <ShieldCheck className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-base text-foreground">Action Required: Approve Booking</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Choose payment requirement terms for this service booking to confirm and notify the customer.
-                    </p>
-                  </div>
-                </div>
+              <div className="border-t border-border/50 pt-5 space-y-6">
+                
+                {/* C. CURRENT SITUATION / CONTEXTUAL ACTION AREA */}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setApprovalMode("advance")}
-                    className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-                      approvalMode === "advance"
-                        ? "border-primary bg-primary/10 ring-2 ring-primary/30"
-                        : "border-border bg-card hover:bg-secondary/60"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-foreground">Advance Payment (Deposit)</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">
-                        Recommended
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Customer pays a deposit now (default 30% = {formatCurrency(Math.round((booking.price || 0) * 0.3))}) and remainder after service.
-                    </p>
-
-                    {approvalMode === "advance" && (
-                      <div className="mt-3 pt-3 border-t border-border/60" onClick={(e) => e.stopPropagation()}>
-                        <Label className="text-[11px] font-semibold text-muted-foreground mb-1 block">
-                          Custom Advance Amount (optional)
-                        </Label>
-                        <Input
-                          type="number"
-                          placeholder={`Default: ₹${Math.round((booking.price || 0) * 0.3)}`}
-                          value={customAdvance}
-                          onChange={(e) => setCustomAdvance(e.target.value)}
-                          className="h-8 text-xs bg-background"
-                        />
-                      </div>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setApprovalMode("full")}
-                    className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-                      approvalMode === "full"
-                        ? "border-primary bg-primary/10 ring-2 ring-primary/30"
-                        : "border-border bg-card hover:bg-secondary/60"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-foreground">Require Full Payment (100%)</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
-                        100% Upfront
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Customer pays full total amount of {formatCurrency(booking.price)} immediately to confirm the booking.
-                    </p>
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer text-xs"
-                    onClick={() => setShowRejectForm(!showRejectForm)}
-                  >
-                    <XCircle className="h-3.5 w-3.5 mr-1" /> {showRejectForm ? "Cancel Rejection" : "Reject Booking"}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    className="bg-gradient-primary text-primary-foreground font-semibold px-6 shadow-glow cursor-pointer text-xs"
-                    onClick={handleApproveWithPaymentType}
-                    disabled={approving}
-                  >
-                    {approving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Check className="h-4 w-4 mr-1.5" />}
-                    Confirm Approval & Send to Customer
-                  </Button>
-                </div>
-
-                {showRejectForm && (
-                  <div className="p-4 rounded-xl bg-rose-500/5 border border-rose-500/20 space-y-3 mt-3">
-                    <Label className="text-xs font-bold text-rose-500">Reason for Rejection</Label>
-                    <Textarea
-                      placeholder="Please specify why this booking cannot be accepted (e.g. date unavailable, capacity reached)..."
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                      className="text-xs min-h-[70px] bg-background"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={handleRejectBooking}
-                      disabled={rejecting}
-                      className="text-xs"
-                    >
-                      {rejecting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
-                      Confirm Rejection & Notify Customer
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Special Action Alert: Cancellation Requested */}
-            {booking.status === "cancellation_requested" && (
-              <div className="rounded-2xl border-2 border-amber-500/40 bg-amber-500/5 p-6 shadow-md space-y-4">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="h-6 w-6 text-amber-500 shrink-0" />
-                  <div>
-                    <h3 className="font-bold text-base text-foreground">Customer Requested Cancellation</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Customer requested to cancel this booking. Please set the cancellation fee and approve or reject the request.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setCancelFeeOption("preset")}
-                    className={`p-3.5 rounded-xl border text-left cursor-pointer ${
-                      cancelFeeOption === "preset"
-                        ? "border-amber-500 bg-amber-500/10 ring-1 ring-amber-500"
-                        : "border-border bg-card hover:bg-secondary"
-                    }`}
-                  >
-                    <p className="font-semibold text-xs text-foreground">Standard 30% Cancellation Fee</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Fee: {formatCurrency(Math.round((booking.price || 0) * 0.3))} | Refund: {formatCurrency((booking.price || 0) - Math.round((booking.price || 0) * 0.3))}
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setCancelFeeOption("custom")}
-                    className={`p-3.5 rounded-xl border text-left cursor-pointer ${
-                      cancelFeeOption === "custom"
-                        ? "border-amber-500 bg-amber-500/10 ring-1 ring-amber-500"
-                        : "border-border bg-card hover:bg-secondary"
-                    }`}
-                  >
-                    <p className="font-semibold text-xs text-foreground">Custom Fee / Full Refund</p>
-                    {cancelFeeOption === "custom" && (
-                      <Input
-                        type="number"
-                        placeholder="Enter fee amount (0 for full refund)"
-                        value={customCancelFee}
-                        onChange={(e) => setCustomCancelFee(e.target.value)}
-                        className="h-7 text-xs bg-background mt-2"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    )}
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRejectCancel}
-                    disabled={processingCancel}
-                    className="text-xs cursor-pointer"
-                  >
-                    Reject Cancellation
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs cursor-pointer"
-                    onClick={handleApproveCancel}
-                    disabled={processingCancel}
-                  >
-                    {processingCancel ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
-                    Approve & Propose Fee
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Special Action Alert: Refund Pending */}
-            {booking.status === "refund_pending" && (
-              <div className="rounded-2xl border-2 border-purple-500/40 bg-purple-500/5 p-6 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <h3 className="font-bold text-base text-foreground">Customer Accepted Cancellation Fee</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Refund Amount to Process:{" "}
-                    <span className="font-bold text-purple-600 dark:text-purple-400">
-                      {formatCurrency((booking.price || 0) - (booking.cancellationFee || 0))}
-                    </span>{" "}
-                    (Fee retained: {formatCurrency(booking.cancellationFee || 0)})
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs cursor-pointer shadow-glow"
-                  onClick={handleProcessRefundAction}
-                  disabled={processingCancel}
-                >
-                  {processingCancel ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
-                  Process Refund Now
-                </Button>
-              </div>
-            )}
-
-            {/* Main Content Layout: 2 Columns */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Left Column: Interactive Status Management */}
-              <div className="lg:col-span-7 space-y-6">
-                {/* Status Update Control Panel */}
-                <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-sm space-y-6">
-                  <div className="flex items-center justify-between border-b border-border/60 pb-4">
+                {/* CASE 1: PENDING APPROVAL (NEW BOOKING REQUEST) */}
+                {(booking.status === "pending" || booking.status === "pending_approval") && !booking.approvedAt && (
+                  <div className="space-y-5">
                     <div>
-                      <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
-                        <RefreshCw className="h-4 w-4 text-primary" /> Update Booking Status
-                      </h2>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-amber-500 block mb-1">
+                        ACTION REQUIRED
+                      </span>
+                      <h2 className="text-lg font-bold text-foreground">New Booking Request</h2>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Select a lifecycle status below and confirm to update the booking stage.
+                        Review details and choose how the customer should pay.
                       </p>
                     </div>
 
-                    {booking.status !== "completed" && !isCancelled && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleQuickComplete}
-                        disabled={updating}
-                        className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 cursor-pointer hidden sm:inline-flex"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-emerald-500" />
-                        Mark as Completed
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Status Options Selector */}
-                  <div className="space-y-5">
-                    {STATUS_OPTIONS.map((group) => (
-                      <div key={group.group} className="space-y-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-                          {group.group}
-                        </span>
-
-                        <div className="grid grid-cols-1 gap-2">
-                          {group.items.map((opt) => {
-                            const isCurrent = opt.value === booking.status;
-                            const isSelected = opt.value === selectedStatus;
-                            return (
-                              <button
-                                key={opt.value}
-                                type="button"
-                                disabled={isCurrent || isCancelled || updating}
-                                onClick={() => !isCurrent && setSelectedStatus(opt.value)}
-                                className={`w-full flex items-start gap-3.5 p-3.5 rounded-xl border text-left transition-all ${
-                                  isCurrent
-                                    ? "border-border bg-secondary/40 opacity-75 cursor-default ring-1 ring-border"
-                                    : isSelected
-                                    ? "border-primary bg-primary/10 ring-2 ring-primary/30 cursor-pointer"
-                                    : "border-border/80 bg-background hover:bg-secondary/50 hover:border-border cursor-pointer"
-                                }`}
-                              >
-                                <span className={`h-3 w-3 rounded-full mt-0.5 shrink-0 ${opt.dot} ${isCurrent ? "opacity-60" : ""}`} />
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span
-                                      className={`text-sm font-semibold ${
-                                        isCurrent
-                                          ? "text-muted-foreground"
-                                          : isSelected
-                                          ? "text-foreground font-bold"
-                                          : "text-foreground/90"
-                                      }`}
-                                    >
-                                      {opt.label}
-                                    </span>
-                                    {isCurrent && (
-                                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-secondary px-2 py-0.5 rounded-full border border-border/60">
-                                        Current Status
-                                      </span>
-                                    )}
-                                    {isSelected && !isCurrent && (
-                                      <span className="text-[10px] font-bold text-primary bg-primary/15 px-2 py-0.5 rounded-full">
-                                        Ready to Apply
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                                    {opt.description}
-                                  </p>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Submit Status Action */}
-                  <div className="pt-4 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <div className="text-xs text-muted-foreground text-center sm:text-left">
-                      {selectedStatus !== booking.status ? (
-                        <span>
-                          Status will transition to:{" "}
-                          <strong className="text-foreground capitalize">{selectedStatus.replace(/_/g, " ")}</strong>
-                        </span>
-                      ) : (
-                        <span>Select a different status option above to apply changes.</span>
-                      )}
+                    <div className="flex items-center justify-between p-3.5 rounded-xl bg-secondary/40 border border-border/60">
+                      <span className="text-xs font-medium text-muted-foreground">Booking Total</span>
+                      <span className="text-lg font-bold text-foreground">{formatCurrency(price)}</span>
                     </div>
 
-                    <Button
-                      type="button"
-                      onClick={handleUpdateStatus}
-                      disabled={!selectedStatus || selectedStatus === booking.status || updating || isCancelled}
-                      className="w-full sm:w-auto min-w-[180px] h-10 rounded-xl bg-gradient-primary text-primary-foreground font-bold text-xs shadow-glow hover:opacity-90 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {updating ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> Updating...
-                        </>
-                      ) : (
-                        `Apply Status Change`
-                      )}
-                    </Button>
-                  </div>
-                </div>
+                    <div className="space-y-3">
+                      <label className="text-xs font-semibold text-foreground block">
+                        Choose payment terms:
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div
+                          onClick={() => setApprovalMode("advance")}
+                          className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all min-h-[80px] flex flex-col justify-between ${
+                            approvalMode === "advance"
+                              ? "border-primary bg-primary/5 ring-1 ring-primary"
+                              : "border-border bg-card hover:bg-secondary/40"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`h-4 w-4 rounded-full border flex items-center justify-center shrink-0 ${
+                              approvalMode === "advance" ? "border-primary bg-primary" : "border-muted-foreground/40"
+                            }`}>
+                              {approvalMode === "advance" && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                            </div>
+                            <span className="font-semibold text-xs text-foreground">Advance Payment</span>
+                          </div>
+                          <div className="pl-6 mt-1 space-y-0.5">
+                            <p className="text-xs font-bold text-foreground">{formatCurrency(calculatedAdvanceAmount)} now</p>
+                            <p className="text-[11px] text-muted-foreground">{advancePercentage}% upfront</p>
+                          </div>
+                        </div>
 
-                {/* Customer Review & Rating Panel (if available) */}
-                {booking.rating?.score && (
-                  <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-sm space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
-                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" /> Customer Review & Rating
-                    </h3>
-                    <div className="p-4 rounded-xl bg-secondary/40 border border-border/60 space-y-2">
-                      <div className="flex items-center gap-1.5">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < booking.rating.score
-                                ? "text-yellow-500 fill-yellow-500"
-                                : "text-muted-foreground/30"
-                            }`}
-                          />
-                        ))}
-                        <span className="font-bold text-sm text-foreground ml-1.5">
-                          {booking.rating.score} / 5.0
-                        </span>
+                        <div
+                          onClick={() => setApprovalMode("full")}
+                          className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all min-h-[80px] flex flex-col justify-between ${
+                            approvalMode === "full"
+                              ? "border-primary bg-primary/5 ring-1 ring-primary"
+                              : "border-border bg-card hover:bg-secondary/40"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`h-4 w-4 rounded-full border flex items-center justify-center shrink-0 ${
+                              approvalMode === "full" ? "border-primary bg-primary" : "border-muted-foreground/40"
+                            }`}>
+                              {approvalMode === "full" && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                            </div>
+                            <span className="font-semibold text-xs text-foreground">Full Payment</span>
+                          </div>
+                          <div className="pl-6 mt-1 space-y-0.5">
+                            <p className="text-xs font-bold text-foreground">{formatCurrency(price)} now</p>
+                            <p className="text-[11px] text-muted-foreground">100% upfront</p>
+                          </div>
+                        </div>
                       </div>
-                      {booking.rating.comment && (
-                        <p className="text-xs italic text-foreground/90 bg-background p-3 rounded-lg border border-border/40">
-                          "{booking.rating.comment}"
+                    </div>
+
+                    {approvalMode === "advance" && (
+                      <div className="space-y-1.5 max-w-xs">
+                        <label className="text-xs font-medium text-foreground block">Advance amount</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">₹</span>
+                          <Input
+                            type="number"
+                            value={customAdvance !== "" ? customAdvance : defaultAdvance}
+                            onChange={(e) => setCustomAdvance(e.target.value)}
+                            className="pl-7 text-xs h-9 font-medium bg-background"
+                          />
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          {advancePercentage}% of {formatCurrency(price)} total booking amount
                         </p>
-                      )}
+                      </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                      <p className="text-xs text-muted-foreground">
+                        Customer will be asked to pay <strong className="text-foreground font-semibold">{formatCurrency(approvalMode === "advance" ? calculatedAdvanceAmount : price)}</strong> after approval.
+                      </p>
+
+                      <div className="flex items-center gap-3 self-end sm:self-auto">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer text-xs h-9 px-4 font-medium"
+                          onClick={() => setShowRejectModal(true)}
+                        >
+                          Decline
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="bg-gradient-primary text-primary-foreground font-bold px-6 text-xs h-9 cursor-pointer shadow-xs"
+                          onClick={handleApproveWithPaymentType}
+                          disabled={approving}
+                        >
+                          {approving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                          Approve Booking
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* Right Column: Comprehensive Details Cards */}
-              <div className="lg:col-span-5 space-y-6">
-                {/* Service / Event Info */}
-                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <FileText className="h-3.5 w-3.5 text-primary" /> Booked Item Details
-                  </h3>
-
-                  <div className="space-y-3 text-xs">
-                    <div className="flex items-start justify-between gap-3 pb-2 border-b border-border/50">
-                      <span className="text-muted-foreground font-medium">Title / Service</span>
-                      <span className="font-bold text-foreground text-right">
-                        {booking.service?.name || booking.event?.title || booking.serviceName || "—"}
-                      </span>
-                    </div>
-
-                    {(booking.service?.category || booking.event?.category) && (
-                      <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/50">
-                        <span className="text-muted-foreground font-medium">Category</span>
-                        <span className="font-semibold text-foreground capitalize">
-                          {booking.service?.category || booking.event?.category}
+                {/* CASE 2: AWAITING CUSTOMER PAYMENT */}
+                {(booking.status === "approved" || booking.status === "awaiting_payment") &&
+                  booking.paymentStatus !== "paid" &&
+                  booking.paymentStatus !== "partially_paid" && (
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-500 block mb-1">
+                          CURRENT STATUS
                         </span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/50">
-                      <span className="text-muted-foreground font-medium">Date & Schedule</span>
-                      <span className="font-semibold text-foreground text-right">
-                        {booking.datetime
-                          ? new Date(booking.datetime).toLocaleDateString("en-GB", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric"
-                            }) +
-                            " at " +
-                            new Date(booking.datetime).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit"
-                            })
-                          : "Flexible / Scheduled"}
-                      </span>
-                    </div>
-
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground font-medium shrink-0">Location</span>
-                      <div className="text-right">
-                        <p className="font-semibold text-foreground break-words max-w-[200px]">
-                          {booking.customerLocation?.address || booking.event?.location || "Provided by customer"}
+                        <h2 className="text-lg font-bold text-foreground">Waiting for Customer Payment</h2>
+                        <p className="text-sm font-semibold text-foreground mt-1">
+                          {formatCurrency(advanceRequired)} {isAdvanceModel ? "advance payment requested" : "full payment requested"}
                         </p>
-                        {booking.customerLocation?.latitude && (
-                          <a
-                            href={`https://www.google.com/maps?q=${booking.customerLocation.latitude},${booking.customerLocation.longitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[10px] text-primary hover:underline inline-flex items-center gap-1 font-semibold mt-1"
-                          >
-                            Open in Google Maps <ExternalLink className="h-2.5 w-2.5" />
-                          </a>
-                        )}
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Customer needs to complete payment before the booking can move forward.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <span>No action required — status updates automatically after payment.</span>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  )}
 
-                {/* Customer Information */}
-                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                      <User className="h-3.5 w-3.5 text-primary" /> Customer Information
-                    </h3>
+                {/* CASE 3: PAYMENT RECEIVED */}
+                {(booking.paymentStatus === "paid" || booking.paymentStatus === "partially_paid" || booking.status === "paid" || booking.status === "confirmed") &&
+                  booking.status !== "accepted" &&
+                  booking.status !== "processing" &&
+                  booking.status !== "completed" &&
+                  !isCancelled && (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-500 block mb-1">
+                          PAYMENT CONFIRMED
+                        </span>
+                        <h2 className="text-lg font-bold text-foreground">Payment Received</h2>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          ✓ <strong className="text-foreground">{formatCurrency(paidAmount)}</strong> received successfully. Ready for service schedule acceptance.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="bg-gradient-primary text-primary-foreground font-bold px-6 text-xs h-9 cursor-pointer shadow-xs self-start sm:self-auto"
+                        onClick={() => handleTransitionStatus("accepted", "Service schedule accepted & preparation started!")}
+                        disabled={actionLoading}
+                      >
+                        {actionLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Play className="h-3.5 w-3.5 mr-1.5" />}
+                        Accept &amp; Start Preparation
+                      </Button>
+                    </div>
+                  )}
 
-                    <Link
-                      to="/merchant-dashboard/inbox"
-                      className="text-[11px] font-semibold text-primary hover:underline inline-flex items-center gap-1"
+                {/* CASE 4: ACCEPTED */}
+                {booking.status === "accepted" && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-teal-500 block mb-1">
+                        PREPARATION READY
+                      </span>
+                      <h2 className="text-lg font-bold text-foreground">Service Schedule Accepted</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Preparation completed. Click start when event/service commences.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="bg-gradient-primary text-primary-foreground font-bold px-6 text-xs h-9 cursor-pointer shadow-xs self-start sm:self-auto"
+                      onClick={() => handleTransitionStatus("processing", "Service status updated to In Progress")}
+                      disabled={actionLoading}
                     >
-                      <MessageSquare className="h-3 w-3" /> Inbox
-                    </Link>
+                      {actionLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Play className="h-3.5 w-3.5 mr-1.5" />}
+                      Start Service
+                    </Button>
                   </div>
+                )}
 
-                  <div className="space-y-3 text-xs">
-                    <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/50">
-                      <span className="text-muted-foreground font-medium">Customer Name</span>
-                      <span className="font-bold text-foreground">{booking.customer?.name || "—"}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/50">
-                      <span className="text-muted-foreground font-medium">Email Address</span>
-                      <span className="font-semibold text-foreground truncate max-w-[200px]" title={booking.customer?.email}>
-                        {booking.customer?.email || "—"}
+                {/* CASE 5: IN PROGRESS */}
+                {(booking.status === "processing" || booking.status === "in_progress") && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-orange-500 block mb-1">
+                        ACTIVE FULFILLMENT
                       </span>
+                      <h2 className="text-lg font-bold text-foreground">Service In Progress</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        The booking is currently being fulfilled. Mark as completed once finished.
+                      </p>
                     </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 text-xs h-9 cursor-pointer shadow-xs self-start sm:self-auto"
+                      onClick={handleMarkCompleted}
+                      disabled={actionLoading}
+                    >
+                      {actionLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />}
+                      Mark as Completed
+                    </Button>
+                  </div>
+                )}
 
-                    {booking.notes && (
-                      <div className="pt-1">
-                        <span className="text-muted-foreground font-medium block mb-1">Customer Note:</span>
-                        <p className="p-3 bg-secondary/50 rounded-lg text-foreground/90 italic text-[11px]">
-                          "{booking.notes}"
+                {/* CASE 6: CANCELLATION REQUESTED */}
+                {booking.status === "cancellation_requested" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="h-6 w-6 text-amber-500 shrink-0" />
+                      <div>
+                        <h2 className="font-bold text-base text-foreground">Customer Requested Cancellation</h2>
+                        <p className="text-xs text-muted-foreground">
+                          Specify cancellation fee terms to proceed.
                         </p>
                       </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Financials & Payment Breakdown */}
-                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <CreditCard className="h-3.5 w-3.5 text-primary" /> Payment Summary
-                  </h3>
-
-                  <div className="space-y-2.5 text-xs">
-                    <div className="flex items-center justify-between py-1 border-b border-border/50">
-                      <span className="text-muted-foreground font-medium">Total Booking Amount</span>
-                      <span className="font-bold text-base text-primary">{formatCurrency(booking.price)}</span>
                     </div>
 
-                    <div className="flex items-center justify-between py-1 border-b border-border/50">
-                      <span className="text-muted-foreground font-medium">Payment Model</span>
-                      <span className="font-semibold capitalize text-foreground">
-                        {booking.paymentType === "advance" ? "Advance Payment (Deposit)" : "Full Payment"}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setCancelFeeOption("preset")}
+                        className={`p-3 rounded-xl border text-left cursor-pointer ${
+                          cancelFeeOption === "preset"
+                            ? "border-amber-500 bg-amber-500/5 ring-1 ring-amber-500"
+                            : "border-border bg-card hover:bg-secondary/40"
+                        }`}
+                      >
+                        <p className="font-semibold text-xs text-foreground">Standard 30% Fee</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Fee: {formatCurrency(Math.round(price * 0.3))} | Refund: {formatCurrency(price - Math.round(price * 0.3))}
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setCancelFeeOption("custom")}
+                        className={`p-3 rounded-xl border text-left cursor-pointer ${
+                          cancelFeeOption === "custom"
+                            ? "border-amber-500 bg-amber-500/5 ring-1 ring-amber-500"
+                            : "border-border bg-card hover:bg-secondary/40"
+                        }`}
+                      >
+                        <p className="font-semibold text-xs text-foreground">Custom Fee / Full Refund</p>
+                        {cancelFeeOption === "custom" && (
+                          <Input
+                            type="number"
+                            placeholder="Enter fee amount (0 for full refund)"
+                            value={customCancelFee}
+                            onChange={(e) => setCustomCancelFee(e.target.value)}
+                            className="h-7 text-xs bg-background mt-1.5"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2.5 pt-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRejectCancel}
+                        disabled={processingCancel}
+                        className="text-xs cursor-pointer h-8"
+                      >
+                        Decline Request
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs cursor-pointer h-8"
+                        onClick={handleApproveCancel}
+                        disabled={processingCancel}
+                      >
+                        {processingCancel ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                        Approve &amp; Propose Fee
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* CASE 7: REFUND PENDING */}
+                {booking.status === "refund_pending" && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="font-bold text-base text-foreground">Customer Accepted Cancellation Fee</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Refund Amount:{" "}
+                        <span className="font-bold text-purple-600">
+                          {formatCurrency(price - (booking.cancellationFee || 0))}
+                        </span>
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs cursor-pointer h-9 shrink-0"
+                      onClick={handleProcessRefundAction}
+                      disabled={processingCancel}
+                    >
+                      {processingCancel ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                      Process Refund Now
+                    </Button>
+                  </div>
+                )}
+
+                {/* CASE 8: COMPLETED */}
+                {isCompleted && (
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-500 block">
+                      BOOKING COMPLETED
+                    </span>
+                    <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                      ✓ Service Fulfilled Successfully
+                    </h2>
+                    {balanceAmount > 0 ? (
+                      <p className="text-xs text-amber-500 font-semibold mt-1">
+                        Payment Remaining: {formatCurrency(balanceAmount)}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-emerald-500 font-semibold mt-1">
+                        ✓ Payment settled in full
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* CASE 9: CANCELLED */}
+                {isCancelled && (
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-rose-500 block mb-1">
+                      BOOKING CANCELLED
+                    </span>
+                    <h2 className="text-lg font-bold text-foreground">This booking was declined or cancelled.</h2>
+                  </div>
+                )}
+
+                {/* D. BOTTOM THREE-COLUMN INFORMATION GRID */}
+                <div className="border-t border-border/50 pt-5">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    {/* COLUMN 1: BOOKING */}
+                    <div className="space-y-3 md:border-r border-border/50 md:pr-6">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        BOOKING
                       </span>
-                    </div>
-
-                    {booking.paymentType === "advance" && (
-                      <>
-                        <div className="flex items-center justify-between py-1 border-b border-border/50">
-                          <span className="text-muted-foreground font-medium">Advance Amount</span>
-                          <span className="font-semibold text-foreground">
-                            {formatCurrency(booking.advanceAmount || Math.round((booking.price || 0) * 0.3))}
-                            {booking.isAdvancePaid ? (
-                              <span className="ml-1.5 text-[10px] text-emerald-500 font-bold">(Paid)</span>
-                            ) : (
-                              <span className="ml-1.5 text-[10px] text-amber-500 font-bold">(Pending)</span>
-                            )}
+                      <div className="space-y-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground block text-[11px]">Service</span>
+                          <span className="font-semibold text-foreground text-sm block mt-0.5">
+                            {booking.service?.name || booking.event?.title || booking.serviceName || "—"}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between py-1 border-b border-border/50">
-                          <span className="text-muted-foreground font-medium">Remaining Balance</span>
-                          <span className="font-semibold text-foreground">
-                            {formatCurrency(booking.remainingAmount || (booking.price - (booking.advanceAmount || 0)))}
-                            {booking.isRemainingPaid ? (
-                              <span className="ml-1.5 text-[10px] text-emerald-500 font-bold">(Paid)</span>
-                            ) : (
-                              <span className="ml-1.5 text-[10px] text-amber-500 font-bold">(Unpaid)</span>
-                            )}
+                        <div>
+                          <span className="text-muted-foreground block text-[11px]">Date &amp; Time</span>
+                          <span className="font-semibold text-foreground text-xs block mt-0.5">
+                            {booking.datetime
+                              ? new Date(booking.datetime).toLocaleDateString("en-IN", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric"
+                                }) +
+                                " • " +
+                                new Date(booking.datetime).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit"
+                                })
+                              : "Scheduled"}
                           </span>
                         </div>
-                      </>
-                    )}
-
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-muted-foreground font-medium">Current Payment State</span>
-                      <StatusBadge status={booking.paymentStatus || "pending"} className="text-xs" />
+                        <div>
+                          <span className="text-muted-foreground block text-[11px]">Location</span>
+                          <span className="font-semibold text-foreground text-xs block mt-0.5">
+                            {booking.customerLocation?.address || booking.event?.location || "Provided by customer"}
+                          </span>
+                          {booking.customerLocation?.latitude && (
+                            <a
+                              href={`https://www.google.com/maps?q=${booking.customerLocation.latitude},${booking.customerLocation.longitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-semibold mt-1"
+                            >
+                              View Map <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
                     </div>
+
+                    {/* COLUMN 2: CUSTOMER */}
+                    <div className="space-y-3 md:border-r border-border/50 md:pr-6">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        CUSTOMER
+                      </span>
+                      <div className="space-y-3 text-xs">
+                        <div>
+                          <span className="text-muted-foreground block text-[11px]">Name</span>
+                          <span className="font-semibold text-foreground text-sm block mt-0.5">
+                            {booking.customer?.name || "Customer"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[11px]">Email</span>
+                          <span className="font-semibold text-foreground text-xs block mt-0.5 truncate" title={booking.customer?.email}>
+                            {booking.customer?.email || "—"}
+                          </span>
+                        </div>
+                        {booking.notes && (
+                          <div>
+                            <span className="text-muted-foreground block text-[11px]">Note</span>
+                            <p className="p-2 bg-secondary/50 rounded text-foreground/90 italic text-[11px] mt-0.5">
+                              "{booking.notes}"
+                            </p>
+                          </div>
+                        )}
+                        <div className="pt-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate("/merchant-dashboard/inbox")}
+                            className="w-full h-8 text-xs font-medium gap-1.5 border-border/80 hover:bg-secondary cursor-pointer"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5 text-primary" /> Message Customer
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* COLUMN 3: PAYMENT */}
+                    <div className="space-y-3">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        PAYMENT
+                      </span>
+                      <div className="space-y-2.5 text-xs">
+                        <div className="flex items-center justify-between pb-1 border-b border-border/40">
+                          <span className="text-muted-foreground">Total</span>
+                          <span className="font-bold text-foreground text-sm">{formatCurrency(price)}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between pb-1 border-b border-border/40">
+                          <span className="text-muted-foreground">Paid</span>
+                          <span className={`font-bold ${paidAmount > 0 ? "text-emerald-500" : "text-muted-foreground"}`}>
+                            {formatCurrency(paidAmount)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pb-1 border-b border-border/40">
+                          <span className="text-muted-foreground">Due</span>
+                          <span className={`font-bold text-sm ${balanceAmount > 0 ? "text-amber-500" : "text-emerald-500"}`}>
+                            {formatCurrency(balanceAmount)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-muted-foreground font-medium">Status</span>
+                          <StatusBadge status={booking.paymentStatus || "pending"} className="text-xs px-2 py-0.5" />
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
+
               </div>
+
             </div>
           </motion.div>
         )}
+
+        {/* ── CANCELLATION / REJECTION REASON MODAL ────────────────────── */}
+        <AnimatePresence>
+          {showRejectModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-lg space-y-4"
+              >
+                <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                  <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+                    <XCircle className="h-4 w-4 text-rose-500" /> Confirm Cancellation
+                  </h3>
+                  <button
+                    onClick={() => setShowRejectModal(false)}
+                    className="text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Are you sure you want to cancel / decline this booking? Please specify a reason for the customer:
+                </p>
+
+                <Textarea
+                  placeholder="Enter reason for cancellation..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="text-xs min-h-[90px] bg-background resize-none"
+                />
+
+                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border/60">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowRejectModal(false)}
+                    disabled={rejecting}
+                    className="text-xs cursor-pointer h-9"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleConfirmRejectOrCancel}
+                    disabled={rejecting}
+                    className="text-xs font-bold h-9 cursor-pointer"
+                  >
+                    {rejecting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                    Confirm Cancellation
+                  </Button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
       </div>
     </MerchantLayout>
   );

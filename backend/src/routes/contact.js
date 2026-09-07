@@ -2,7 +2,9 @@ import express from "express";
 import User from "../models/User.js";
 import Event from "../models/Event.js";
 import Service from "../models/Service.js";
+import Booking from "../models/Booking.js";
 import Message from "../models/Message.js";
+import Notification from "../models/Notification.js";
 import { verifyToken } from "../middleware/auth.js";
 import { sendContactMessage } from "../utils/sendEmail.js";
 import { validateEmail, normalizeEmail } from "../utils/validation.js";
@@ -12,7 +14,7 @@ const router = express.Router();
 
 // POST /api/contact/merchant — send message (public)
 router.post("/merchant", async (req, res) => {
-  const { senderName, senderEmail, message, merchantId, eventId, serviceId, customerId } = req.body;
+  const { senderName, senderEmail, message, merchantId, eventId, serviceId, bookingId, customerId } = req.body;
   if (!senderName?.trim() || !senderEmail?.trim() || !message?.trim()) {
     return res.status(400).json({ error: "Name, email and message are required" });
   }
@@ -27,6 +29,26 @@ router.post("/merchant", async (req, res) => {
 
     if (merchantId) {
       merchant = await User.findById(merchantId).select("name email");
+    } else if (bookingId) {
+      // Resolve merchant via the booking's assignedTo or linked event or service
+      const booking = await Booking.findById(bookingId)
+        .populate("assignedTo", "name email")
+        .populate({ path: "event", select: "title createdBy", populate: { path: "createdBy", select: "name email" } })
+        .populate({ path: "service", select: "name createdBy", populate: { path: "createdBy", select: "name email" } });
+      if (booking?.assignedTo?.email) {
+        merchant = booking.assignedTo;
+        itemTitle = booking.eventName || booking.serviceName || booking.event?.title || booking.service?.name || "your booking";
+        resolvedEventId = booking.event?._id || null;
+        resolvedServiceId = booking.service?._id || null;
+      } else if (booking?.event?.createdBy) {
+        merchant = booking.event.createdBy;
+        itemTitle = booking.event.title || booking.eventName || "your booking";
+        resolvedEventId = booking.event._id;
+      } else if (booking?.service?.createdBy) {
+        merchant = booking.service.createdBy;
+        itemTitle = booking.service.name || booking.serviceName || "your booking";
+        resolvedServiceId = booking.service._id;
+      }
     } else if (eventId) {
       const event = await Event.findById(eventId).populate("createdBy", "name email");
       if (event?.createdBy) { merchant = event.createdBy; itemTitle = event.title; resolvedEventId = event._id; }
@@ -50,6 +72,19 @@ router.post("/merchant", async (req, res) => {
 
     emitMessageCreated(newMsg);
 
+    // Create in-app notification for merchant
+    try {
+      await Notification.create({
+        userId: merchant._id,
+        title: "New Customer Enquiry",
+        message: `${senderName.trim()} sent a message regarding "${itemTitle}": "${message.trim().slice(0, 70)}${message.trim().length > 70 ? '...' : ''}"`,
+        type: "general",
+        actionUrl: "/merchant-dashboard/inbox"
+      });
+    } catch (notifErr) {
+      console.error("Failed to create notification for merchant message:", notifErr.message);
+    }
+
     sendContactMessage({
       senderName: senderName.trim(),
       senderEmail: normalizedSenderEmail,
@@ -69,7 +104,7 @@ router.post("/merchant", async (req, res) => {
 // GET /api/contact/inbox — merchant inbox (MUST be before /:id routes)
 router.get("/inbox", verifyToken, async (req, res) => {
   try {
-    const messages = await Message.find({ merchant: req.user._id }).sort({ createdAt: -1 });
+    const messages = await Message.find({ merchant: req.user._id }).sort({ updatedAt: -1, createdAt: -1 });
     res.json({ messages });
   } catch (e) {
     res.status(500).json({ error: "Failed to fetch messages" });
@@ -81,7 +116,7 @@ router.get("/customer-inbox", verifyToken, async (req, res) => {
   try {
     const messages = await Message.find({
       $or: [{ customerId: req.user._id }, { senderEmail: req.user.email }]
-    }).populate("merchant", "name email").sort({ updatedAt: -1 });
+    }).populate("merchant", "name email").sort({ updatedAt: -1, createdAt: -1 });
     res.json({ messages });
   } catch (e) {
     res.status(500).json({ error: "Failed to fetch messages" });
@@ -119,6 +154,22 @@ router.post("/:id/reply", verifyToken, async (req, res) => {
     emitMessageReplied(msg, newReply);
 
     const merchant = await User.findById(req.user._id).select("name email");
+
+    // Create in-app notification for customer
+    if (msg.customerId) {
+      try {
+        await Notification.create({
+          userId: msg.customerId,
+          title: "New Reply from Organiser",
+          message: `${merchant?.name || "Organiser"} replied regarding "${msg.itemTitle}": "${text.trim().slice(0, 70)}${text.trim().length > 70 ? '...' : ''}"`,
+          type: "general",
+          actionUrl: "/customer-dashboard/messages"
+        });
+      } catch (notifErr) {
+        console.error("Failed to create notification for merchant reply:", notifErr.message);
+      }
+    }
+
     sendContactMessage({
       senderName: merchant.name,
       senderEmail: merchant.email,
@@ -134,6 +185,7 @@ router.post("/:id/reply", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Failed to send reply" });
   }
 });
+
 router.delete("/:id", verifyToken, async (req, res) => {
   try {
     await Message.findOneAndDelete({ _id: req.params.id, merchant: req.user._id });
@@ -158,9 +210,26 @@ router.post("/:id/customer-reply", verifyToken, async (req, res) => {
 
     const newReply = { from: "customer", text: text.trim(), createdAt: new Date() };
     msg.replies.push(newReply);
+    msg.read = false; // Reset read status to false so merchant sees NEW badge and unread count update!
     await msg.save();
 
     emitMessageReplied(msg, newReply);
+
+    // Create in-app notification for merchant
+    if (msg.merchant) {
+      try {
+        const merchantId = msg.merchant._id || msg.merchant;
+        await Notification.create({
+          userId: merchantId,
+          title: "New Customer Reply",
+          message: `${user.name || "Customer"} replied regarding "${msg.itemTitle}": "${text.trim().slice(0, 70)}${text.trim().length > 70 ? '...' : ''}"`,
+          type: "general",
+          actionUrl: "/merchant-dashboard/inbox"
+        });
+      } catch (notifErr) {
+        console.error("Failed to create notification for customer reply:", notifErr.message);
+      }
+    }
 
     const merchantEmail = msg.merchant ? msg.merchant.email : "unknown@domain.com";
     const merchantName = msg.merchant ? msg.merchant.name : "Organiser";

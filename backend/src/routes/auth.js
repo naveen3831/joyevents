@@ -112,7 +112,7 @@ router.post("/add-wallet-funds", verifyToken, async (req, res) => {
     // Record wallet credit transaction
     await Transaction.create({
       merchant: req.user._id,
-      type: "refund", // Using refund type for positive wallet credit transactions
+      type: "deposit",
       amount: depositAmount,
       description: `Wallet deposit of ₹${depositAmount} via ${paymentMethod.toUpperCase()}`,
       status: "completed",

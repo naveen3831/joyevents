@@ -181,9 +181,46 @@ const MyRequests = () => {
         }
     };
 
-    const openPaymentModal = (booking) => {
-        setPaymentBooking(booking);
-        setShowPaymentModal(true);
+    const openPaymentPage = (booking) => {
+        const { amount, paymentType } = (() => {
+            if (
+                booking.status === "awaiting_final_payment" ||
+                (booking.paymentType === "advance" && booking.isAdvancePaid && !booking.isRemainingPaid)
+            ) {
+                const rem = booking.remainingAmount > 0 
+                    ? booking.remainingAmount 
+                    : ((booking.price || 0) - (booking.advanceAmount || 0));
+                return { amount: rem > 0 ? rem : (booking.price || 0), paymentType: "remaining" };
+            }
+            if (
+                booking.paymentType === "advance" &&
+                !booking.isAdvancePaid
+            ) {
+                const adv = booking.advanceAmount > 0 
+                    ? booking.advanceAmount 
+                    : Math.round((booking.price || 0) * 0.3);
+                return { amount: adv > 0 ? adv : (booking.price || 0), paymentType: "advance" };
+            }
+            return { amount: booking.price || 0, paymentType: "full" };
+        })();
+
+        navigate("/customer-dashboard/checkout", {
+            state: {
+                bookingId: booking._id,
+                amount,
+                bookingData: {
+                    eventName: booking.event?.title || booking.serviceName || "Service Booking",
+                    serviceName: booking.serviceName || booking.event?.title || "Service Booking",
+                    paymentType,
+                    datetime: booking.datetime,
+                    location: booking.customerLocation?.address || booking.event?.location,
+                    image: booking.event?.image || booking.serviceImage || booking.service?.image,
+                    ticketType: booking.ticketType,
+                    quantity: booking.quantity,
+                    price: booking.price
+                }
+            }
+        });
     };
 
     const handleSubmitRating = async () => {
@@ -520,7 +557,17 @@ const MyRequests = () => {
 
                               {/* Amount Column */}
                               <TableCell className="px-3 py-3.5 align-middle text-xs sm:text-sm font-bold text-foreground">
-                                {formatCurrency(b.price || 0)}
+                                <div>{formatCurrency(b.price || 0)}</div>
+                                {b.paymentType === "advance" && !b.isAdvancePaid && (b.advanceAmount > 0) && (
+                                  <div className="text-[10px] text-amber-500 dark:text-amber-400 font-semibold mt-0.5">
+                                    Advance: {formatCurrency(b.advanceAmount)}
+                                  </div>
+                                )}
+                                {b.paymentType === "advance" && b.isAdvancePaid && !b.isRemainingPaid && (
+                                  <div className="text-[10px] text-indigo-500 dark:text-indigo-400 font-semibold mt-0.5">
+                                    Remaining: {formatCurrency(b.remainingAmount || ((b.price || 0) - (b.advanceAmount || 0)))}
+                                  </div>
+                                )}
                               </TableCell>
 
                               {/* Date & Time Column */}
@@ -553,21 +600,29 @@ const MyRequests = () => {
                               {/* Actions Column */}
                               <TableCell className="pr-5 sm:pr-6 pl-3 py-3.5 align-middle text-center">
                                 <div className="flex items-center justify-center">
-                                  {b.status === "awaiting_payment" || b.status === "awaiting_final_payment" ? (
-                                    <Button
-                                      size="sm"
-                                      className="h-8 px-3 text-[11px] font-bold rounded-xl bg-gradient-primary text-white hover:opacity-90 gap-1.5 flex items-center justify-center shadow-xs animate-pulse cursor-pointer whitespace-nowrap"
-                                      onClick={() => openPaymentModal(b)}
-                                    >
-                                      <CreditCard className="h-3.5 w-3.5 shrink-0" /> Pay Now
-                                    </Button>
-                                  ) : (
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-8 w-8 p-0 rounded-xl border-border text-muted-foreground hover:text-foreground hover:bg-muted/80 cursor-pointer flex items-center justify-center"
+                                  {(() => {
+                                    const isPayable = (
+                                      ["awaiting_payment", "approved", "assigned", "awaiting_final_payment"].includes(b.status) ||
+                                      (b.paymentType === "advance" && !b.isAdvancePaid && !["cancelled", "rejected", "refunded"].includes(b.status)) ||
+                                      (b.paymentType === "advance" && b.isAdvancePaid && !b.isRemainingPaid && !["cancelled", "rejected", "refunded"].includes(b.status)) ||
+                                      (b.approvedAt && b.paymentStatus === "pending" && !["cancelled", "rejected", "refunded"].includes(b.status))
+                                    ) && b.paymentStatus !== "paid";
+
+                                    return isPayable ? (
+                                      <Button
+                                        size="sm"
+                                        className="h-8 px-3 text-[11px] font-bold rounded-xl bg-gradient-primary text-white hover:opacity-90 gap-1.5 flex items-center justify-center shadow-xs animate-pulse cursor-pointer whitespace-nowrap"
+                                        onClick={() => openPaymentPage(b)}
+                                      >
+                                        <CreditCard className="h-3.5 w-3.5 shrink-0" /> Pay Now
+                                      </Button>
+                                    ) : (
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 rounded-xl border-border text-muted-foreground hover:text-foreground hover:bg-muted/80 cursor-pointer flex items-center justify-center"
                                         >
                                           <MoreHorizontal className="h-4 w-4 shrink-0" />
                                         </Button>
@@ -612,12 +667,30 @@ const MyRequests = () => {
                                           onClick={() => {
                                             const returnTo = "/customer-dashboard/bookings";
                                             const params = new URLSearchParams({
-                                              title: b.event?.title || b.serviceName || "Booking Inquiry",
+                                              title: b.event?.title || b.serviceName || b.service?.name || "Booking Inquiry",
                                               bookingId: b._id,
                                               returnTo,
                                             });
                                             if (b.event?.createdBy?._id || b.merchantId) {
                                               params.set("merchantId", b.event?.createdBy?._id || b.merchantId);
+                                            }
+                                            if (b.event?._id || (typeof b.event === "string" && b.event)) {
+                                              params.set("eventId", b.event._id || b.event);
+                                            }
+                                            if (b.serviceId || b.service?._id) {
+                                              params.set("serviceId", b.serviceId || b.service?._id);
+                                            }
+                                            if (b.event?.image || b.service?.image) {
+                                              params.set("image", b.event?.image || b.service?.image);
+                                            }
+                                            if (b.event?.category || b.service?.category) {
+                                              params.set("category", b.event?.category || b.service?.category);
+                                            }
+                                            if (b.datetime) {
+                                              params.set("datetime", b.datetime);
+                                            }
+                                            if (b.customerLocation?.address || b.event?.location) {
+                                              params.set("location", b.customerLocation?.address || b.event?.location);
                                             }
                                             navigate(`/customer-dashboard/contact-organiser?${params.toString()}`);
                                           }}
@@ -626,7 +699,8 @@ const MyRequests = () => {
                                         </DropdownMenuItem>
                                       </DropdownMenuContent>
                                     </DropdownMenu>
-                                  )}
+                                  );
+                                })()}
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -696,10 +770,22 @@ const MyRequests = () => {
                               <Button
                                 size="sm"
                                 onClick={() => {
-                                  setSelectedCustomForPay(r);
-                                  setShowCustomPayModal(true);
+                                  navigate("/customer-dashboard/checkout", {
+                                    state: {
+                                      isCustomPay: true,
+                                      customRequestId: r._id,
+                                      amount: r.quotationAmount,
+                                      bookingData: {
+                                        eventName: `Custom Service: ${r.serviceTitle}`,
+                                        serviceName: `Custom Service: ${r.serviceTitle}`,
+                                        datetime: r.eventDate,
+                                        location: r.location,
+                                        price: r.quotationAmount
+                                      }
+                                    }
+                                  });
                                 }}
-                                className="w-full sm:w-auto min-h-[36px] bg-gradient-primary text-white font-bold shrink-0"
+                                className="w-full sm:w-auto min-h-[36px] bg-gradient-primary text-white font-bold shrink-0 cursor-pointer"
                               >
                                 Accept & Pay Quote
                               </Button>
@@ -775,11 +861,23 @@ const MyRequests = () => {
         {/* Standard Booking Payment Modal */}
         {paymentBooking && (() => {
           const { amount, paymentType } = (() => {
-            if (paymentBooking.status === "awaiting_final_payment") {
-              return { amount: paymentBooking.remainingAmount || 0, paymentType: "remaining" };
+            if (
+              paymentBooking.status === "awaiting_final_payment" ||
+              (paymentBooking.paymentType === "advance" && paymentBooking.isAdvancePaid && !paymentBooking.isRemainingPaid)
+            ) {
+              const rem = paymentBooking.remainingAmount > 0 
+                ? paymentBooking.remainingAmount 
+                : ((paymentBooking.price || 0) - (paymentBooking.advanceAmount || 0));
+              return { amount: rem > 0 ? rem : (paymentBooking.price || 0), paymentType: "remaining" };
             }
-            if (paymentBooking.status === "awaiting_payment" && paymentBooking.paymentType === "advance" && !paymentBooking.isAdvancePaid) {
-              return { amount: paymentBooking.advanceAmount || 0, paymentType: "advance" };
+            if (
+              paymentBooking.paymentType === "advance" &&
+              !paymentBooking.isAdvancePaid
+            ) {
+              const adv = paymentBooking.advanceAmount > 0 
+                ? paymentBooking.advanceAmount 
+                : Math.round((paymentBooking.price || 0) * 0.3);
+              return { amount: adv > 0 ? adv : (paymentBooking.price || 0), paymentType: "advance" };
             }
             return { amount: paymentBooking.price || 0, paymentType: "full" };
           })();
