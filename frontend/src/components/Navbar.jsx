@@ -141,7 +141,18 @@ const Navbar = ({ hideDashboardLinks = false }) => {
   const RoleIcon = roleIcons[role] || User;
 
   return (
-    <motion.nav initial={{ y: -100 }} animate={{ y: 0 }} className={`fixed left-0 right-0 top-0 z-50 w-full bg-background/85 backdrop-blur-xl border-b border-border/80 transition-all duration-300 ${hideDashboardLinks ? "py-2 sm:py-2.5 shadow-sm" : scrolled ? "shadow-md py-2.5" : "py-3 sm:py-4"}`}>
+    <motion.nav
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      className={`fixed left-0 right-0 top-0 z-50 w-full bg-background/85 backdrop-blur-xl border-b border-border/80 transition-all duration-300 ${
+        hideDashboardLinks
+          ? "py-2 sm:py-2.5 shadow-sm"
+          : scrolled
+          ? "shadow-md bg-background/95 backdrop-blur-2xl py-2.5 border-border/90"
+          : "py-3 sm:py-4"
+      }`}
+    >
       <div className="flex items-center justify-between px-4 sm:px-8 lg:px-12 xl:px-20 w-full transition-all duration-300">
 
         {/* MOBILE BAR */}
@@ -176,19 +187,21 @@ const Navbar = ({ hideDashboardLinks = false }) => {
           {logoElement}
         </div>
 
-        {/* Center Navigation Links — Floating Pill Style */}
+        {/* Center Navigation Links — Floating Pill Style with Smooth Underline Indicator */}
         <div className="hidden items-center gap-1.5 lg:flex flex-nowrap bg-secondary/40 border border-border/60 p-1.5 rounded-2xl backdrop-blur-md">
           {navLinks.map((link) => {
+            const linkBaseClass = "relative px-4 py-2 rounded-xl text-base font-semibold transition-all whitespace-nowrap after:absolute after:bottom-1 after:left-3 after:right-3 after:h-[2px] after:bg-primary after:rounded-full after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-300 after:origin-left";
+            
             if (link.label === "Events") {
               const isEventsActive = location.pathname.startsWith("/events");
               return (
                 <DropdownMenu key={link.to}>
                   <DropdownMenuTrigger asChild>
-                    <Link to="/events" className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-base font-semibold transition-all whitespace-nowrap ${isEventsActive ? "bg-primary/15 text-primary font-bold shadow-sm border border-primary/20" : "text-foreground/80 hover:text-primary hover:bg-secondary/80"}`}>
+                    <Link to="/events" className={`flex items-center gap-1.5 ${linkBaseClass} ${isEventsActive ? "bg-primary/15 text-primary font-bold shadow-sm border border-primary/20 after:scale-x-100" : "text-foreground/80 hover:text-primary hover:bg-secondary/80"}`}>
                       Events <ChevronDown className="h-4 w-4 opacity-70" />
                     </Link>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="center" className="w-52 p-2 bg-background/95 backdrop-blur-xl border-border/80 shadow-2xl rounded-2xl text-foreground">
+                  <DropdownMenuContent align="center" className="w-52 p-2 bg-background/95 backdrop-blur-xl border-border/80 shadow-2xl rounded-2xl text-foreground animate-in fade-in-0 zoom-in-95 duration-150">
                     <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary font-semibold text-sm py-2.5 px-3 rounded-xl cursor-pointer">
                       <Link to="/events">All Events</Link>
                     </DropdownMenuItem>
@@ -209,11 +222,11 @@ const Navbar = ({ hideDashboardLinks = false }) => {
               return (
                 <DropdownMenu key={link.to}>
                   <DropdownMenuTrigger asChild>
-                    <Link to="/services" className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-base font-semibold transition-all whitespace-nowrap ${isServicesActive ? "bg-primary/15 text-primary font-bold shadow-sm border border-primary/20" : "text-foreground/80 hover:text-primary hover:bg-secondary/80"}`}>
+                    <Link to="/services" className={`flex items-center gap-1.5 ${linkBaseClass} ${isServicesActive ? "bg-primary/15 text-primary font-bold shadow-sm border border-primary/20 after:scale-x-100" : "text-foreground/80 hover:text-primary hover:bg-secondary/80"}`}>
                       Services <ChevronDown className="h-4 w-4 opacity-70" />
                     </Link>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="center" className="w-52 p-2 bg-background/95 backdrop-blur-xl border-border/80 shadow-2xl rounded-2xl text-foreground">
+                  <DropdownMenuContent align="center" className="w-52 p-2 bg-background/95 backdrop-blur-xl border-border/80 shadow-2xl rounded-2xl text-foreground animate-in fade-in-0 zoom-in-95 duration-150">
                     <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary font-semibold text-sm py-2.5 px-3 rounded-xl cursor-pointer">
                       <Link to="/services">All Services</Link>
                     </DropdownMenuItem>
@@ -231,7 +244,7 @@ const Navbar = ({ hideDashboardLinks = false }) => {
             }
             const isActive = location.pathname === link.to;
             return (
-              <Link key={link.to} to={link.to} className={`px-4 py-2 rounded-xl text-base font-semibold transition-all whitespace-nowrap ${isActive ? "bg-primary/15 text-primary font-bold shadow-sm border border-primary/20" : "text-foreground/80 hover:text-primary hover:bg-secondary/80"}`}>
+              <Link key={link.to} to={link.to} className={`${linkBaseClass} ${isActive ? "bg-primary/15 text-primary font-bold shadow-sm border border-primary/20 after:scale-x-100" : "text-foreground/80 hover:text-primary hover:bg-secondary/80"}`}>
                 {link.label}
               </Link>
             );

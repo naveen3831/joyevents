@@ -15,6 +15,7 @@ import EventCard from "@/components/EventCard";
 import SimplePayment from "@/components/SimplePayment";
 import { savePendingServiceBooking, savePendingEventBooking } from "@/lib/bookingState";
 import { useHomepageSettings } from "@/hooks/useHomepageSettings";
+import { Reveal, StaggerGroup, StaggerItem, CountUp, FloatingBalloons, LightRays } from "@/components/motion/MotionSystem";
 const PROMO_TINTS = [
     { chip: "bg-tint-orange text-tint-orange-fg", accent: "text-tint-orange-fg", border: "border-tint-orange" },
     { chip: "bg-tint-pink text-tint-pink-fg", accent: "text-tint-pink-fg", border: "border-tint-pink" },
@@ -421,64 +422,124 @@ const Index = () => {
         setSelectedImageIndex(null);
         setSelectedEventForGallery(null);
     };
-    return (<Layout>
-      {/* Hero — two-column: copy + feature chips on the left, framed image on the right */}
-      <section className="relative isolate -mt-20 flex min-h-screen items-center overflow-hidden bg-gradient-to-b from-secondary/40 to-background pt-20">
+    return (
+      <div className="relative min-h-screen overflow-hidden">
+        <LightRays
+          count={6}
+          color="rgba(109, 40, 217, 0.14)"
+          blur={54}
+          speed={20}
+          length="95vh"
+        />
+        <div className="relative z-10">
+          <Layout>
+            {/* Hero — signature line reveal animation & subtle floating balloons background */}
+            <section className="relative isolate -mt-20 flex min-h-screen items-center overflow-hidden bg-gradient-to-b from-secondary/40 to-background pt-20">
+              <FloatingBalloons count={8} />
         <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl"/>
         <div className="pointer-events-none absolute top-1/3 -right-24 h-72 w-72 rounded-full bg-accent/10 blur-3xl"/>
-        <div ref={heroScopeRef} className="container relative mx-auto px-4 py-12 sm:px-6 sm:py-16">
+        <div className="container relative mx-auto px-4 py-12 sm:px-6 sm:py-16">
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
             <div>
+              {/* Signature Headline Line Reveal */}
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: {},
+                  visible: {
+                    transition: {
+                      staggerChildren: 0.1,
+                    },
+                  },
+                }}
+              >
+                <div className="overflow-hidden mb-1">
+                  <motion.span
+                    variants={{
+                      hidden: { opacity: 0, y: 25 },
+                      visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } }
+                    }}
+                    className="block font-display text-3xl font-bold leading-[1.1] text-foreground sm:text-5xl md:text-6xl"
+                  >
+                    Create
+                  </motion.span>
+                </div>
 
-              <h1 ref={heroHeadingRef} className="font-display text-3xl font-bold leading-[1.1] text-foreground sm:text-5xl md:text-6xl">
-                {(() => {
-            const rawTitle = (!settings?.heroTitle || settings.heroTitle === "Create Unforgettable Moments")
-              ? "Your Vision, Transformed Into Extraordinary Events"
-              : settings.heroTitle;
-            const parts = rawTitle.split(" ");
-            if (parts.length >= 2) {
-                const middleIndex = Math.floor(parts.length / 2);
-                const before = parts.slice(0, middleIndex).join(" ");
-                const middle = parts[middleIndex];
-                const after = parts.slice(middleIndex + 1).join(" ");
-                return (<>
-                        {before}{" "}
-                        <span className="text-gradient">{middle}</span>
-                        {after ? ` ${after}` : ""}
-                      </>);
-            }
-            return rawTitle;
-        })()}
-              </h1>
-              <p ref={heroSubtitleRef} className="mt-4 max-w-xl text-base sm:text-lg text-muted-foreground leading-relaxed">
+                <div className="overflow-hidden mb-1">
+                  <motion.span
+                    variants={{
+                      hidden: { opacity: 0, y: 25 },
+                      visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } }
+                    }}
+                    className="block font-display text-3xl font-bold leading-[1.1] text-foreground sm:text-5xl md:text-6xl"
+                  >
+                    Unforgettable
+                  </motion.span>
+                </div>
+
+                <div className="overflow-hidden">
+                  <motion.span
+                    variants={{
+                      hidden: { opacity: 0, y: 25 },
+                      visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } }
+                    }}
+                    className="block font-display text-3xl font-bold leading-[1.1] text-foreground sm:text-5xl md:text-6xl"
+                  >
+                    <span className="text-gradient-animated">Moments</span> with joy
+                  </motion.span>
+                </div>
+              </motion.div>
+
+              {/* Hero Description */}
+              <motion.p
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="mt-4 max-w-xl text-base sm:text-lg text-muted-foreground leading-relaxed"
+              >
                 {(!settings?.heroSubtitle || settings.heroSubtitle.startsWith("From intimate workshops")) 
                   ? "From intimate private celebrations and corporate summits to grand music festivals — discover curated services, book verified tickets, and effortlessly coordinate end-to-end event planning that brings people together and turns every occasion into an extraordinary experience."
                   : settings.heroSubtitle}
-              </p>
+              </motion.p>
 
-
-
-              <div ref={heroButtonsRef} className="mt-6 sm:mt-8 flex flex-wrap gap-3">
+              {/* Hero CTA Buttons */}
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.42, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="mt-6 sm:mt-8 flex flex-wrap gap-3"
+              >
                 <Link to="/events">
-                  <Button className="bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow">
-                    Explore Events <ArrowRight className="ml-2 h-4 w-4"/>
+                  <Button className="group bg-gradient-primary text-primary-foreground hover:opacity-95 hover:-translate-y-0.5 shadow-glow transition-all duration-200">
+                    Explore Events <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"/>
                   </Button>
                 </Link>
                 <Link to="/register">
-                  <Button variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">
+                  <Button variant="outline" className="border-primary/40 text-primary hover:bg-primary/10 hover:-translate-y-0.5 transition-all duration-200">
                     Start Hosting
                   </Button>
                 </Link>
-              </div>
+              </motion.div>
             </div>
 
-            <div ref={heroImageWrapRef} className="relative">
-              <div className="absolute -inset-3 rounded-[2rem] bg-gradient-primary opacity-20 blur-2xl"/>
-              <div className="relative overflow-hidden rounded-[1.75rem] border border-border shadow-elevated aspect-[4/3]">
-                <img ref={heroParallaxRef} src={settings.heroImage || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1600&q=80"} alt="Event celebration" className="h-[130%] w-full -translate-y-[8%] object-cover" loading="eager"/>
-                <div className="absolute inset-0 bg-gradient-to-t from-navy/60 via-transparent to-transparent"/>
+            {/* Hero Image */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+              className="relative w-full flex items-center justify-center"
+            >
+              <div className="absolute -inset-3 rounded-[2rem] bg-gradient-primary opacity-20 blur-2xl pointer-events-none"/>
+              <div className="relative w-full overflow-hidden rounded-[1.75rem] border border-border shadow-elevated bg-card/30 flex items-center justify-center p-1.5 sm:p-2">
+                <img
+                  src={settings.heroImage || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1600&q=80"}
+                  alt="Event celebration"
+                  className="w-full h-auto max-h-[520px] object-contain object-center rounded-xl transition-all duration-300"
+                  loading="eager"
+                />
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
 
@@ -486,6 +547,38 @@ const Index = () => {
         <div className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 animate-bounce sm:block">
           <div className="flex h-9 w-6 items-start justify-center rounded-full border-2 border-primary/40 p-1">
             <div className="h-1.5 w-1.5 rounded-full bg-primary"/>
+          </div>
+        </div>
+      </section>
+
+      {/* Statistics Section */}
+      <section className="py-10 border-y border-border/60 bg-card/60 relative z-10">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div>
+              <div className="font-display text-3xl sm:text-4xl font-extrabold text-foreground">
+                <CountUp end={500} suffix="+" />
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 font-medium">Events Hosted</p>
+            </div>
+            <div>
+              <div className="font-display text-3xl sm:text-4xl font-extrabold text-foreground">
+                <CountUp end={100} suffix="+" />
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 font-medium">Verified Merchants</p>
+            </div>
+            <div>
+              <div className="font-display text-3xl sm:text-4xl font-extrabold text-foreground">
+                <CountUp end={10} suffix="K+" />
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 font-medium">Happy Customers</p>
+            </div>
+            <div>
+              <div className="font-display text-3xl sm:text-4xl font-extrabold text-foreground">
+                <CountUp end={99} suffix="%" />
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 font-medium">Satisfaction Rate</p>
+            </div>
           </div>
         </div>
       </section>
@@ -727,6 +820,8 @@ const Index = () => {
           </motion.div>
         </div>
       </section>
-    </Layout>);
+    </Layout>
+    </div>
+    </div>);
 };
 export default Index;

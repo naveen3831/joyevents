@@ -1,5 +1,12 @@
 import Settings from "../models/Settings.js";
 import { validateEmail, normalizeEmail } from "../utils/validation.js";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const DEFAULT_ADMIN_PREFERENCES = {
   emailNewUsers: true,
@@ -210,12 +217,12 @@ export const saveHomepageSettings = async (req, res) => {
     portfolioTitle: String(portfolioTitle || "A portfolio shaped by atmosphere, scale, and detail").trim().slice(0, 100),
     portfolioSubtitle: String(portfolioSubtitle || "").trim().slice(0, 500),
     portfolioCategories: String(portfolioCategories || "12+").trim().slice(0, 20),
-    heroImage: String(heroImage || "").trim().slice(0, 500),
-    eventsImage: String(eventsImage || "").trim().slice(0, 500),
-    servicesImage: String(servicesImage || "").trim().slice(0, 500),
-    aboutImage: String(aboutImage || "").trim().slice(0, 500),
-    portfolioImage: String(portfolioImage || "").trim().slice(0, 500),
-    contactImage: String(contactImage || "").trim().slice(0, 500)
+    heroImage: String(heroImage || "").trim().slice(0, 2000),
+    eventsImage: String(eventsImage || "").trim().slice(0, 2000),
+    servicesImage: String(servicesImage || "").trim().slice(0, 2000),
+    aboutImage: String(aboutImage || "").trim().slice(0, 2000),
+    portfolioImage: String(portfolioImage || "").trim().slice(0, 2000),
+    contactImage: String(contactImage || "").trim().slice(0, 2000)
   };
 
   if (settings.contactEmail) {
@@ -232,5 +239,48 @@ export const saveHomepageSettings = async (req, res) => {
     res.json({ success: true, settings });
   } catch (e) {
     res.status(500).json({ message: "Failed to save homepage settings" });
+  }
+};
+
+export const uploadImage = async (req, res) => {
+  if (req.user?.role !== "admin" && req.user?.role !== "merchant") {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ message: "No image file provided" });
+  }
+
+  try {
+    // 1. Try Cloudinary upload if configured
+    try {
+      const result = await uploadToCloudinary(req.file.buffer, "homepage");
+      if (result && result.url) {
+        return res.json({ success: true, url: result.url });
+      }
+    } catch (cloudinaryError) {
+      console.warn("Cloudinary upload fallback to local storage:", cloudinaryError.message);
+    }
+
+    // 2. Fallback: Save file to local uploads directory
+    const uploadsDir = path.resolve(__dirname, "../../uploads");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const ext = path.extname(req.file.originalname) || ".jpg";
+    const filename = `homepage-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+
+    fs.writeFileSync(filePath, req.file.buffer);
+
+    const protocol = req.protocol || "http";
+    const host = req.get("host") || "localhost:8080";
+    const url = `${protocol}://${host}/uploads/${filename}`;
+
+    return res.json({ success: true, url });
+  } catch (error) {
+    console.error("Image upload error:", error);
+    return res.status(500).json({ message: "Failed to upload image: " + error.message });
   }
 };

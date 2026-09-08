@@ -21,6 +21,8 @@ import ManageCategoriesModal from "@/components/ManageCategoriesModal";
 import SimplePayment from "@/components/SimplePayment";
 import { savePendingServiceBooking, getPendingServiceBooking, clearPendingServiceBooking } from "@/lib/bookingState";
 import ContactMerchantModal from "@/components/ContactMerchantModal";
+import { useHomepageSettings } from "@/hooks/useHomepageSettings";
+import { CountUp, Reveal, FloatingBalloons } from "@/components/motion/MotionSystem";
 const PENDING_CONTACT_SVC_KEY = "pendingContactService";
 const WHY_US = [
     { icon: Star, title: "Premium Quality", desc: "Every vendor and service is curated to meet the highest standards of quality and professionalism." },
@@ -34,7 +36,6 @@ const PROCESS = [
     { step: "03", title: "Confirmation", desc: "Our team reviews your request and sends a confirmation within 24 hours." },
     { step: "04", title: "Event Day", desc: "Relax and enjoy — our professionals handle every detail on the day." },
 ];
-import { useHomepageSettings } from "@/hooks/useHomepageSettings";
 
 const normalizeCategory = (value) =>
   String(typeof value === "object" ? value?.name || "" : value || "")
@@ -428,6 +429,7 @@ const Services = () => {
     return (<Layout>
       {/* ── Hero ─────────────────────────────────────── */}
       <section className="relative isolate overflow-hidden">
+        <FloatingBalloons count={8} />
         <img src={settings.servicesImage || STATIC_IMAGES.servicesHero} alt="Our Services" className="h-[50vh] min-h-[320px] w-full object-cover sm:h-[55vh] md:h-[60vh] lg:h-[65vh]" loading="eager"/>
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent"/>
         <div className="absolute inset-0 flex items-center pt-20">
@@ -457,17 +459,21 @@ const Services = () => {
 
       {/* ── Stats ─────────────────────────────────────── */}
       <section className="border-y border-border bg-secondary/30 py-10">
-        <div className="container mx-auto">
+        <div className="container mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 gap-8 text-center md:grid-cols-4">
             {[
-            { value: "18+", label: "Service Categories" },
-            { value: "340+", label: "Trusted Merchants" },
-            { value: "50K+", label: "Happy Clients" },
-            { value: "98%", label: "Satisfaction Rate" },
-        ].map((s, i) => (<motion.div key={s.label} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
-                <div className="font-display text-xl sm:text-4xl font-bold text-primary">{s.value}</div>
-                <div className="mt-1 text-sm text-muted-foreground">{s.label}</div>
-              </motion.div>))}
+              { end: 18, suffix: "+", label: "Service Categories" },
+              { end: 340, suffix: "+", label: "Trusted Merchants" },
+              { end: 50, suffix: "K+", label: "Happy Clients" },
+              { end: 98, suffix: "%", label: "Satisfaction Rate" },
+            ].map((s, i) => (
+              <Reveal key={s.label} delay={i * 0.08}>
+                <div className="font-display text-2xl sm:text-4xl font-bold text-primary">
+                  <CountUp end={s.end} suffix={s.suffix} />
+                </div>
+                <div className="mt-1 text-xs sm:text-sm text-muted-foreground">{s.label}</div>
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>

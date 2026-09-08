@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { motion } from "framer-motion";
 import {
   Save,
   RefreshCw,
@@ -17,14 +16,14 @@ import {
   Briefcase,
   Activity,
   Phone,
-  Image as ImageIcon,
   Mail,
   MapPin,
   Clock,
-  Layers,
   Info,
+  FileText,
 } from "lucide-react";
 import { apiGetHomepageSettings, apiSaveHomepageSettings } from "@/lib/api";
+import { ImageUploadField } from "@/components/common/ImageUploadField";
 
 const SECTIONS = [
   { id: "hero", label: "Hero & Header", icon: Sparkles },
@@ -32,7 +31,6 @@ const SECTIONS = [
   { id: "portfolio", label: "Portfolio Page", icon: Briefcase },
   { id: "metrics", label: "Stats & Metrics", icon: Activity },
   { id: "contact", label: "Contact & Footer", icon: Phone },
-  { id: "images", label: "Banner Images", icon: ImageIcon },
 ];
 
 const AdminHomepageSettings = () => {
@@ -104,44 +102,6 @@ const AdminHomepageSettings = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!token) return;
-
-    if (!heroTitle.trim() || !heroSubtitle.trim()) {
-      toast.error("Hero Title and Subtitle are required");
-      setActiveSection("hero");
-      return;
-    }
-    if (!aboutTitle.trim() || !aboutSubtitle.trim()) {
-      toast.error("About Us Title and Subtitle are required");
-      setActiveSection("about");
-      return;
-    }
-    if (!portfolioTitle.trim() || !portfolioSubtitle.trim()) {
-      toast.error("Portfolio Title and Subtitle are required");
-      setActiveSection("portfolio");
-      return;
-    }
-
-    if (contactPhone.trim()) {
-      const phoneRegex = /^[0-9]{12}$/;
-      if (!phoneRegex.test(contactPhone.trim())) {
-        toast.error(
-          "Invalid Phone Number. Must contain exactly 12 numeric digits (no letters, spaces, or special characters)."
-        );
-        setActiveSection("contact");
-        return;
-      }
-    }
-
-    if (contactEmail.trim()) {
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      if (!emailRegex.test(contactEmail.trim())) {
-        toast.error("Invalid Support Email. Please enter a valid email address.");
-        setActiveSection("contact");
-        return;
-      }
-    }
-
     setSaving(true);
     try {
       const payload = {
@@ -169,11 +129,9 @@ const AdminHomepageSettings = () => {
       };
 
       await apiSaveHomepageSettings(payload, token);
-      localStorage.setItem("homepageSettings", JSON.stringify(payload));
-      window.dispatchEvent(new Event("homepage-settings-updated"));
-      toast.success("Homepage CMS settings updated successfully!");
+      toast.success("Homepage configuration saved successfully!");
     } catch (err) {
-      toast.error(err?.message || "Failed to update settings");
+      toast.error(err?.message || "Failed to save homepage settings");
     } finally {
       setSaving(false);
     }
@@ -181,32 +139,31 @@ const AdminHomepageSettings = () => {
 
   return (
     <AdminLayout>
-      <div className="w-full max-w-[1280px] mx-auto space-y-6">
-        {/* Page Header */}
+      <div className="space-y-6 max-w-6xl mx-auto pb-12">
         <PageHeader
           title="Homepage CMS"
-          subtitle="Manage the content displayed on the public homepage."
+          description="Manage content and visual assets displayed on the public landing pages."
           breadcrumbs={[
-            { label: "Admin Portal", to: "/admin-dashboard" },
+            { label: "Admin Portal", href: "/admin-dashboard" },
             { label: "Growth" },
             { label: "Homepage CMS" },
           ]}
           actions={
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <Button
-                type="button"
                 variant="outline"
+                size="sm"
                 onClick={() => window.open("/", "_blank")}
-                className="h-9 text-xs font-semibold gap-1.5 rounded-lg border-border/80"
+                className="h-8 text-xs gap-1.5 border-border/80"
               >
                 <ExternalLink className="h-3.5 w-3.5" /> Preview Homepage
               </Button>
               <Button
-                type="button"
                 variant="outline"
+                size="sm"
                 onClick={loadSettings}
                 disabled={loading}
-                className="h-9 text-xs font-semibold gap-1.5 rounded-lg border-border/80"
+                className="h-8 text-xs gap-1.5 border-border/80"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
               </Button>
@@ -214,77 +171,70 @@ const AdminHomepageSettings = () => {
           }
         />
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20 text-muted-foreground text-xs gap-2">
-            <RefreshCw className="h-4 w-4 animate-spin text-primary" /> Loading CMS configuration...
-          </div>
-        ) : (
-          <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Sidebar Section Navigation (3 Cols) */}
-            <div className="lg:col-span-3 space-y-3">
-              <div className="rounded-xl border border-border/80 bg-card p-3 shadow-xs space-y-1">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground px-3 py-2">
-                  Homepage Sections
-                </p>
-
-                <nav className="space-y-1">
-                  {SECTIONS.map((sec) => {
-                    const Icon = sec.icon;
-                    const isActive = activeSection === sec.id;
-                    return (
-                      <button
-                        key={sec.id}
-                        type="button"
-                        onClick={() => setActiveSection(sec.id)}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors text-left ${
-                          isActive
-                            ? "bg-primary/10 text-primary border-l-2 border-primary"
-                            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                        }`}
-                      >
-                        <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
-                        <span className="truncate">{sec.label}</span>
-                      </button>
-                    );
-                  })}
-                </nav>
-              </div>
-
-              {/* Info Card (Information Only) */}
-              <div className="rounded-xl border border-border/60 bg-secondary/30 p-3.5 space-y-1.5 hidden lg:block">
-                <div className="flex items-start gap-2">
-                  <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Make your edits across sections and save when ready. Changes will be live immediately.
-                  </p>
-                </div>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+          {/* Left Sidebar Section Navigation */}
+          <div className="md:col-span-1 space-y-3">
+            <div className="p-3 rounded-[14px] bg-card border border-border/80 shadow-2xs">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-2 pb-2 border-b border-border/60">
+                Homepage Sections
+              </h3>
+              <nav className="mt-2 space-y-1">
+                {SECTIONS.map((sec) => {
+                  const Icon = sec.icon;
+                  const isActive = activeSection === sec.id;
+                  return (
+                    <button
+                      key={sec.id}
+                      type="button"
+                      onClick={() => setActiveSection(sec.id)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-lg transition-all text-left ${
+                        isActive
+                          ? "bg-primary/10 text-primary shadow-2xs"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      }`}
+                    >
+                      <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-primary" : ""}`} />
+                      <span>{sec.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
 
-            {/* Right Content Editor Workspace (9 Cols) */}
-            <div className="lg:col-span-9 space-y-6">
-              <motion.div
-                key={activeSection}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.15 }}
-                className="rounded-xl border border-border/80 bg-card p-6 shadow-xs space-y-6"
-              >
-                {/* 1. Hero & Header */}
-                {activeSection === "hero" && (
-                  <div className="space-y-5">
-                    <div className="pb-3 border-b border-border/70 flex items-center justify-between">
-                      <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-primary" /> Hero & Header Content
-                      </h2>
-                      <span className="text-[11px] text-muted-foreground font-medium">Main landing banner text</span>
+            <div className="p-3.5 rounded-[14px] bg-muted/30 border border-border/60 text-xs text-muted-foreground space-y-2">
+              <div className="flex items-center gap-1.5 font-semibold text-foreground">
+                <Info className="h-3.5 w-3.5 text-primary shrink-0" /> Tip
+              </div>
+              <p className="text-[11px] leading-relaxed">
+                Edit section text content and upload visual images together. Click Save Changes when done.
+              </p>
+            </div>
+          </div>
+
+          {/* Right Main Settings Form */}
+          <div className="md:col-span-3">
+            <form onSubmit={handleSave} className="space-y-6">
+
+              {/* 1. Hero & Header */}
+              {activeSection === "hero" && (
+                <div className="space-y-6">
+                  {/* Hero Content Card */}
+                  <div className="rounded-[14px] border border-border/80 bg-card p-5 sm:p-6 shadow-2xs space-y-4">
+                    <div className="pb-3 border-b border-border/60 flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        Hero Content
+                      </h3>
+                      <span className="text-[11px] text-muted-foreground">
+                        Main landing header & subtitle
+                      </span>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-w-3xl">
                       <div className="space-y-1.5">
                         <div className="flex justify-between items-center">
                           <Label htmlFor="heroTitle" className="text-xs font-semibold">
-                            Hero Title *
+                            Hero Title
                           </Label>
                           <span className="text-[10px] text-muted-foreground font-mono">
                             {heroTitle.length}/100
@@ -297,17 +247,14 @@ const AdminHomepageSettings = () => {
                           value={heroTitle}
                           onChange={(e) => setHeroTitle(e.target.value)}
                           placeholder="e.g. Create Unforgettable Moments"
-                          className="h-9 text-xs"
+                          className="h-9 text-xs bg-background"
                         />
-                        <p className="text-[11px] text-muted-foreground">
-                          The middle word will be styled with a vibrant gradient accent.
-                        </p>
                       </div>
 
                       <div className="space-y-1.5">
                         <div className="flex justify-between items-center">
                           <Label htmlFor="heroSubtitle" className="text-xs font-semibold">
-                            Hero Subtitle / Description *
+                            Hero Subtitle / Description
                           </Label>
                           <span className="text-[10px] text-muted-foreground font-mono">
                             {heroSubtitle.length}/500
@@ -321,29 +268,72 @@ const AdminHomepageSettings = () => {
                           value={heroSubtitle}
                           onChange={(e) => setHeroSubtitle(e.target.value)}
                           placeholder="From intimate workshops to grand festivals..."
-                          className="text-xs min-h-[80px] resize-none"
+                          className="text-xs min-h-[85px] resize-none bg-background"
                         />
                       </div>
                     </div>
                   </div>
-                )}
 
-                {/* 2. About Us */}
-                {activeSection === "about" && (
-                  <div className="space-y-5">
-                    <div className="pb-3 border-b border-border/70 flex items-center justify-between">
-                      <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <Users className="h-4 w-4 text-primary" /> About Us Page Content
-                      </h2>
-                      <span className="text-[11px] text-muted-foreground font-medium">Company mission & background</span>
+                  {/* Hero Visual Card */}
+                  <ImageUploadField
+                    id="heroImage"
+                    label="Hero Visual"
+                    value={heroImage}
+                    onChange={setHeroImage}
+                    placeholder="https://images.unsplash.com/photo-..."
+                    token={token}
+                    aspectRatioClass="aspect-[16/9]"
+                    recommendedDimensions="Recommended: 1600 × 900 px"
+                  />
+
+                  {/* Events & Services Banner Visual Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <ImageUploadField
+                      id="eventsImage"
+                      label="Events Banner"
+                      value={eventsImage}
+                      onChange={setEventsImage}
+                      placeholder="https://images.unsplash.com/photo-..."
+                      token={token}
+                      aspectRatioClass="aspect-[16/7]"
+                      recommendedDimensions="Recommended: 1600 × 600 px"
+                    />
+
+                    <ImageUploadField
+                      id="servicesImage"
+                      label="Services Banner"
+                      value={servicesImage}
+                      onChange={setServicesImage}
+                      placeholder="https://images.unsplash.com/photo-..."
+                      token={token}
+                      aspectRatioClass="aspect-[16/7]"
+                      recommendedDimensions="Recommended: 1600 × 600 px"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 2. About Us Page */}
+              {activeSection === "about" && (
+                <div className="space-y-6">
+                  {/* About Content Card */}
+                  <div className="rounded-[14px] border border-border/80 bg-card p-5 sm:p-6 shadow-2xs space-y-4">
+                    <div className="pb-3 border-b border-border/60 flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        About Content
+                      </h3>
+                      <span className="text-[11px] text-muted-foreground">
+                        Company mission and experience heading
+                      </span>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-w-3xl">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="md:col-span-2 space-y-1.5">
                           <div className="flex justify-between items-center">
                             <Label htmlFor="aboutTitle" className="text-xs font-semibold">
-                              About Us Title *
+                              About Title
                             </Label>
                             <span className="text-[10px] text-muted-foreground font-mono">
                               {aboutTitle.length}/100
@@ -356,7 +346,7 @@ const AdminHomepageSettings = () => {
                             value={aboutTitle}
                             onChange={(e) => setAboutTitle(e.target.value)}
                             placeholder="e.g. We build unforgettable event experiences"
-                            className="h-9 text-xs"
+                            className="h-9 text-xs bg-background"
                           />
                         </div>
 
@@ -375,7 +365,7 @@ const AdminHomepageSettings = () => {
                             value={aboutExperience}
                             onChange={(e) => setAboutExperience(e.target.value)}
                             placeholder="e.g. 12+"
-                            className="h-9 text-xs"
+                            className="h-9 text-xs bg-background"
                           />
                         </div>
                       </div>
@@ -383,7 +373,7 @@ const AdminHomepageSettings = () => {
                       <div className="space-y-1.5">
                         <div className="flex justify-between items-center">
                           <Label htmlFor="aboutSubtitle" className="text-xs font-semibold">
-                            About Us Description *
+                            About Description
                           </Label>
                           <span className="text-[10px] text-muted-foreground font-mono">
                             {aboutSubtitle.length}/500
@@ -397,29 +387,47 @@ const AdminHomepageSettings = () => {
                           value={aboutSubtitle}
                           onChange={(e) => setAboutSubtitle(e.target.value)}
                           placeholder="Describe the company mission and goals..."
-                          className="text-xs min-h-[80px] resize-none"
+                          className="text-xs min-h-[85px] resize-none bg-background"
                         />
                       </div>
                     </div>
                   </div>
-                )}
 
-                {/* 3. Portfolio Page */}
-                {activeSection === "portfolio" && (
-                  <div className="space-y-5">
-                    <div className="pb-3 border-b border-border/70 flex items-center justify-between">
-                      <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <Briefcase className="h-4 w-4 text-primary" /> Portfolio Section Content
-                      </h2>
-                      <span className="text-[11px] text-muted-foreground font-medium">Platform showcase heading</span>
+                  {/* About Visual Card */}
+                  <ImageUploadField
+                    id="aboutImage"
+                    label="About Image"
+                    value={aboutImage}
+                    onChange={setAboutImage}
+                    placeholder="https://images.unsplash.com/photo-..."
+                    token={token}
+                    aspectRatioClass="aspect-[16/9]"
+                    recommendedDimensions="Recommended: 1200 × 900 px"
+                  />
+                </div>
+              )}
+
+              {/* 3. Portfolio Page */}
+              {activeSection === "portfolio" && (
+                <div className="space-y-6">
+                  {/* Portfolio Content Card */}
+                  <div className="rounded-[14px] border border-border/80 bg-card p-5 sm:p-6 shadow-2xs space-y-4">
+                    <div className="pb-3 border-b border-border/60 flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        Portfolio Content
+                      </h3>
+                      <span className="text-[11px] text-muted-foreground">
+                        Portfolio section headline and metrics
+                      </span>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-w-3xl">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="md:col-span-2 space-y-1.5">
                           <div className="flex justify-between items-center">
                             <Label htmlFor="portfolioTitle" className="text-xs font-semibold">
-                              Portfolio Title *
+                              Portfolio Title
                             </Label>
                             <span className="text-[10px] text-muted-foreground font-mono">
                               {portfolioTitle.length}/100
@@ -432,7 +440,7 @@ const AdminHomepageSettings = () => {
                             value={portfolioTitle}
                             onChange={(e) => setPortfolioTitle(e.target.value)}
                             placeholder="e.g. A portfolio shaped by atmosphere and scale"
-                            className="h-9 text-xs"
+                            className="h-9 text-xs bg-background"
                           />
                         </div>
 
@@ -446,7 +454,7 @@ const AdminHomepageSettings = () => {
                             value={portfolioCategories}
                             onChange={(e) => setPortfolioCategories(e.target.value)}
                             placeholder="e.g. 12+"
-                            className="h-9 text-xs"
+                            className="h-9 text-xs bg-background"
                           />
                         </div>
                       </div>
@@ -454,7 +462,7 @@ const AdminHomepageSettings = () => {
                       <div className="space-y-1.5">
                         <div className="flex justify-between items-center">
                           <Label htmlFor="portfolioSubtitle" className="text-xs font-semibold">
-                            Portfolio Subtitle / Description *
+                            Portfolio Description
                           </Label>
                           <span className="text-[10px] text-muted-foreground font-mono">
                             {portfolioSubtitle.length}/500
@@ -468,93 +476,112 @@ const AdminHomepageSettings = () => {
                           value={portfolioSubtitle}
                           onChange={(e) => setPortfolioSubtitle(e.target.value)}
                           placeholder="Describe the portfolio summary..."
-                          className="text-xs min-h-[80px] resize-none"
+                          className="text-xs min-h-[85px] resize-none bg-background"
                         />
                       </div>
                     </div>
                   </div>
-                )}
 
-                {/* 4. Stats & Metrics */}
-                {activeSection === "metrics" && (
-                  <div className="space-y-5">
-                    <div className="pb-3 border-b border-border/70 flex items-center justify-between">
-                      <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-primary" /> Platform Stats & Metrics
-                      </h2>
-                      <span className="text-[11px] text-muted-foreground font-medium">Public homepage counters</span>
+                  {/* Portfolio Visual Card */}
+                  <ImageUploadField
+                    id="portfolioImage"
+                    label="Portfolio Image"
+                    value={portfolioImage}
+                    onChange={setPortfolioImage}
+                    placeholder="https://images.unsplash.com/photo-..."
+                    token={token}
+                    aspectRatioClass="aspect-[16/9]"
+                    recommendedDimensions="Recommended: 1200 × 900 px"
+                  />
+                </div>
+              )}
+
+              {/* 4. Stats & Metrics */}
+              {activeSection === "metrics" && (
+                <div className="rounded-[14px] border border-border/80 bg-card p-5 sm:p-6 shadow-2xs space-y-4">
+                  <div className="pb-3 border-b border-border/60 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-primary" />
+                      Platform Stats & Metrics
+                    </h3>
+                    <span className="text-[11px] text-muted-foreground">
+                      Public landing page counter numbers
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="eventsCount" className="text-xs font-semibold">
+                        Events Count
+                      </Label>
+                      <Input
+                        id="eventsCount"
+                        maxLength={10}
+                        value={eventsCount}
+                        onChange={(e) => setEventsCount(e.target.value)}
+                        placeholder="e.g. 1,800"
+                        className="h-9 text-xs font-mono bg-background"
+                      />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="eventsCount" className="text-xs font-semibold">
-                          Events Count
-                        </Label>
-                        <Input
-                          id="eventsCount"
-                          maxLength={5}
-                          value={eventsCount}
-                          onChange={(e) => setEventsCount(e.target.value)}
-                          placeholder="e.g. 1,800"
-                          className="h-9 text-xs font-mono"
-                        />
-                      </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="attendeesCount" className="text-xs font-semibold">
+                        Attendees Count
+                      </Label>
+                      <Input
+                        id="attendeesCount"
+                        maxLength={10}
+                        value={attendeesCount}
+                        onChange={(e) => setAttendeesCount(e.target.value)}
+                        placeholder="e.g. 50K+"
+                        className="h-9 text-xs font-mono bg-background"
+                      />
+                    </div>
 
-                      <div className="space-y-1.5">
-                        <Label htmlFor="attendeesCount" className="text-xs font-semibold">
-                          Attendees Count
-                        </Label>
-                        <Input
-                          id="attendeesCount"
-                          maxLength={5}
-                          value={attendeesCount}
-                          onChange={(e) => setAttendeesCount(e.target.value)}
-                          placeholder="e.g. 50K+"
-                          className="h-9 text-xs font-mono"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="merchantsCount" className="text-xs font-semibold">
-                          Merchants Count
-                        </Label>
-                        <Input
-                          id="merchantsCount"
-                          maxLength={5}
-                          value={merchantsCount}
-                          onChange={(e) => setMerchantsCount(e.target.value)}
-                          placeholder="e.g. 340+"
-                          className="h-9 text-xs font-mono"
-                        />
-                      </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="merchantsCount" className="text-xs font-semibold">
+                        Merchants Count
+                      </Label>
+                      <Input
+                        id="merchantsCount"
+                        maxLength={10}
+                        value={merchantsCount}
+                        onChange={(e) => setMerchantsCount(e.target.value)}
+                        placeholder="e.g. 340+"
+                        className="h-9 text-xs font-mono bg-background"
+                      />
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* 5. Contact & Footer */}
-                {activeSection === "contact" && (
-                  <div className="space-y-5">
-                    <div className="pb-3 border-b border-border/70 flex items-center justify-between">
-                      <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-primary" /> Contact & Footer Details
-                      </h2>
-                      <span className="text-[11px] text-muted-foreground font-medium">Support info displayed in footer</span>
+              {/* 5. Contact & Footer */}
+              {activeSection === "contact" && (
+                <div className="space-y-6">
+                  {/* Contact Details Card */}
+                  <div className="rounded-[14px] border border-border/80 bg-card p-5 sm:p-6 shadow-2xs space-y-4">
+                    <div className="pb-3 border-b border-border/60 flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-primary" />
+                        Contact Details
+                      </h3>
+                      <span className="text-[11px] text-muted-foreground">
+                        Footer and contact page support details
+                      </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl">
                       <div className="space-y-1.5">
                         <Label htmlFor="contactPhone" className="text-xs font-semibold flex items-center gap-1.5">
-                          <Phone className="h-3.5 w-3.5 text-muted-foreground" /> Phone Number (12 digits)
+                          <Phone className="h-3.5 w-3.5 text-muted-foreground" /> Phone Number
                         </Label>
                         <Input
                           id="contactPhone"
-                          maxLength={12}
+                          maxLength={15}
                           value={contactPhone}
-                          onChange={(e) =>
-                            setContactPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 12))
-                          }
+                          onChange={(e) => setContactPhone(e.target.value)}
                           placeholder="e.g. 919876543210"
-                          className="h-9 text-xs font-mono"
+                          className="h-9 text-xs font-mono bg-background"
                         />
                       </div>
 
@@ -574,7 +601,7 @@ const AdminHomepageSettings = () => {
                           value={contactEmail}
                           onChange={(e) => setContactEmail(e.target.value)}
                           placeholder="e.g. info@eventoza.com"
-                          className="h-9 text-xs"
+                          className="h-9 text-xs bg-background"
                         />
                       </div>
 
@@ -593,7 +620,7 @@ const AdminHomepageSettings = () => {
                           value={contactAddress}
                           onChange={(e) => setContactAddress(e.target.value)}
                           placeholder="e.g. Mumbai, India"
-                          className="h-9 text-xs"
+                          className="h-9 text-xs bg-background"
                         />
                       </div>
 
@@ -612,144 +639,40 @@ const AdminHomepageSettings = () => {
                           value={contactWorkingHours}
                           onChange={(e) => setContactWorkingHours(e.target.value)}
                           placeholder="e.g. Mon–Fri, 9am–6pm IST"
-                          className="h-9 text-xs"
+                          className="h-9 text-xs bg-background"
                         />
                       </div>
                     </div>
                   </div>
-                )}
 
-                {/* 6. Banner & Illustration Images */}
-                {activeSection === "images" && (
-                  <div className="space-y-5">
-                    <div className="pb-3 border-b border-border/70 flex items-center justify-between">
-                      <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <ImageIcon className="h-4 w-4 text-primary" /> Banner & Illustration Images
-                      </h2>
-                      <span className="text-[11px] text-muted-foreground font-medium">Public landing page visual assets</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between items-center">
-                          <Label htmlFor="heroImage" className="text-xs font-semibold">
-                            Home Hero Image URL
-                          </Label>
-                          <span className="text-[10px] text-muted-foreground font-mono">{heroImage.length}/500</span>
-                        </div>
-                        <Input
-                          id="heroImage"
-                          maxLength={500}
-                          value={heroImage}
-                          onChange={(e) => setHeroImage(e.target.value)}
-                          placeholder="Enter hero image URL..."
-                          className="h-9 text-xs font-mono"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between items-center">
-                          <Label htmlFor="eventsImage" className="text-xs font-semibold">
-                            Events Banner Image URL
-                          </Label>
-                          <span className="text-[10px] text-muted-foreground font-mono">{eventsImage.length}/500</span>
-                        </div>
-                        <Input
-                          id="eventsImage"
-                          maxLength={500}
-                          value={eventsImage}
-                          onChange={(e) => setEventsImage(e.target.value)}
-                          placeholder="Enter events banner URL..."
-                          className="h-9 text-xs font-mono"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between items-center">
-                          <Label htmlFor="servicesImage" className="text-xs font-semibold">
-                            Services Banner Image URL
-                          </Label>
-                          <span className="text-[10px] text-muted-foreground font-mono">{servicesImage.length}/500</span>
-                        </div>
-                        <Input
-                          id="servicesImage"
-                          maxLength={500}
-                          value={servicesImage}
-                          onChange={(e) => setServicesImage(e.target.value)}
-                          placeholder="Enter services banner URL..."
-                          className="h-9 text-xs font-mono"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between items-center">
-                          <Label htmlFor="aboutImage" className="text-xs font-semibold">
-                            About Us Illustration URL
-                          </Label>
-                          <span className="text-[10px] text-muted-foreground font-mono">{aboutImage.length}/500</span>
-                        </div>
-                        <Input
-                          id="aboutImage"
-                          maxLength={500}
-                          value={aboutImage}
-                          onChange={(e) => setAboutImage(e.target.value)}
-                          placeholder="Enter illustration URL..."
-                          className="h-9 text-xs font-mono"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between items-center">
-                          <Label htmlFor="portfolioImage" className="text-xs font-semibold">
-                            Portfolio Illustration URL
-                          </Label>
-                          <span className="text-[10px] text-muted-foreground font-mono">{portfolioImage.length}/500</span>
-                        </div>
-                        <Input
-                          id="portfolioImage"
-                          maxLength={500}
-                          value={portfolioImage}
-                          onChange={(e) => setPortfolioImage(e.target.value)}
-                          placeholder="Enter portfolio URL..."
-                          className="h-9 text-xs font-mono"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between items-center">
-                          <Label htmlFor="contactImage" className="text-xs font-semibold">
-                            Contact Us Illustration URL
-                          </Label>
-                          <span className="text-[10px] text-muted-foreground font-mono">{contactImage.length}/500</span>
-                        </div>
-                        <Input
-                          id="contactImage"
-                          maxLength={500}
-                          value={contactImage}
-                          onChange={(e) => setContactImage(e.target.value)}
-                          placeholder="Enter contact illustration URL..."
-                          className="h-9 text-xs font-mono"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Footer Save Action */}
-                <div className="pt-4 border-t border-border/60 flex items-center justify-end">
-                  <Button
-                    type="submit"
-                    disabled={saving}
-                    className="h-10 px-6 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg gap-2 cursor-pointer"
-                  >
-                    <Save className="h-4 w-4" />
-                    {saving ? "Saving Changes..." : "Save Configuration"}
-                  </Button>
+                  {/* Contact Visual Card */}
+                  <ImageUploadField
+                    id="contactImage"
+                    label="Contact Image"
+                    value={contactImage}
+                    onChange={setContactImage}
+                    placeholder="https://images.unsplash.com/photo-..."
+                    token={token}
+                    aspectRatioClass="aspect-[16/9]"
+                    recommendedDimensions="Recommended: 1200 × 900 px"
+                  />
                 </div>
-              </motion.div>
-            </div>
-          </form>
-        )}
+              )}
+
+              {/* Single Clear Save Action */}
+              <div className="pt-2 flex items-center justify-end">
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="h-9 px-5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg gap-2 cursor-pointer shadow-xs"
+                >
+                  <Save className="h-4 w-4" />
+                  {saving ? "Saving Changes..." : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </AdminLayout>
   );

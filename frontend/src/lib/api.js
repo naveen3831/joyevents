@@ -1374,6 +1374,26 @@ export async function apiSaveHomepageSettings(settings, token) {
     }
     return res.json();
 }
+
+export async function apiUploadImage(file, token) {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const headers = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const res = await fetch(`${API_URL}/api/settings/upload-image`, {
+        method: "POST",
+        headers,
+        body: formData
+    });
+
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.message || "Failed to upload image");
+    }
+    return res.json();
+}
 export async function apiRequestCancel(id, token) {
     const res = await fetch(`${API_URL}/api/bookings/${id}/request-cancel`, {
         method: "POST",
