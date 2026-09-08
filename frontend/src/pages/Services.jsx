@@ -299,13 +299,28 @@ const Services = () => {
         }
     };
     const handleContactService = (svc) => {
+        const params = new URLSearchParams({
+          title: svc.name || svc.title || "Service",
+          serviceId: svc._id,
+          returnTo: "/services",
+        });
+        if (svc.createdBy?._id || svc.merchantId) params.set("merchantId", svc.createdBy?._id || svc.merchantId);
+        if (svc.image) params.set("image", svc.image);
+        if (svc.category) params.set("category", svc.category);
+        if (svc.location) params.set("location", svc.location);
+
+        const contactUrl = `/customer-dashboard/contact-organiser?${params.toString()}`;
+
         if (!isLoggedIn) {
-            localStorage.setItem(PENDING_CONTACT_SVC_KEY, svc._id);
-            localStorage.setItem("authReturnTo", "/services");
-            navigate(`/login?redirect=${encodeURIComponent("/services")}`);
+            localStorage.setItem("authReturnTo", contactUrl);
+            sessionStorage.setItem("postLoginRedirect", contactUrl);
+            navigate(`/login?redirect=${encodeURIComponent(contactUrl)}`, {
+                state: { from: contactUrl },
+            });
             return;
         }
-        setContactService(svc);
+
+        navigate(contactUrl);
     };
     // Restore pending booking after login redirect
     useEffect(() => {

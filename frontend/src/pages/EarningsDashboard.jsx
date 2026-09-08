@@ -13,6 +13,7 @@ import StatCard from "@/components/StatCard";
 import { useGsapStagger } from "@/lib/gsapAnimations";
 import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/common/table/DataTable";
 import { TableEmptyState } from "@/components/common/table/TableEmptyState";
+import { SmartPagination } from "@/components/common/SmartPagination";
 
 const formatWithdrawalDate = (dateStr) => {
     if (!dateStr) return "—";
@@ -440,47 +441,15 @@ const EarningsDashboard = () => {
 
                                 {/* Compact Pagination Bar */}
                                 {withdrawals.length > WITHDRAWAL_PAGE_SIZE && (
-                                    <div className="px-4 py-2.5 border-t border-border/50 flex items-center justify-between bg-card text-xs text-muted-foreground">
-                                        <div>
-                                            Showing <span className="font-medium text-foreground">{(withdrawalPage - 1) * WITHDRAWAL_PAGE_SIZE + 1}</span>–
-                                            <span className="font-medium text-foreground">{Math.min(withdrawalPage * WITHDRAWAL_PAGE_SIZE, withdrawals.length)}</span> of{" "}
-                                            <span className="font-medium text-foreground">{withdrawals.length}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={withdrawalPage === 1}
-                                                onClick={() => setWithdrawalPage((p) => Math.max(1, p - 1))}
-                                                className="h-7 w-7 p-0 rounded-md text-xs cursor-pointer"
-                                                title="Previous page"
-                                            >
-                                                ‹
-                                            </Button>
-                                            {Array.from({ length: totalWithdrawalPages }, (_, i) => i + 1).map((p) => (
-                                                <Button
-                                                    key={p}
-                                                    variant={p === withdrawalPage ? "default" : "outline"}
-                                                    size="sm"
-                                                    onClick={() => setWithdrawalPage(p)}
-                                                    className={`h-7 min-w-[28px] px-1.5 rounded-md text-xs cursor-pointer ${
-                                                        p === withdrawalPage ? "bg-primary text-primary-foreground font-semibold" : ""
-                                                    }`}
-                                                >
-                                                    {p}
-                                                </Button>
-                                            ))}
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={withdrawalPage === totalWithdrawalPages}
-                                                onClick={() => setWithdrawalPage((p) => Math.min(totalWithdrawalPages, p + 1))}
-                                                className="h-7 w-7 p-0 rounded-md text-xs cursor-pointer"
-                                                title="Next page"
-                                            >
-                                                ›
-                                            </Button>
-                                        </div>
+                                    <div className="border-t border-border/50">
+                                        <SmartPagination
+                                            currentPage={withdrawalPage}
+                                            totalPages={totalWithdrawalPages}
+                                            onPageChange={setWithdrawalPage}
+                                            totalItems={withdrawals.length}
+                                            itemsPerPage={WITHDRAWAL_PAGE_SIZE}
+                                            itemLabel="withdrawals"
+                                        />
                                     </div>
                                 )}
                             </>
@@ -668,47 +637,15 @@ const EarningsDashboard = () => {
 
                                 {/* Compact Pagination Bar */}
                                 {transactions.length > TRANSACTION_PAGE_SIZE && (
-                                    <div className="px-4 py-2.5 border-t border-border/50 flex items-center justify-between bg-card text-xs text-muted-foreground">
-                                        <div>
-                                            Showing <span className="font-medium text-foreground">{(transactionPage - 1) * TRANSACTION_PAGE_SIZE + 1}</span>–
-                                            <span className="font-medium text-foreground">{Math.min(transactionPage * TRANSACTION_PAGE_SIZE, transactions.length)}</span> of{" "}
-                                            <span className="font-medium text-foreground">{transactions.length}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={transactionPage === 1}
-                                                onClick={() => setTransactionPage((p) => Math.max(1, p - 1))}
-                                                className="h-7 w-7 p-0 rounded-md text-xs cursor-pointer"
-                                                title="Previous page"
-                                            >
-                                                ‹
-                                            </Button>
-                                            {Array.from({ length: totalTransactionPages }, (_, i) => i + 1).map((p) => (
-                                                <Button
-                                                    key={p}
-                                                    variant={p === transactionPage ? "default" : "outline"}
-                                                    size="sm"
-                                                    onClick={() => setTransactionPage(p)}
-                                                    className={`h-7 min-w-[28px] px-1.5 rounded-md text-xs cursor-pointer ${
-                                                        p === transactionPage ? "bg-primary text-primary-foreground font-semibold" : ""
-                                                    }`}
-                                                >
-                                                    {p}
-                                                </Button>
-                                            ))}
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={transactionPage === totalTransactionPages}
-                                                onClick={() => setTransactionPage((p) => Math.min(totalTransactionPages, p + 1))}
-                                                className="h-7 w-7 p-0 rounded-md text-xs cursor-pointer"
-                                                title="Next page"
-                                            >
-                                                ›
-                                            </Button>
-                                        </div>
+                                    <div className="border-t border-border/50">
+                                        <SmartPagination
+                                            currentPage={transactionPage}
+                                            totalPages={totalTransactionPages}
+                                            onPageChange={setTransactionPage}
+                                            totalItems={transactions.length}
+                                            itemsPerPage={TRANSACTION_PAGE_SIZE}
+                                            itemLabel="transactions"
+                                        />
                                     </div>
                                 )}
                             </>

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Plus, Users, CheckCircle, AlertTriangle, Search, Filter, UserX, UserCheck, KeyRound, FileText, CheckCircle2, IndianRupee, Sparkles, XCircle, Eye, Pencil, Trash2, MessageSquare, Download, X, MoreHorizontal } from "lucide-react";
+import { Plus, Users, CheckCircle, AlertTriangle, Search, Filter, UserX, UserCheck, KeyRound, FileText, CheckCircle2, IndianRupee, Sparkles, XCircle, Eye, Pencil, Trash2, MessageSquare, Download, X, MoreHorizontal, Copy } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { useGsapReveal } from "@/lib/gsapAnimations";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,8 @@ import { TableToolbar } from "@/components/common/table/TableToolbar";
 import { TableSkeleton } from "@/components/common/table/TableSkeleton";
 import ActionMenu from "@/components/common/ActionMenu";
 import PageHeader from "@/components/common/PageHeader";
+import { exportUsersToExcel, exportMerchantsToExcel } from "@/lib/excelExport";
+import { SmartPagination } from "@/components/common/SmartPagination";
 
 const formatJoinedDate = (dateString) => {
   if (!dateString) return "—";
@@ -60,29 +62,67 @@ const renderStatusBadge = (status) => {
   const s = (status || "active").toLowerCase();
   if (s === "active") {
     return (
-      <span className="h-6 px-2.5 rounded-md text-[11px] font-medium border inline-flex items-center justify-center bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40">
+      <span className="h-[26px] px-2.5 rounded-full text-[12px] font-medium inline-flex items-center justify-center bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40 whitespace-nowrap">
         Active
       </span>
     );
   }
   if (s === "suspended") {
     return (
-      <span className="h-6 px-2.5 rounded-md text-[11px] font-medium border inline-flex items-center justify-center bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40">
+      <span className="h-[26px] px-2.5 rounded-full text-[12px] font-medium inline-flex items-center justify-center bg-rose-50 text-rose-700 border border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40 whitespace-nowrap">
         Suspended
       </span>
     );
   }
   if (s === "pending" || s === "details_submitted") {
     return (
-      <span className="h-6 px-2.5 rounded-md text-[11px] font-medium border inline-flex items-center justify-center bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40">
+      <span className="h-[26px] px-2.5 rounded-full text-[12px] font-medium inline-flex items-center justify-center bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40 whitespace-nowrap">
         Pending
       </span>
     );
   }
   return (
-    <span className="h-6 px-2.5 rounded-md text-[11px] font-medium border inline-flex items-center justify-center bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">
+    <span className="h-[26px] px-2.5 rounded-full text-[12px] font-medium inline-flex items-center justify-center bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 whitespace-nowrap">
       {s === "deactivated" ? "Deactivated" : "Inactive"}
     </span>
+  );
+};
+
+const CopyEmailButton = ({ email }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e) => {
+    e.stopPropagation();
+    if (!email) return;
+    navigator.clipboard.writeText(email);
+    setCopied(true);
+    toast.success("Email copied");
+    setTimeout(() => {
+      setCopied(false);
+    }, 1800);
+  };
+
+  return (
+    <div className="relative inline-flex items-center shrink-0">
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-primary shrink-0"
+        title="Copy email address"
+        aria-label="Copy email address"
+      >
+        {copied ? (
+          <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+        ) : (
+          <Copy className="h-4 w-4" />
+        )}
+      </button>
+      {copied && (
+        <span className="absolute left-full ml-1.5 px-2 py-0.5 text-[11px] font-medium bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded shadow-xs whitespace-nowrap z-20 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
+          Copied!
+        </span>
+      )}
+    </div>
   );
 };
 
@@ -98,9 +138,16 @@ const UsersTableBody = ({
   setRoleFilter,
   statusFilter,
   setStatusFilter,
+  urlRoleFilter,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
   const itemsPerPage = 10;
+
+  const isMerchantTable =
+    urlRoleFilter === "merchant" ||
+    roleFilter === "merchant" ||
+    (list.length > 0 && list.every((u) => u.role === "merchant"));
 
   useEffect(() => {
     setCurrentPage(1);
@@ -112,237 +159,226 @@ const UsersTableBody = ({
   const endIndex = startIndex + itemsPerPage;
   const paginatedList = list.slice(startIndex, endIndex);
 
-  const handleExportCSV = () => {
+  // ── Excel Export ───────────────────────────────────────────────────────────
+  const handleExportExcel = async () => {
+    if (isExporting) return;
+
     if (!list || list.length === 0) {
-      toast.info("No user records to export.");
+      toast.info("No records available to export.");
       return;
     }
-    const headers = ["User ID", "Name", "Email", "Mobile", "Role", "Status", "Joined Date"];
-    const rows = list.map((u) => [
-      u._id,
-      `"${u.name || ""}"`,
-      `"${u.email || ""}"`,
-      `"${u.mobile || ""}"`,
-      u.role || "user",
-      u.status || "active",
-      formatJoinedDate(u.createdAt),
-    ]);
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `users_export_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Users exported successfully!");
+
+    setIsExporting(true);
+    try {
+      // Export ALL filtered records (not just the current page)
+      if (isMerchantTable) {
+        exportMerchantsToExcel(list);
+        toast.success("Merchants exported to Excel successfully!");
+      } else {
+        exportUsersToExcel(list);
+        toast.success("Users exported to Excel successfully!");
+      }
+    } catch (err) {
+      if (err?.message === "NO_RECORDS") {
+        toast.info("No records available to export.");
+      } else {
+        toast.error("Unable to export data. Please try again.");
+      }
+    } finally {
+      setIsExporting(false);
+    }
   };
+
 
   return (
     <div className="w-full space-y-4 font-sans">
-      {/* 1. Clean Table Toolbar */}
+      {/* 1. Toolbar: Search left, Export right */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full">
         <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
-          {/* Search Box */}
-          <div className="relative w-full sm:w-[340px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <div className="relative w-full sm:w-[360px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={searchPlaceholder}
               value={searchQuery || ""}
               onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
-              className="pl-9 h-9 text-xs bg-card border-border/80 rounded-lg shadow-none focus-visible:ring-1 focus-visible:ring-primary"
+              className="pl-10 h-[42px] text-xs sm:text-sm bg-card border-border/80 rounded-lg shadow-none focus-visible:ring-1 focus-visible:ring-primary"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery && setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
         </div>
 
-        {/* Right Action: Export Button */}
         <div className="flex items-center gap-2 shrink-0">
           <Button
             variant="outline"
             size="sm"
-            onClick={handleExportCSV}
-            className="h-9 px-3.5 text-xs gap-1.5 rounded-lg border-border/80 cursor-pointer"
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="h-[42px] px-4 text-xs sm:text-sm font-medium gap-1.5 rounded-lg border-border/80 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            <Download className="h-3.5 w-3.5" /> Export
+            <Download className="h-4 w-4" />
+            {isExporting ? "Exporting..." : "Export"}
           </Button>
         </div>
       </div>
 
-      {/* Table Card Container */}
-      <div className="rounded-xl border border-border/80 overflow-hidden bg-card shadow-xs">
+      {/* Table Card: single container with border + radius */}
+      <div className="rounded-[14px] border border-border/80 overflow-hidden bg-card shadow-xs">
         {loading ? (
-          <TableSkeleton columns={7} rows={6} minWidth="100%" />
+          <TableSkeleton columns={4} rows={6} minWidth="100%" />
         ) : (
           <>
-            <DataTable minWidth="100%">
-              <TableHeader className="bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-xs sticky top-0 z-10 border-b border-border/80">
-                <TableHeaderCell className="w-[25%] text-xs font-semibold text-muted-foreground tracking-wider uppercase py-3">
-                  User
-                </TableHeaderCell>
-                <TableHeaderCell className="w-[30%] text-xs font-semibold text-muted-foreground tracking-wider uppercase py-3">
-                  Contact
-                </TableHeaderCell>
-                <TableHeaderCell className="w-[11%] text-xs font-semibold text-muted-foreground tracking-wider uppercase py-3">
-                  Role
-                </TableHeaderCell>
-                <TableHeaderCell className="w-[11%] text-xs font-semibold text-muted-foreground tracking-wider uppercase py-3">
-                  Status
-                </TableHeaderCell>
-                <TableHeaderCell className="w-[15%] text-xs font-semibold text-muted-foreground tracking-wider uppercase py-3 whitespace-nowrap">
-                  Joined
-                </TableHeaderCell>
-                <TableHeaderCell align="right" className="w-[8%] text-xs font-semibold text-muted-foreground tracking-wider uppercase py-3">
-                  Actions
-                </TableHeaderCell>
-              </TableHeader>
-              <TableBody>
-                {paginatedList.map((u) => {
-                  const initials = (u.name || "User").slice(0, 2).toUpperCase();
-                  const shortId = u._id ? u._id.slice(-6) : "------";
-                  return (
-                    <TableRow
-                      key={u._id}
-                      className="hover:bg-[#F8FAFC] dark:hover:bg-slate-900/60 transition-colors h-[60px]"
+            {/* Table without its own border (DataTable stripped) */}
+            <div className="overflow-x-auto w-full no-scrollbar">
+              <table
+                className="w-full text-xs sm:text-sm border-collapse"
+                style={{ minWidth: "100%" }}
+              >
+                {/* Header */}
+                <thead className="bg-[#FAFBFC] dark:bg-slate-900/90 border-b border-border/80">
+                  <tr>
+                    <th
+                      className={`${
+                        isMerchantTable ? "w-[27%]" : "w-[28%]"
+                      } text-left text-[12px] font-semibold text-slate-500 dark:text-slate-400 tracking-[0.04em] uppercase py-[14px] px-4 sm:px-5`}
                     >
-                      {/* User Column */}
-                      <TableCell className="w-[25%] py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-lg bg-blue-50 text-blue-700 border border-blue-100/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40 flex items-center justify-center text-xs font-bold shrink-0 shadow-2xs">
-                            {initials}
+                      {isMerchantTable ? "MERCHANT" : "USER"}
+                    </th>
+                    <th
+                      className={`${
+                        isMerchantTable ? "w-[40%]" : "w-[38%]"
+                      } text-left text-[12px] font-semibold text-slate-500 dark:text-slate-400 tracking-[0.04em] uppercase py-[14px] px-4 sm:px-5`}
+                    >
+                      {isMerchantTable ? "CONTACT" : "EMAIL"}
+                    </th>
+                    <th
+                      className={`${
+                        isMerchantTable ? "w-[15%]" : "w-[16%]"
+                      } text-left text-[12px] font-semibold text-slate-500 dark:text-slate-400 tracking-[0.04em] uppercase py-[14px] px-4 sm:px-5`}
+                    >
+                      STATUS
+                    </th>
+                    <th className="w-[18%] text-left text-[12px] font-semibold text-slate-500 dark:text-slate-400 tracking-[0.04em] uppercase py-[14px] px-4 sm:px-5 whitespace-nowrap">
+                      JOINED
+                    </th>
+                  </tr>
+                </thead>
+
+                {/* Body */}
+                <tbody>
+                  {paginatedList.map((u) => {
+                    const initials = (u.name || "User").slice(0, 2).toUpperCase();
+                    const targetRoute = `/admin-dashboard/users/${u._id}`;
+
+                    return (
+                      <tr
+                        key={u._id}
+                        onClick={() => navigate(targetRoute)}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`View details for ${u.name || "user"}`}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            navigate(targetRoute);
+                          }
+                        }}
+                        style={{ transition: "background-color 150ms ease" }}
+                        className="group border-b border-border/60 last:border-b-0 cursor-pointer
+                          h-[66px] hover:bg-[rgba(109,40,217,0.025)] dark:hover:bg-slate-800/40
+                          focus-visible:outline-none focus-visible:bg-[rgba(109,40,217,0.025)] dark:focus-visible:bg-slate-800/40
+                          focus-visible:ring-2 focus-visible:ring-primary/40"
+                      >
+                        {/* 1. Name Column */}
+                        <td className={`${
+                          isMerchantTable ? "w-[27%]" : "w-[28%]"
+                        } py-[14px] px-4 sm:px-5 align-middle`}>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-[38px] w-[38px] rounded-full bg-blue-50 text-blue-700 border border-blue-100/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40 flex items-center justify-center text-[12px] font-bold shrink-0">
+                              {initials}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p
+                                className="font-semibold text-[14px] leading-snug text-foreground truncate"
+                                title={u.name}
+                              >
+                                {u.name}
+                              </p>
+                            </div>
                           </div>
+                        </td>
+
+                        {/* 2. Email / Contact Column */}
+                        <td className={`${
+                          isMerchantTable ? "w-[40%]" : "w-[38%]"
+                        } py-[14px] px-4 sm:px-5 align-middle`}>
                           <div className="min-w-0">
-                            <p className="font-semibold text-[14px] text-foreground truncate" title={u.name}>
-                              {u.name}
-                            </p>
-                            <p
-                              className="text-[11px] text-muted-foreground font-mono truncate cursor-help"
-                              title={`Full User ID: ${u._id}`}
-                            >
-                              ID: {shortId}
-                            </p>
+                            <div className="flex items-center gap-1.5 max-w-full">
+                              <span
+                                className="text-[14px] font-medium text-slate-800 dark:text-slate-200 truncate"
+                                style={{ maxWidth: "calc(100% - 28px)" }}
+                                title={u.email}
+                              >
+                                {u.email}
+                              </span>
+                              <CopyEmailButton email={u.email} />
+                            </div>
+                            {isMerchantTable && u.mobile && (
+                              <p className="text-[12px] text-slate-500 dark:text-slate-400 font-normal mt-[3px] truncate">
+                                {u.mobile}
+                              </p>
+                            )}
                           </div>
-                        </div>
-                      </TableCell>
+                        </td>
 
-                      {/* Contact Column (Email + Mobile if available) */}
-                      <TableCell className="w-[30%] py-3">
-                        <div className="min-w-0 space-y-0.5">
-                          <span
-                            className="text-[13px] font-medium text-slate-800 dark:text-slate-200 truncate block max-w-full"
-                            title={u.email}
-                          >
-                            {u.email}
-                          </span>
-                          {u.mobile && (
-                            <span className="text-[12px] text-slate-500 font-mono block truncate">
-                              {u.mobile}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
+                        {/* 3. Status Column */}
+                        <td className={`${
+                          isMerchantTable ? "w-[15%]" : "w-[16%]"
+                        } py-[14px] px-4 sm:px-5 align-middle`}>
+                          {renderStatusBadge(u.status || "active")}
+                        </td>
 
-                      {/* Role Column */}
-                      <TableCell className="w-[11%] py-3">
-                        {renderRoleBadge(u.role)}
-                      </TableCell>
+                        {/* 4. Joined Date Column */}
+                        <td className="w-[18%] py-[14px] px-4 sm:px-5 align-middle text-[13px] font-normal text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                          {formatJoinedDate(u.createdAt)}
+                        </td>
+                      </tr>
+                    );
+                  })}
 
-                      {/* Status Column */}
-                      <TableCell className="w-[11%] py-3">
-                        {renderStatusBadge(u.status || "active")}
-                      </TableCell>
-
-                      {/* Joined Date Column */}
-                      <TableCell className="w-[15%] py-3 text-xs text-slate-500 whitespace-nowrap">
-                        {formatJoinedDate(u.createdAt)}
-                      </TableCell>
-
-                      {/* Actions Column */}
-                      <TableCell align="right" className="w-[8%] py-3">
-                        <ActionMenu
-                          items={[
-                            {
-                              label: "View Details",
-                              icon: Eye,
-                              onClick: () => navigate(`/admin-dashboard/users/${u._id}`),
-                            },
-                          ]}
+                  {/* Empty State */}
+                  {paginatedList.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-12 text-center">
+                        <TableEmptyState
+                          title={emptyMessage}
+                          description="Try adjusting your search query or filters."
                         />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-
-                {/* Empty State */}
-                {paginatedList.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center">
-                      <TableEmptyState
-                        title="No users found"
-                        description="Try adjusting your search query or filters."
-                      />
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </DataTable>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
             {/* Pagination Controls */}
             {totalItems > 0 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-border/70 text-xs text-muted-foreground bg-muted/20">
-                <div>
-                  Showing {startIndex + 1}–{Math.min(endIndex, totalItems)} of {totalItems} users
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="h-8 px-2.5 text-xs rounded-md cursor-pointer"
-                  >
-                    Previous
-                  </Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .slice(
-                      Math.max(0, currentPage - 2),
-                      Math.min(totalPages, currentPage + 1)
-                    )
-                    .map((page) => (
-                      <Button
-                        key={page}
-                        variant={page === currentPage ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(page)}
-                        className={`h-8 w-8 p-0 text-xs rounded-md cursor-pointer ${
-                          page === currentPage
-                            ? "bg-primary text-primary-foreground font-semibold"
-                            : ""
-                        }`}
-                      >
-                        {page}
-                      </Button>
-                    ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage === totalPages || totalPages === 0}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="h-8 px-2.5 text-xs rounded-md cursor-pointer"
-                  >
-                    Next
-                  </Button>
-                </div>
+              <div className="border-t border-border/70">
+                <SmartPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  itemLabel={isMerchantTable ? "merchants" : "users"}
+                />
               </div>
             )}
           </>
@@ -977,6 +1013,7 @@ const AdminUsers = () => {
               setRoleFilter={setSelectedRoleFilter}
               statusFilter={selectedStatusFilter}
               setStatusFilter={setSelectedStatusFilter}
+              urlRoleFilter={roleFilter}
               {...userRowHandlers}
             />
           </div>

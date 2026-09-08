@@ -37,10 +37,11 @@ export const TableBody = ({ children, className = "" }) => (
   </tbody>
 );
 
-export const TableRow = ({ children, onClick, className = "" }) => (
+export const TableRow = ({ children, onClick, className = "", ...props }) => (
   <tr
     onClick={onClick}
     className={`hover:bg-muted/30 transition-colors ${onClick ? "cursor-pointer" : ""} ${className}`}
+    {...props}
   >
     {children}
   </tr>

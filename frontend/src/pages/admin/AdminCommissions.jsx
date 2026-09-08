@@ -38,6 +38,8 @@ import { DataTable, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell
 import { TableSkeleton } from "@/components/common/table/TableSkeleton";
 import { TableEmptyState } from "@/components/common/table/TableEmptyState";
 import { useNavigate } from "react-router-dom";
+import { exportCommissionsToExcel } from "@/lib/excelExport";
+import { SmartPagination } from "@/components/common/SmartPagination";
 
 // ── Existing data logic unchanged ──────────────────────────────────────────
 const getCommissionDetails = (booking) => {
@@ -103,6 +105,7 @@ const AdminCommissions = () => {
   const [savingRate, setSavingRate] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showRateSettings, setShowRateSettings] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Filters state
   const [search, setSearch] = useState("");
@@ -255,11 +258,31 @@ const AdminCommissions = () => {
                 <span>Default Rate ({currentRate}%)</span>
               </button>
               <button
-                onClick={() => toast.info("Exporting commission report...")}
-                className="inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-semibold rounded-lg border border-border/80 bg-card text-foreground hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
+                onClick={async () => {
+                  if (isExporting) return;
+                  if (!filteredRows || filteredRows.length === 0) {
+                    toast.info("No records available to export.");
+                    return;
+                  }
+                  setIsExporting(true);
+                  try {
+                    exportCommissionsToExcel(filteredRows);
+                    toast.success("Commissions exported to Excel successfully!");
+                  } catch (err) {
+                    if (err?.message === "NO_RECORDS") {
+                      toast.info("No records available to export.");
+                    } else {
+                      toast.error("Unable to export commissions. Please try again.");
+                    }
+                  } finally {
+                    setIsExporting(false);
+                  }
+                }}
+                disabled={isExporting}
+                className="inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-semibold rounded-lg border border-border/80 bg-card text-foreground hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Download className="h-3.5 w-3.5 text-muted-foreground" />
-                Export
+                {isExporting ? "Exporting..." : "Export"}
               </button>
             </div>
           }
@@ -594,48 +617,15 @@ const AdminCommissions = () => {
           )}
 
           {/* ── 6. PAGINATION ───────────────────────────────────────── */}
-          {!loading && filteredRows.length > 0 && (
-            <div className="px-4 py-3 border-t border-border/60 bg-slate-50/50 dark:bg-slate-900/30 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <p className="text-muted-foreground">
-                Showing <span className="font-semibold text-foreground">{(currentPage - 1) * itemsPerPage + 1}</span>–
-                <span className="font-semibold text-foreground">{Math.min(currentPage * itemsPerPage, filteredRows.length)}</span> of{" "}
-                <span className="font-semibold text-foreground">{filteredRows.length}</span> bookings
-              </p>
-
-              {totalPages > 1 && (
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="h-8 px-3 rounded-lg border border-border/70 bg-card text-foreground font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-colors"
-                  >
-                    Previous
-                  </button>
-
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                    <button
-                      key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`h-8 w-8 rounded-lg font-semibold text-xs flex items-center justify-center transition-colors ${
-                        currentPage === pageNum
-                          ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                          : "border border-border/70 bg-card text-foreground hover:bg-secondary"
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
-
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="h-8 px-3 rounded-lg border border-border/70 bg-card text-foreground font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-colors"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </div>
+          {!loading && (
+            <SmartPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={filteredRows.length}
+              itemsPerPage={itemsPerPage}
+              itemLabel="bookings"
+            />
           )}
         </div>
       </div>

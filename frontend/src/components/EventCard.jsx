@@ -37,12 +37,6 @@ const EventCard = ({ event, index = 0, onBookNow, onViewDetails, isFavorited, on
 
   const handleContactClick = (e) => {
     e.stopPropagation();
-    if (!isLoggedIn) {
-      const returnTo = window.location.pathname;
-      localStorage.setItem("authReturnTo", returnTo);
-      navigate(`/login?redirect=${encodeURIComponent(returnTo)}`);
-      return;
-    }
     const params = new URLSearchParams({
       title: event.title,
       eventId: event._id,
@@ -53,7 +47,19 @@ const EventCard = ({ event, index = 0, onBookNow, onViewDetails, isFavorited, on
     if (event.category) params.set("category", event.category);
     if (event.datetime) params.set("datetime", event.datetime);
     if (event.location) params.set("location", event.location);
-    navigate(`/customer-dashboard/contact-organiser?${params.toString()}`);
+
+    const contactUrl = `/customer-dashboard/contact-organiser?${params.toString()}`;
+
+    if (!isLoggedIn) {
+      localStorage.setItem("authReturnTo", contactUrl);
+      sessionStorage.setItem("postLoginRedirect", contactUrl);
+      navigate(`/login?redirect=${encodeURIComponent(contactUrl)}`, {
+        state: { from: contactUrl },
+      });
+      return;
+    }
+
+    navigate(contactUrl);
   };
 
   const priceLabel = allSoldOut
