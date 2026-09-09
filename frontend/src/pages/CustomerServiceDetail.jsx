@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Briefcase, MapPin, X, Loader2, Star, CheckCircle2, Images, ShoppingBag } from "lucide-react";
+import { Briefcase, MapPin, X, Loader2, Star, CheckCircle2, Images, ShoppingBag } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
+import PageHeader from "@/components/PageHeader";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +22,7 @@ const CustomerServiceDetail = () => {
     const { id } = useParams();
     const { isLoggedIn, token } = useAuth();
     const navigate = useNavigate();
+    const goBack = useBackNavigation("/customer-dashboard/browse-services");
     const { addToCart } = useCart();
     const [service, setService] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -205,11 +208,9 @@ const CustomerServiceDetail = () => {
         return null;
     return (<CustomerLayout>
       <div className="min-h-screen">
-        {/* Back button */}
+        {/* Back navigation */}
         <div className="px-3 sm:px-6 lg:px-12 pt-4 sm:pt-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/customer-dashboard/browse-services")}>
-            <ArrowLeft className="h-4 w-4 mr-2"/> Back to Services
-          </Button>
+          <PageHeader title="Service Details" onBack={goBack} />
         </div>
 
         {/* Split layout */}

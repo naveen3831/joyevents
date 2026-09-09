@@ -300,4 +300,32 @@
     font-family: inherit;
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* Responsive Table Container Utilities */
+  .table-responsive-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ensure dialog / modal containers fit properly on mobile & laptop heights */
+  .modal-responsive-content {
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    width: calc(100vw - 2rem);
+    max-width: 32rem;
+  }
+  @media (min-width: 640px) {
+    .modal-responsive-content {
+      max-height: calc(100vh - 4rem);
+      width: 100%;
+    }
+  }
+
+  /* Touch-friendly interactive target size helper */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }

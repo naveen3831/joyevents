@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Send, Loader2, CheckCircle2, CalendarDays, ExternalLink } from "lucide-react";
+import { Send, Loader2, CheckCircle2, CalendarDays, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import CustomerLayout from "@/components/CustomerLayout";
+import PageHeader from "@/components/PageHeader";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 import {
   sanitizeMessageInput,
   validateEmail,
@@ -17,6 +19,7 @@ import {
 
 const ContactOrganiserPage = () => {
   const navigate = useNavigate();
+  const goBack = useBackNavigation("/customer-dashboard");
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
@@ -116,20 +119,10 @@ const ContactOrganiserPage = () => {
       <div className="w-full font-sans max-w-[880px] mx-auto text-slate-900">
 
         {/* Back Navigation */}
-        <div className="mb-3">
-          <button
-            onClick={() => navigate(returnTo)}
-            className="hover:text-primary transition-colors flex items-center gap-1.5 text-xs font-semibold text-slate-500 cursor-pointer"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to Booking
-          </button>
-        </div>
+        <PageHeader title="Contact Organiser" onBack={goBack} />
 
-        {/* Compact Page Header */}
-        <div className="mb-5">
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Contact Organiser
-          </h1>
+        {/* Sub-title */}
+        <div className="mb-5 -mt-2">
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Message the organiser about <span className="font-semibold text-slate-700">{itemTitle}</span>
           </p>

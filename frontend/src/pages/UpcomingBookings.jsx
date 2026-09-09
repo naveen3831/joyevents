@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
-import { ArrowLeft, AlertCircle, Loader2, Ticket, Clock, MapPin, User, Calendar as CalendarIcon, CreditCard } from "lucide-react";
+import { AlertCircle, Loader2, Ticket, Clock, MapPin, User, Calendar as CalendarIcon, CreditCard } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
+import PageHeader from "@/components/PageHeader";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -121,6 +123,7 @@ const BookingCard = ({ booking, index, onPayClick }) => {
 const UpcomingBookings = () => {
     const { token } = useAuth();
     const navigate = useNavigate();
+    const goBack = useBackNavigation("/customer-dashboard/bookings");
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -226,17 +229,7 @@ const UpcomingBookings = () => {
         <div className="w-full">
           {/* Header */}
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground">
-                <CalendarIcon className="h-5 w-5"/>
-              </div>
-              <div>
-                <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-                  Upcoming <span className="text-gradient">Bookings</span>
-                </h1>
-                <p className="text-muted-foreground text-sm">View your upcoming and pending bookings</p>
-              </div>
-            </div>
+            <PageHeader title="Upcoming Bookings" onBack={goBack} />
           </motion.div>
 
           {/* Content */}

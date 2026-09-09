@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Heart, Trash2, Calendar, Briefcase, Loader2 } from "lucide-react";
 import Layout from "@/components/Layout";
 import CustomerLayout from "@/components/CustomerLayout";
+import PageHeader from "@/components/PageHeader";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiGetFavorites, apiRemoveFavorite } from "@/lib/api";
@@ -57,6 +59,8 @@ const FavoriteCard = ({ fav, idx, handleRemove }) => {
 
 const Favorites = () => {
     const { token, role } = useAuth();
+    const navigate = useNavigate();
+    const goBack = useBackNavigation("/customer-dashboard");
     const [favorites, setFavorites] = useState([]);
     const [loading, setLoading] = useState(true);
     const gridRef = useGsapStagger([favorites]);
@@ -88,12 +92,8 @@ const Favorites = () => {
     return (role === "customer" ? (<CustomerLayout>
       <section className="py-2 sm:py-6">
         <div className="w-full">
-          <div className="mb-6 sm:mb-8 flex items-center gap-3">
-            <Heart className="h-6 w-6 sm:h-7 sm:w-7 text-primary fill-primary shrink-0"/>
-            <div>
-              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">My Favorites</h1>
-              <p className="text-sm text-muted-foreground">Events and services you've saved for later</p>
-            </div>
+          <div className="mb-6 sm:mb-8">
+            <PageHeader title="My Favorites" onBack={goBack} />
           </div>
 
           {loading ? (<div className="flex items-center justify-center py-20 gap-2 text-muted-foreground">

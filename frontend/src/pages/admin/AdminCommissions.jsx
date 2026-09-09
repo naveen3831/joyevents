@@ -15,6 +15,7 @@ import {
   Download,
   AlertCircle,
   Settings,
+  ChevronRight,
 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import PageHeader from "@/components/common/PageHeader";
@@ -245,10 +246,10 @@ const AdminCommissions = () => {
           subtitle="Track platform commission and merchant earnings for every booking."
           breadcrumbs={[{ label: "Admin Portal" }, { label: "Payments" }, { label: "Commissions" }]}
           actions={
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
               <button
                 onClick={() => setShowRateSettings(!showRateSettings)}
-                className={`inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-semibold rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-semibold rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                   showRateSettings
                     ? "bg-primary text-primary-foreground border-primary"
                     : "border-border/80 bg-card text-foreground hover:bg-secondary"
@@ -353,8 +354,8 @@ const AdminCommissions = () => {
           </motion.div>
         )}
 
-        {/* ── 2. SUMMARY CARDS (82-88px height, 16px padding) ─────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* ── 2. SUMMARY CARDS ─────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
           <SummaryCard
             title="TOTAL REVENUE"
             value={formatCurrency(totalRevenue)}
@@ -381,13 +382,13 @@ const AdminCommissions = () => {
           />
         </div>
 
-        {/* ── 3. COMMISSION TABLE CARD (Toolbar + Table + Pagination) ── */}
+        {/* ── 3. COMMISSION TABLE CARD (Toolbar + Table/Cards + Pagination) ── */}
         <div className="rounded-xl border border-border/80 bg-card shadow-xs overflow-hidden">
-          {/* ── 4. TOOLBAR (Height 56px, 8px radius controls) ───────── */}
-          <div className="flex flex-wrap items-center justify-between gap-3 px-4 h-[56px] border-b border-border/60 bg-card">
-            <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
-              {/* Search Field */}
-              <div className="relative w-full sm:w-[340px]">
+          {/* ── 4. TOOLBAR ───────────────────────── */}
+          <div className="p-3 sm:px-4 sm:py-3 border-b border-border/60 bg-card space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-3">
+            <div className="space-y-2.5 sm:space-y-0 sm:flex sm:flex-wrap sm:items-center sm:gap-2.5 flex-1 min-w-0">
+              {/* Search Field - Full width on mobile */}
+              <div className="relative w-full sm:w-[320px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <input
                   type="text"
@@ -406,65 +407,69 @@ const AdminCommissions = () => {
                 )}
               </div>
 
-              {/* Type Filter Dropdown */}
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="h-9 px-3 text-xs bg-secondary/40 border border-border/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium text-foreground cursor-pointer"
-              >
-                <option value="all">Type</option>
-                <option value="service">Service</option>
-                <option value="event">Event</option>
-              </select>
-
-              {/* Merchant Filter Dropdown */}
-              <select
-                value={merchantFilter}
-                onChange={(e) => setMerchantFilter(e.target.value)}
-                className="h-9 px-3 text-xs bg-secondary/40 border border-border/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium text-foreground cursor-pointer"
-              >
-                <option value="all">Merchant</option>
-                <option value="assigned">Assigned</option>
-                <option value="unassigned">Unassigned</option>
-              </select>
-
-              {/* Commission Status Filter Dropdown */}
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-9 px-3 text-xs bg-secondary/40 border border-border/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium text-foreground cursor-pointer"
-              >
-                <option value="all">Commission</option>
-                <option value="set">Set</option>
-                <option value="not_set">Not Set</option>
-              </select>
-
-              {/* Reset Filters */}
-              {(search || typeFilter !== "all" || merchantFilter !== "all" || statusFilter !== "all") && (
-                <button
-                  onClick={() => {
-                    setSearch("");
-                    setTypeFilter("all");
-                    setMerchantFilter("all");
-                    setStatusFilter("all");
-                  }}
-                  className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 transition-colors"
-                  title="Reset all filters"
+              {/* Filters Container - 2 columns on mobile */}
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+                {/* Type Filter Dropdown */}
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="w-full sm:w-auto h-9 px-3 text-xs bg-secondary/40 border border-border/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium text-foreground cursor-pointer"
                 >
-                  <RotateCcw className="h-3 w-3" />
-                  <span>Reset</span>
-                </button>
-              )}
+                  <option value="all">Type: All</option>
+                  <option value="service">Service</option>
+                  <option value="event">Event</option>
+                </select>
+
+                {/* Merchant Filter Dropdown */}
+                <select
+                  value={merchantFilter}
+                  onChange={(e) => setMerchantFilter(e.target.value)}
+                  className="w-full sm:w-auto h-9 px-3 text-xs bg-secondary/40 border border-border/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium text-foreground cursor-pointer"
+                >
+                  <option value="all">Merchant: All</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="unassigned">Unassigned</option>
+                </select>
+
+                {/* Commission Status Filter Dropdown */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full sm:w-auto h-9 px-3 text-xs bg-secondary/40 border border-border/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium text-foreground cursor-pointer"
+                >
+                  <option value="all">Commission: All</option>
+                  <option value="set">Set</option>
+                  <option value="not_set">Not Set</option>
+                </select>
+
+                {/* Reset Filters */}
+                {(search || typeFilter !== "all" || merchantFilter !== "all" || statusFilter !== "all") && (
+                  <button
+                    onClick={() => {
+                      setSearch("");
+                      setTypeFilter("all");
+                      setMerchantFilter("all");
+                      setStatusFilter("all");
+                    }}
+                    className="w-full sm:w-auto h-9 px-2 text-xs text-muted-foreground hover:text-foreground font-medium flex items-center justify-center gap-1 transition-colors border border-border/60 rounded-lg sm:border-0"
+                    title="Reset all filters"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    <span>Reset</span>
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            {/* Result count - Separate clean row on mobile */}
+            <div className="flex items-center justify-between sm:justify-end shrink-0 pt-1 sm:pt-0 border-t border-border/40 sm:border-t-0">
               <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
                 {filteredRows.length} booking{filteredRows.length !== 1 ? "s" : ""}
               </span>
             </div>
           </div>
 
-          {/* ── 5. TABLE ───────────────────────────────────────────── */}
+          {/* ── 5. CONTENT (DESKTOP TABLE vs MOBILE CARDS) ────────────── */}
           {loading ? (
             <TableSkeleton columns={7} rows={8} minWidth="100%" />
           ) : filteredRows.length === 0 ? (
@@ -480,139 +485,218 @@ const AdminCommissions = () => {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.15 }}
             >
-              <DataTable minWidth="760px">
-                <TableHeader className="bg-[#FAFBFC] dark:bg-slate-900/90 sticky top-0 z-10 border-b border-border/70 h-[44px]">
-                  <TableHeaderCell className="w-[24%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
-                    SERVICE / EVENT
-                  </TableHeaderCell>
-                  <TableHeaderCell className="w-[16%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
-                    MERCHANT
-                  </TableHeaderCell>
-                  <TableHeaderCell align="right" className="w-[15%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 text-right">
-                    BOOKING
-                  </TableHeaderCell>
-                  <TableHeaderCell align="center" className="w-[13%] text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
-                    COMMISSION
-                  </TableHeaderCell>
-                  <TableHeaderCell align="right" className="w-[14%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 text-right">
-                    ADMIN EARNINGS
-                  </TableHeaderCell>
-                  <TableHeaderCell align="right" className="w-[14%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 text-right">
-                    PAYOUT
-                  </TableHeaderCell>
-                  <TableHeaderCell align="center" className="w-[4%] text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
-                    ACTION
-                  </TableHeaderCell>
-                </TableHeader>
+              {/* DESKTOP TABLE (screens >= 768px) */}
+              <div className="hidden md:block">
+                <DataTable minWidth="760px">
+                  <TableHeader className="bg-[#FAFBFC] dark:bg-slate-900/90 sticky top-0 z-10 border-b border-border/70 h-[44px]">
+                    <TableHeaderCell className="w-[24%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
+                      SERVICE / EVENT
+                    </TableHeaderCell>
+                    <TableHeaderCell className="w-[16%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
+                      MERCHANT
+                    </TableHeaderCell>
+                    <TableHeaderCell align="right" className="w-[15%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 text-right">
+                      BOOKING
+                    </TableHeaderCell>
+                    <TableHeaderCell align="center" className="w-[13%] text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
+                      COMMISSION
+                    </TableHeaderCell>
+                    <TableHeaderCell align="right" className="w-[14%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 text-right">
+                      ADMIN EARNINGS
+                    </TableHeaderCell>
+                    <TableHeaderCell align="right" className="w-[14%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 text-right">
+                      PAYOUT
+                    </TableHeaderCell>
+                    <TableHeaderCell align="center" className="w-[4%] text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
+                      ACTION
+                    </TableHeaderCell>
+                  </TableHeader>
 
-                <TableBody>
-                  {paginatedRows.map(({ booking, adminEarning, payout, rateLabel, isSaved, isAdminBooking }) => {
-                    const itemName =
-                      booking.service?.name ||
-                      booking.serviceName ||
-                      booking.event?.title ||
-                      booking.eventName ||
-                      "Booking";
-                    const isEvent = !!(booking.event || booking.eventName);
-                    const typeText = isEvent ? "Event" : "Service";
-                    const showDash = !isSaved && !isAdminBooking;
+                  <TableBody>
+                    {paginatedRows.map(({ booking, adminEarning, payout, rateLabel, isSaved, isAdminBooking }) => {
+                      const itemName =
+                        booking.service?.name ||
+                        booking.serviceName ||
+                        booking.event?.title ||
+                        booking.eventName ||
+                        "Booking";
+                      const isEvent = !!(booking.event || booking.eventName);
+                      const typeText = isEvent ? "Event" : "Service";
+                      const showDash = !isSaved && !isAdminBooking;
+                      const hasRateChip = (isSaved || isAdminBooking) && rateLabel !== "N/A" && rateLabel !== "No commission";
 
-                    const hasRateChip = (isSaved || isAdminBooking) && rateLabel !== "N/A" && rateLabel !== "No commission";
+                      return (
+                        <TableRow
+                          key={booking._id}
+                          className="group hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors h-[58px]"
+                        >
+                          {/* SERVICE / EVENT */}
+                          <TableCell className="w-[24%] py-2.5">
+                            <div className="space-y-0.5">
+                              <p className="font-semibold text-[14px] text-foreground truncate max-w-[220px]" title={itemName}>
+                                {itemName}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
+                                <span
+                                  className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                                    isEvent ? "bg-blue-500" : "bg-emerald-500"
+                                  }`}
+                                />
+                                <span>{typeText}</span>
+                              </p>
+                            </div>
+                          </TableCell>
 
-                    return (
-                      <TableRow
-                        key={booking._id}
-                        className="group hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors h-[58px]"
-                      >
-                        {/* SERVICE / EVENT */}
-                        <TableCell className="w-[24%] py-2.5">
-                          <div className="space-y-0.5">
-                            <p className="font-semibold text-[14px] text-foreground truncate max-w-[220px]" title={itemName}>
+                          {/* MERCHANT */}
+                          <TableCell className="w-[16%] py-2.5">
+                            {booking.assignedTo ? (
+                              <p className="font-medium text-[13px] text-foreground truncate max-w-[140px]" title={booking.assignedTo.name}>
+                                {booking.assignedTo.name}
+                              </p>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                                Unassigned
+                              </span>
+                            )}
+                          </TableCell>
+
+                          {/* BOOKING AMOUNT */}
+                          <TableCell align="right" className="w-[15%] py-2.5 text-right">
+                            <span className="font-semibold text-[14px] text-foreground whitespace-nowrap font-mono tabular-nums">
+                              {formatCurrency(booking.price)}
+                            </span>
+                          </TableCell>
+
+                          {/* COMMISSION RATE */}
+                          <TableCell align="center" className="w-[13%] py-2.5 text-center">
+                            {hasRateChip ? (
+                              <span className="h-[24px] min-w-[42px] px-2 text-[11px] font-semibold font-mono rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center justify-center mx-auto whitespace-nowrap">
+                                {rateLabel}
+                              </span>
+                            ) : (
+                              <span className="h-[24px] min-w-[42px] px-2 text-[11px] font-medium font-mono rounded-md bg-secondary text-muted-foreground border border-border/60 inline-flex items-center justify-center mx-auto whitespace-nowrap">
+                                N/A
+                              </span>
+                            )}
+                          </TableCell>
+
+                          {/* ADMIN EARNINGS */}
+                          <TableCell align="right" className="w-[14%] py-2.5 text-right">
+                            {showDash ? (
+                              <span className="text-muted-foreground font-normal">—</span>
+                            ) : (
+                              <span className="font-semibold text-[14px] text-foreground whitespace-nowrap font-mono tabular-nums">
+                                {formatCurrency(adminEarning)}
+                              </span>
+                            )}
+                          </TableCell>
+
+                          {/* MERCHANT PAYOUT */}
+                          <TableCell align="right" className="w-[14%] py-2.5 text-right">
+                            {showDash ? (
+                              <span className="text-muted-foreground font-normal">—</span>
+                            ) : (
+                              <span className="font-semibold text-[14px] text-foreground whitespace-nowrap font-mono tabular-nums">
+                                {formatCurrency(payout)}
+                              </span>
+                            )}
+                          </TableCell>
+
+                          {/* ACTION */}
+                          <TableCell align="center" className="w-[4%] py-2.5 text-center">
+                            <button
+                              onClick={() => navigate(`/admin-dashboard/payments/${booking._id}`)}
+                              className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors mx-auto focus:outline-none focus:ring-2 focus:ring-primary/20"
+                              title="View Commission Details"
+                              aria-label="View commission details"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </DataTable>
+              </div>
+
+              {/* MOBILE CARD LIST (screens < 768px) */}
+              <div className="block md:hidden space-y-3 p-3">
+                {paginatedRows.map(({ booking, adminEarning, payout, rateLabel, isSaved, isAdminBooking }) => {
+                  const itemName =
+                    booking.service?.name ||
+                    booking.serviceName ||
+                    booking.event?.title ||
+                    booking.eventName ||
+                    "Booking";
+                  const isEvent = !!(booking.event || booking.eventName);
+                  const typeText = isEvent ? "Event" : "Service";
+                  const showDash = !isSaved && !isAdminBooking;
+
+                  return (
+                    <div
+                      key={booking._id}
+                      onClick={() => navigate(`/admin-dashboard/payments/${booking._id}`)}
+                      className="w-full min-w-0 h-auto flex flex-col gap-3 p-4 bg-card border border-border/80 rounded-2xl shadow-xs hover:border-primary/40 active:scale-[0.99] transition-all cursor-pointer"
+                    >
+                      {/* Header: Title, Type badge, Chevron */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-semibold text-sm sm:text-base text-foreground truncate max-w-[200px]" title={itemName}>
                               {itemName}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full shrink-0 ${
-                                  isEvent ? "bg-blue-500" : "bg-emerald-500"
-                                }`}
-                              />
-                              <span>{typeText}</span>
-                            </p>
+                            </h4>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                              isEvent 
+                                ? "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20" 
+                                : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                            }`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${isEvent ? "bg-blue-500" : "bg-emerald-500"}`} />
+                              {typeText}
+                            </span>
                           </div>
-                        </TableCell>
-
-                        {/* MERCHANT */}
-                        <TableCell className="w-[16%] py-2.5">
                           {booking.assignedTo ? (
-                            <p className="font-medium text-[13px] text-foreground truncate max-w-[140px]" title={booking.assignedTo.name}>
-                              {booking.assignedTo.name}
+                            <p className="text-xs text-muted-foreground font-medium truncate">
+                              Merchant: <span className="text-foreground font-semibold">{booking.assignedTo.name}</span>
                             </p>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                            <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-medium">
                               <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
-                              Unassigned
+                              Unassigned Merchant
                             </span>
                           )}
-                        </TableCell>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+                      </div>
 
-                        {/* BOOKING AMOUNT */}
-                        <TableCell align="right" className="w-[15%] py-2.5 text-right">
-                          <span className="font-semibold text-[14px] text-foreground whitespace-nowrap font-mono tabular-nums">
-                            {formatCurrency(booking.price)}
-                          </span>
-                        </TableCell>
-
-                        {/* COMMISSION RATE */}
-                        <TableCell align="center" className="w-[13%] py-2.5 text-center">
-                          {hasRateChip ? (
-                            <span className="h-[24px] min-w-[42px] px-2 text-[11px] font-semibold font-mono rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center justify-center mx-auto whitespace-nowrap">
-                              {rateLabel}
-                            </span>
-                          ) : (
-                            <span className="h-[24px] min-w-[42px] px-2 text-[11px] font-medium font-mono rounded-md bg-secondary text-muted-foreground border border-border/60 inline-flex items-center justify-center mx-auto whitespace-nowrap">
-                              N/A
-                            </span>
-                          )}
-                        </TableCell>
-
-                        {/* ADMIN EARNINGS */}
-                        <TableCell align="right" className="w-[14%] py-2.5 text-right">
-                          {showDash ? (
-                            <span className="text-muted-foreground font-normal">—</span>
-                          ) : (
-                            <span className="font-semibold text-[14px] text-foreground whitespace-nowrap font-mono tabular-nums">
-                              {formatCurrency(adminEarning)}
-                            </span>
-                          )}
-                        </TableCell>
-
-                        {/* MERCHANT PAYOUT */}
-                        <TableCell align="right" className="w-[14%] py-2.5 text-right">
-                          {showDash ? (
-                            <span className="text-muted-foreground font-normal">—</span>
-                          ) : (
-                            <span className="font-semibold text-[14px] text-foreground whitespace-nowrap font-mono tabular-nums">
-                              {formatCurrency(payout)}
-                            </span>
-                          )}
-                        </TableCell>
-
-                        {/* ACTION */}
-                        <TableCell align="center" className="w-[4%] py-2.5 text-center">
-                          <button
-                            onClick={() => navigate(`/admin-dashboard/payments/${booking._id}`)}
-                            className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors mx-auto focus:outline-none focus:ring-2 focus:ring-primary/20"
-                            title="View Commission Details"
-                            aria-label="View commission details"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </DataTable>
+                      {/* Metrics Grid */}
+                      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border/60">
+                        <div>
+                          <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Booking Value</p>
+                          <p className="text-sm font-bold text-foreground font-mono tabular-nums">{formatCurrency(booking.price)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Commission Rate</p>
+                          <p className="text-sm font-bold text-foreground font-mono">{rateLabel}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Admin Earning</p>
+                          <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
+                            {showDash ? "—" : formatCurrency(adminEarning)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Merchant Earning</p>
+                          <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400 font-mono tabular-nums">
+                            {showDash ? "—" : formatCurrency(payout)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </motion.div>
           )}
 
@@ -659,21 +743,22 @@ const AdminCommissions = () => {
   );
 };
 
-/* ─── SUMMARY CARD (Height 84px, Top Label + Bottom Value) ─────────────── */
+/* ─── SUMMARY CARD (Height auto, responsive typography) ─────────────── */
 const SummaryCard = ({ title, value, icon, tone }) => (
-  <div className="h-[84px] rounded-xl border border-border/70 bg-card p-4 shadow-xs flex flex-col justify-between">
+  <div className="h-auto min-h-[84px] rounded-xl border border-border/70 bg-card p-3 sm:p-4 shadow-xs flex flex-col justify-between space-y-2 min-w-0">
     <div className="flex items-center justify-between gap-2">
-      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.04em] truncate">
+      <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.04em] truncate">
         {title}
       </p>
-      <div className={`h-8 w-8 rounded-lg ${tone} flex items-center justify-center shrink-0`}>
+      <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-lg ${tone} flex items-center justify-center shrink-0`}>
         {icon}
       </div>
     </div>
-    <p className="text-[20px] sm:text-[22px] font-bold tracking-tight text-foreground truncate font-mono leading-none">
+    <p className="text-base sm:text-[20px] lg:text-[22px] font-bold tracking-tight text-foreground truncate font-mono leading-none">
       {value}
     </p>
   </div>
 );
 
 export default AdminCommissions;
+

@@ -6,6 +6,8 @@ import { useCart } from "@/contexts/CartContext";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
 import CustomerLayout from "@/components/CustomerLayout";
+import PageHeader from "@/components/PageHeader";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 import SimplePayment from "@/components/SimplePayment";
 import { Button } from "@/components/ui/button";
 import { 
@@ -24,6 +26,7 @@ const imgSrc = (image) => (!image ? "" : image.startsWith("http") ? image : `${A
 
 const CustomerCheckout = () => {
   const navigate = useNavigate();
+  const goBack = useBackNavigation("/customer-dashboard/cart");
   const location = useLocation();
   const { user, token } = useAuth();
   const { clearCart } = useCart();
@@ -279,22 +282,10 @@ const CustomerCheckout = () => {
         
         {/* Back navigation + Page Header */}
         <div className="mb-6">
-          <button
-            onClick={() => navigate("/customer-dashboard/cart")}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors mb-2 cursor-pointer"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to Cart
-          </button>
-          <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
-            <div>
-              <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
-                Checkout & Payment
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                Complete your payment details below to instantly confirm your booking.
-              </p>
-            </div>
-          </div>
+          <PageHeader title="Checkout & Payment" onBack={goBack} />
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Complete your payment details below to instantly confirm your booking.
+          </p>
         </div>
 
         {/* 2-Column SaaS Layout */}

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, Loader2, MessageSquare, ChevronDown, Send } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
+import PageHeader from "@/components/PageHeader";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiGetCustomerInbox, apiCustomerReply } from "@/lib/api";
@@ -11,6 +13,7 @@ import { useRealtimeEvent } from "@/hooks/useRealtimeEvent";
 
 const CustomerMessages = () => {
     const { token, user } = useAuth();
+    const goBack = useBackNavigation("/customer-dashboard");
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [expanded, setExpanded] = useState(null);
@@ -71,12 +74,9 @@ const CustomerMessages = () => {
             <section className="py-2 sm:py-6">
                 <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
 
-                    {/* ── Page Header ───────────────────────────── */}
+                    {/* ── Page Header ─────────────────────────── */}
                     <div className="mb-5">
-                        <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
-                            <MessageSquare className="h-5 w-5 text-primary" />
-                            My <span className="text-gradient">Messages</span>
-                        </h1>
+                        <PageHeader title="My Messages" onBack={goBack} />
                         <p className="text-sm text-muted-foreground mt-1">
                             Your conversations with event &amp; service organisers
                         </p>

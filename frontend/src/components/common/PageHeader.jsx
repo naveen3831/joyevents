@@ -16,7 +16,7 @@ export const PageHeader = ({
     <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 ${className}`}>
       <div className="space-y-1 min-w-0">
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1 font-medium overflow-x-auto no-scrollbar">
+          <nav className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground mb-1 font-medium overflow-x-auto no-scrollbar">
             {breadcrumbs.map((item, idx) => (
               <React.Fragment key={idx}>
                 {idx > 0 && <ChevronRight className="h-3 w-3 shrink-0 opacity-50" />}

@@ -111,12 +111,12 @@ const Login = () => {
         }
     };
     return (<Layout>
-      <section className="relative flex min-h-[85vh] items-center justify-center py-12 px-4 overflow-hidden bg-gradient-dark">
+      <section className="relative flex md:min-h-[85vh] items-start md:items-center justify-center py-4 sm:py-8 lg:py-12 px-4 overflow-hidden bg-gradient-dark">
         {/* Background Glowing Ambient Orbs — parallax on scroll */}
         <div ref={orb1Ref} className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-primary/20 blur-[100px] pointer-events-none"/>
         <div ref={orb2Ref} className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[300px] h-[300px] rounded-full bg-accent/10 blur-[90px] pointer-events-none"/>
 
-        <div ref={cardRef} className="relative w-full max-w-3xl flex flex-col md:flex-row rounded-3xl shadow-2xl overflow-hidden glass">
+        <div ref={cardRef} className="relative w-full max-w-md md:max-w-3xl flex flex-col md:flex-row rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden glass p-5 sm:p-6 md:p-0 my-2 sm:my-4">
 
           {/* LEFT SIDE: Visual Showcase (Hidden on mobile) */}
           <div className="hidden md:flex md:w-1/2 flex-col justify-between p-6 lg:p-8 bg-gradient-to-br from-primary/10 via-secondary/30 to-accent/5 relative overflow-hidden border-r border-border/50">
@@ -166,46 +166,46 @@ const Login = () => {
           </div>
 
           {/* RIGHT SIDE: Login Form */}
-          <div className="w-full md:w-1/2 p-6 lg:p-8 flex flex-col justify-center bg-transparent">
+          <div className="w-full md:w-1/2 p-0 md:p-6 lg:p-8 flex flex-col justify-center bg-transparent">
             <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-              <div className="mb-6">
-                <h1 className="font-display text-2xl font-black tracking-tight">Welcome Back</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Enter your credentials to access your account</p>
+              <div className="mb-4 sm:mb-6">
+                <h1 className="font-display text-xl sm:text-2xl font-black tracking-tight">Welcome Back</h1>
+                <p className="mt-1 text-xs sm:text-sm text-muted-foreground">Enter your credentials to access your account</p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email Address</Label>
+                  <Label className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email Address</Label>
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
-                    <Input type="text" inputMode="email" autoComplete="email" placeholder="name@gmail.com" maxLength={EMAIL_MAX_LENGTH} className="border-border bg-secondary/50 hover:bg-secondary/80 focus:bg-background focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 pl-11 h-11 text-sm rounded-xl transition-all duration-200" value={email} onChange={(e) => setEmail(sanitizeEmailInput(e.target.value))}/>
+                    <Input type="text" inputMode="email" autoComplete="email" placeholder="name@gmail.com" maxLength={EMAIL_MAX_LENGTH} className="border-border bg-secondary/50 hover:bg-secondary/80 focus:bg-background focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 pl-11 h-11 sm:h-12 text-sm rounded-xl transition-all duration-200" value={email} onChange={(e) => setEmail(sanitizeEmailInput(e.target.value))}/>
                   </div>
                   <p className="text-[10px] text-muted-foreground pl-1">{EMAIL_HINT}</p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Password</Label>
-                    <Link to={`/forgot-password${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ""}`} className="text-xs font-semibold text-primary hover:underline">
+                  <div className="flex justify-between items-center gap-2">
+                    <Label className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wider">Password</Label>
+                    <Link to={`/forgot-password${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ""}`} className="text-xs font-semibold text-primary hover:underline shrink-0">
                       Forgot password?
                     </Link>
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
-                    <Input type={showPassword ? "text" : "password"} maxLength={30} placeholder="••••••••" className="border-border bg-secondary/50 hover:bg-secondary/80 focus:bg-background focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 pl-11 pr-11 h-11 text-sm rounded-xl transition-all duration-200" value={password} onChange={(e) => setPassword(e.target.value)}/>
-                    <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
-                      {showPassword ? <Eye className="h-4.5 w-4.5"/> : <EyeOff className="h-4.5 w-4.5"/>}
+                    <Input type={showPassword ? "text" : "password"} maxLength={30} placeholder="••••••••" className="border-border bg-secondary/50 hover:bg-secondary/80 focus:bg-background focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 pl-11 pr-11 h-11 sm:h-12 text-sm rounded-xl transition-all duration-200" value={password} onChange={(e) => setPassword(e.target.value)}/>
+                    <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1" tabIndex={-1}>
+                      {showPassword ? <Eye className="h-4 w-4"/> : <EyeOff className="h-4 w-4"/>}
                     </button>
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full h-11 mt-2 bg-gradient-primary text-primary-foreground font-semibold rounded-xl hover:opacity-90 shadow-glow transition-all active:scale-[0.99]" size="lg">
+                <Button type="submit" className="w-full h-11 sm:h-12 mt-2 bg-gradient-primary text-primary-foreground font-semibold rounded-xl hover:opacity-90 shadow-glow transition-all active:scale-[0.99]" size="lg">
                   Sign In
                   <ArrowRight className="ml-2 h-4 w-4"/>
                 </Button>
               </form>
 
-              <p className="mt-8 text-center text-sm text-muted-foreground">
+              <p className="mt-5 sm:mt-8 text-center text-xs sm:text-sm text-muted-foreground">
                 Don't have an account?{" "}
                 <Link to={`/register${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ""}`} className="font-semibold text-primary hover:underline">
                   Create Account

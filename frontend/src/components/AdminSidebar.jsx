@@ -241,7 +241,7 @@ const AdminSidebar = ({ open, onClose }) => {
   return (
     <>
       {/* Desktop Enterprise SaaS Sidebar (Exact Reference Design Match) */}
-      <aside className="hidden lg:flex flex-col w-[240px] h-full overflow-hidden border-r border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 font-sans">
+      <aside className="hidden lg:flex flex-col w-[210px] xl:w-[240px] h-full overflow-hidden border-r border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 font-sans">
         {/* Compact Logo & Brand Header */}
         <div className="h-14 px-4 border-b border-slate-200/80 dark:border-slate-800 flex items-center gap-3 shrink-0">
           <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">

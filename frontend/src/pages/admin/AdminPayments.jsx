@@ -15,6 +15,7 @@ import {
   Download,
   RotateCcw,
   CheckCircle2,
+  ChevronRight,
 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import PageHeader from "@/components/common/PageHeader";
@@ -344,7 +345,7 @@ const AdminPayments = () => {
             </div>
           </div>
 
-          {/* ── 5. TABLE ───────────────────────────────────────────── */}
+          {/* ── 5. TABLE / MOBILE CARDS ─────────────────────────────── */}
           {loading ? (
             <TableSkeleton columns={6} rows={8} minWidth="100%" />
           ) : filteredBookings.length === 0 ? (
@@ -359,129 +360,214 @@ const AdminPayments = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.15 }}
+              className="w-full"
             >
-              <DataTable minWidth="760px">
-                <TableHeader className="bg-slate-50/90 dark:bg-slate-900/90 sticky top-0 z-10 border-b border-border/70">
-                  <TableHeaderCell className="w-[25%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
-                    PAYER
-                  </TableHeaderCell>
-                  <TableHeaderCell className="w-[30%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
-                    TRANSACTION
-                  </TableHeaderCell>
-                  <TableHeaderCell className="w-[15%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
-                    DATE
-                  </TableHeaderCell>
-                  <TableHeaderCell className="w-[13%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
-                    AMOUNT
-                  </TableHeaderCell>
-                  <TableHeaderCell className="w-[12%] text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
-                    STATUS
-                  </TableHeaderCell>
-                  <TableHeaderCell align="center" className="w-[5%] text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
-                    &nbsp;
-                  </TableHeaderCell>
-                </TableHeader>
+              {/* Desktop Table View (>= 768px) */}
+              <div className="hidden md:block w-full">
+                <DataTable minWidth="760px">
+                  <TableHeader className="bg-slate-50/90 dark:bg-slate-900/90 sticky top-0 z-10 border-b border-border/70">
+                    <TableHeaderCell className="w-[25%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
+                      PAYER
+                    </TableHeaderCell>
+                    <TableHeaderCell className="w-[30%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
+                      TRANSACTION
+                    </TableHeaderCell>
+                    <TableHeaderCell className="w-[15%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
+                      DATE
+                    </TableHeaderCell>
+                    <TableHeaderCell className="w-[13%] text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
+                      AMOUNT
+                    </TableHeaderCell>
+                    <TableHeaderCell className="w-[12%] text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
+                      STATUS
+                    </TableHeaderCell>
+                    <TableHeaderCell align="center" className="w-[5%] text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5">
+                      &nbsp;
+                    </TableHeaderCell>
+                  </TableHeader>
 
-                <TableBody>
-                  {paginatedBookings.map((booking) => {
-                    const paidAmount = getPaidAmount(booking);
-                    const bookingName =
-                      booking.serviceName ||
-                      booking.eventName ||
-                      booking.event?.title ||
-                      booking.service?.name ||
-                      "Booking";
-                    const formattedDate = formatDate(booking.createdAt);
-                    const initials = (booking.customer?.name || "?").slice(0, 2).toUpperCase();
+                  <TableBody>
+                    {paginatedBookings.map((booking) => {
+                      const paidAmount = getPaidAmount(booking);
+                      const bookingName =
+                        booking.serviceName ||
+                        booking.eventName ||
+                        booking.event?.title ||
+                        booking.service?.name ||
+                        "Booking";
+                      const formattedDate = formatDate(booking.createdAt);
+                      const initials = (booking.customer?.name || "?").slice(0, 2).toUpperCase();
 
-                    return (
-                      <TableRow
-                        key={booking._id}
-                        className="group hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors h-[62px]"
-                      >
-                        {/* PAYER */}
-                        <TableCell className="w-[25%] py-2.5">
-                          <div className="flex items-center gap-2.5">
-                            <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-[11px] font-bold shrink-0">
-                              {initials}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-semibold text-[13px] text-foreground truncate max-w-[150px]" title={booking.customer?.name}>
-                                {booking.customer?.name || "Customer"}
-                              </p>
-                              {booking.customer?.email && (
-                                <p className="text-[11px] text-muted-foreground truncate max-w-[150px] font-mono" title={booking.customer.email}>
-                                  {booking.customer.email}
+                      return (
+                        <TableRow
+                          key={booking._id}
+                          onClick={() => navigate(`/admin-dashboard/payments/${booking._id}`)}
+                          className="group hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors h-[62px]"
+                        >
+                          {/* PAYER */}
+                          <TableCell className="w-[25%] py-2.5">
+                            <div className="flex items-center gap-2.5">
+                              <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-[11px] font-bold shrink-0">
+                                {initials}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-[13px] text-foreground truncate max-w-[150px]" title={booking.customer?.name}>
+                                  {booking.customer?.name || "Customer"}
                                 </p>
-                              )}
+                                {booking.customer?.email && (
+                                  <p className="text-[11px] text-muted-foreground truncate max-w-[150px] font-mono" title={booking.customer.email}>
+                                    {booking.customer.email}
+                                  </p>
+                                )}
+                              </div>
                             </div>
+                          </TableCell>
+
+                          {/* TRANSACTION */}
+                          <TableCell className="w-[30%] py-2.5">
+                            <div className="space-y-0.5">
+                              <p className="font-semibold text-[13px] text-foreground truncate max-w-[240px]" title={bookingName}>
+                                {bookingName}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
+                                {getSecondaryMetadata(booking)}
+                              </p>
+                            </div>
+                          </TableCell>
+
+                          {/* DATE */}
+                          <TableCell className="w-[15%] py-2.5 text-xs text-muted-foreground whitespace-nowrap font-medium">
+                            {formattedDate}
+                          </TableCell>
+
+                          {/* AMOUNT */}
+                          <TableCell className="w-[13%] py-2.5">
+                            <p className="font-semibold text-[14px] text-foreground whitespace-nowrap font-mono tabular-nums">
+                              {formatCurrency(booking.price || 0)}
+                            </p>
+                            {paidAmount > 0 && paidAmount !== (booking.price || 0) && (
+                              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium font-mono">
+                                Paid: {formatCurrency(paidAmount)}
+                              </p>
+                            )}
+                          </TableCell>
+
+                          {/* STATUS */}
+                          <TableCell className="w-[12%] py-2.5 text-center">
+                            <StatusBadge
+                              status={booking.paymentStatus}
+                              className="inline-flex items-center justify-center min-w-[82px] h-[26px] px-2 text-[11px] font-semibold rounded-full whitespace-nowrap mx-auto"
+                            />
+                          </TableCell>
+
+                          {/* ACTION */}
+                          <TableCell align="center" className="w-[5%] py-2.5 text-center">
+                            <ActionMenu
+                              items={[
+                                {
+                                  label: "View Details",
+                                  icon: Eye,
+                                  onClick: () => navigate(`/admin-dashboard/payments/${booking._id}`),
+                                },
+                                ...(booking.paymentStatus === "paid"
+                                  ? [
+                                      {
+                                        label: "Process Refund",
+                                        icon: RefreshCw,
+                                        destructive: true,
+                                        onClick: () => setSelectedBookingForRefund(booking),
+                                      },
+                                    ]
+                                  : []),
+                              ]}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </DataTable>
+              </div>
+
+              {/* Mobile Transaction Cards View (< 768px) */}
+              <div className="block md:hidden space-y-3 p-3 w-full max-w-full">
+                {paginatedBookings.map((booking) => {
+                  const paidAmount = getPaidAmount(booking);
+                  const bookingName =
+                    booking.serviceName ||
+                    booking.eventName ||
+                    booking.event?.title ||
+                    booking.service?.name ||
+                    "Booking";
+                  const formattedDate = formatDate(booking.createdAt);
+                  const initials = (booking.customer?.name || "?").slice(0, 2).toUpperCase();
+                  const secondaryMeta = getSecondaryMetadata(booking);
+
+                  return (
+                    <div
+                      key={booking._id}
+                      onClick={() => navigate(`/admin-dashboard/payments/${booking._id}`)}
+                      className="w-full bg-card border border-border/80 rounded-2xl p-4 space-y-3 shadow-2xs hover:border-primary/40 active:scale-[0.99] transition-all cursor-pointer min-w-0 h-auto"
+                    >
+                      {/* Top Row: User Avatar + Name/Email + Status Badge */}
+                      <div className="flex items-start justify-between gap-3 min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="h-9 w-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                            {initials}
                           </div>
-                        </TableCell>
-
-                        {/* TRANSACTION */}
-                        <TableCell className="w-[30%] py-2.5">
-                          <div className="space-y-0.5">
-                            <p className="font-semibold text-[13px] text-foreground truncate max-w-[240px]" title={bookingName}>
-                              {bookingName}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
-                              {getSecondaryMetadata(booking)}
-                            </p>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-semibold text-sm text-foreground truncate leading-snug">
+                              {booking.customer?.name || "Customer"}
+                            </h4>
+                            {booking.customer?.email && (
+                              <p className="text-[11px] text-muted-foreground truncate mt-0.5 font-mono">
+                                {booking.customer.email}
+                              </p>
+                            )}
                           </div>
-                        </TableCell>
-
-                        {/* DATE */}
-                        <TableCell className="w-[15%] py-2.5 text-xs text-muted-foreground whitespace-nowrap font-medium">
-                          {formattedDate}
-                        </TableCell>
-
-                        {/* AMOUNT */}
-                        <TableCell className="w-[13%] py-2.5">
-                          <p className="font-semibold text-[14px] text-foreground whitespace-nowrap font-mono tabular-nums">
-                            {formatCurrency(booking.price || 0)}
-                          </p>
-                          {paidAmount > 0 && paidAmount !== (booking.price || 0) && (
-                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium font-mono">
-                              Paid: {formatCurrency(paidAmount)}
-                            </p>
-                          )}
-                        </TableCell>
-
-                        {/* STATUS */}
-                        <TableCell className="w-[12%] py-2.5 text-center">
+                        </div>
+                        <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                           <StatusBadge
                             status={booking.paymentStatus}
-                            className="inline-flex items-center justify-center min-w-[82px] h-[26px] px-2 text-[11px] font-semibold rounded-full whitespace-nowrap mx-auto"
+                            className="inline-flex items-center justify-center h-[26px] px-2.5 text-[11px] font-semibold rounded-full whitespace-nowrap"
                           />
-                        </TableCell>
+                        </div>
+                      </div>
 
-                        {/* ACTION */}
-                        <TableCell align="center" className="w-[5%] py-2.5 text-center">
-                          <ActionMenu
-                            items={[
-                              {
-                                label: "View Details",
-                                icon: Eye,
-                                onClick: () => navigate(`/admin-dashboard/payments/${booking._id}`),
-                              },
-                              ...(booking.paymentStatus === "paid"
-                                ? [
-                                    {
-                                      label: "Process Refund",
-                                      icon: RefreshCw,
-                                      destructive: true,
-                                      onClick: () => setSelectedBookingForRefund(booking),
-                                    },
-                                  ]
-                                : []),
-                            ]}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </DataTable>
+                      {/* Main Details: Event/Service Title + Secondary Metadata */}
+                      <div className="space-y-0.5 pt-1">
+                        <h5 className="font-semibold text-sm text-foreground leading-snug line-clamp-2" title={bookingName}>
+                          {bookingName}
+                        </h5>
+                        <p className="text-xs text-muted-foreground font-medium">
+                          {secondaryMeta}
+                        </p>
+                      </div>
+
+                      {/* Bottom Row: Amount + Date + Chevron */}
+                      <div className="pt-2.5 border-t border-border/50 flex items-center justify-between gap-3">
+                        <div>
+                          <span className="font-bold text-base text-foreground font-mono tabular-nums block">
+                            {formatCurrency(booking.price || 0)}
+                          </span>
+                          {paidAmount > 0 && paidAmount !== (booking.price || 0) && (
+                            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium font-mono block">
+                              Paid: {formatCurrency(paidAmount)}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
+                            {formattedDate}
+                          </span>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground/60 shrink-0" />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </motion.div>
           )}
 

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { formatCurrency } from "@/lib/utils";
 import { Users, Store, Calendar, IndianRupee, TrendingUp, Shield, Filter, AlertTriangle, CheckCircle2 } from "lucide-react";
-import Layout from "@/components/Layout";
+import AdminLayout from "@/components/AdminLayout";
 import StatCard from "@/components/StatCard";
 import { useState, useEffect } from "react";
 import { apiListCategories, apiListUsers, apiListEvents, apiGetTickets } from "@/lib/api";
@@ -68,19 +68,19 @@ const AdminDashboard = () => {
         catch (e) {
         }
     };
-    return (<Layout>
-      <section className="py-12">
-        <div className="container mx-auto">
+    return (<AdminLayout>
+      <section className="py-4 sm:py-6">
+        <div className="w-full">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground">
                 <Shield className="h-5 w-5"/>
               </div>
               <div>
-                <h1 className="font-display text-3xl font-bold">
+                <h1 className="font-display text-2xl sm:text-3xl font-bold">
                   Admin <span className="text-gradient">Dashboard</span>
                 </h1>
-                <p className="text-muted-foreground text-sm">Platform overview and management</p>
+                <p className="text-muted-foreground text-xs sm:text-sm">Platform overview and management</p>
               </div>
             </div>
           </motion.div>
@@ -123,46 +123,41 @@ const AdminDashboard = () => {
         })()}
 
           {/* Stats */}
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-6 sm:mt-8 grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard title="Total Users" value={stats.totalUsers.toLocaleString()} icon={<Users className="h-5 w-5"/>} index={0}/>
             <StatCard title="Total Merchants" value={stats.totalMerchants} icon={<Store className="h-5 w-5"/>} index={1}/>
             <StatCard title="Total Events" value={stats.totalEvents.toString()} icon={<Calendar className="h-5 w-5"/>} index={2}/>
             <StatCard title="Platform Revenue" value={formatCurrency(stats.totalRevenue)} icon={<IndianRupee className="h-5 w-5"/>} index={3}/>
           </div>
 
-          <div className="mt-12 grid gap-8 lg:grid-cols-2">
-            {/* Recent Users */}
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-              <h2 className="font-display text-xl font-bold flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary"/> Recent Users
-              </h2>
-              <div className="mt-4 space-y-3"></div>
-            </motion.div>
-          </div>
-
-          <div className="mt-8 grid gap-8 lg:grid-cols-2">
-            {/* Platform Health */}
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            {/* Quick Actions */}
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}>
-              <h2 className="font-display text-xl font-bold flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary"/> Platform Metrics
+              <h2 className="font-display text-lg font-bold flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary"/> Quick Management Actions
               </h2>
-              <div className="mt-4 space-y-4"></div>
 
-              {/* Quick Actions */}
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                <button onClick={() => setShowCatModal(true)} className="col-span-2 flex items-center justify-center gap-2 rounded-lg border border-primary bg-primary/10 p-3 text-sm font-semibold text-primary transition-all hover:bg-primary/20">
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <button onClick={() => setShowCatModal(true)} className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-primary bg-primary/10 p-3 text-xs sm:text-sm font-semibold text-primary transition-all hover:bg-primary/20 cursor-pointer">
                   <Filter className="h-4 w-4"/>
                   Manage Event Categories
                 </button>
-                {[
-            { label: "Manage Users", icon: Users },
-            { label: "Review Events", icon: Calendar },
-            { label: "View Reports", icon: TrendingUp },
-            { label: "Settings", icon: Shield },
-        ].map(({ label, icon: Icon }) => (<button key={label} className="flex items-center gap-2 rounded-lg border border-border bg-card p-3 text-sm text-muted-foreground transition-all hover:border-primary hover:text-foreground">
-                    <Icon className="h-4 w-4 text-primary"/>
-                    {label}
-                  </button>))}
+                <button onClick={() => window.location.href = "/admin-dashboard/users"} className="flex items-center gap-2 rounded-xl border border-border bg-card p-3 text-xs sm:text-sm font-medium text-foreground transition-all hover:border-primary cursor-pointer">
+                  <Users className="h-4 w-4 text-primary"/>
+                  Manage Users
+                </button>
+                <button onClick={() => window.location.href = "/admin-dashboard/events"} className="flex items-center gap-2 rounded-xl border border-border bg-card p-3 text-xs sm:text-sm font-medium text-foreground transition-all hover:border-primary cursor-pointer">
+                  <Calendar className="h-4 w-4 text-primary"/>
+                  Review Events
+                </button>
+                <button onClick={() => window.location.href = "/admin-dashboard/earnings"} className="flex items-center gap-2 rounded-xl border border-border bg-card p-3 text-xs sm:text-sm font-medium text-foreground transition-all hover:border-primary cursor-pointer">
+                  <TrendingUp className="h-4 w-4 text-primary"/>
+                  View Reports
+                </button>
+                <button onClick={() => window.location.href = "/admin-dashboard/settings"} className="flex items-center gap-2 rounded-xl border border-border bg-card p-3 text-xs sm:text-sm font-medium text-foreground transition-all hover:border-primary cursor-pointer">
+                  <Shield className="h-4 w-4 text-primary"/>
+                  Settings
+                </button>
               </div>
             </motion.div>
           </div>
@@ -170,6 +165,6 @@ const AdminDashboard = () => {
       </section>
 
       {showCatModal && (<ManageCategoriesModal type="event" onClose={() => setShowCatModal(false)} onCategoriesChanged={loadEventCategories}/>)}
-    </Layout>);
+    </AdminLayout>);
 };
 export default AdminDashboard;

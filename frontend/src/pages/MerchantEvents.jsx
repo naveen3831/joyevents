@@ -412,7 +412,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
           </div>) : events.length === 0 ? (<div className="rounded-xl border border-border bg-card p-10 text-center flex flex-col items-center">
             <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-30 text-muted-foreground"/>
             <p className="text-muted-foreground">No events yet. Create your first event to get started. Only your events are shown here.</p>
-          </div>) : (<div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:grid-cols-3">
+          </          ) : (<div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:grid-cols-3">
             {events.map((ev) => {
               const itemName = ev.title;
               const schedule = formatEventSchedule(ev);
@@ -439,40 +439,76 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
               const totalSold = allTickets.reduce((s, t) => s + t.sold, 0);
               const totalCapacity = allTickets.reduce((s, t) => s + t.available, 0);
 
+              const priceText = ev.eventType === "ticketed"
+                ? (() => {
+                    const allPrices = [];
+                    if (ev.hasMultipleSessions && ev.sessions) {
+                        ["day", "night"].forEach((s) => { if (ev.sessions[s]?.enabled)
+                            ev.sessions[s].tickets?.forEach((t) => { if (t.price > 0)
+                                allPrices.push(t.price); }); });
+                    }
+                    else {
+                        (ev.tickets || []).forEach((t) => { if (t.price > 0)
+                            allPrices.push(t.price); });
+                    }
+                    if (!allPrices.length)
+                        return "Free";
+                    const min = Math.min(...allPrices), max = Math.max(...allPrices);
+                    return min === max ? `${formatCurrency(min)}` : `${formatCurrency(min)} – ${formatCurrency(max)}`;
+                })()
+                : `${formatCurrency(ev.price)}`;
+
+              const attendeesText = ev.eventType === "ticketed"
+                ? `${totalSold}${totalCapacity > 0 ? ` / ${totalCapacity}` : ''}`
+                : `${ev.attendeesCount || 0}${ev.maxAttendees > 0 ? ` / ${ev.maxAttendees}` : ''}`;
+
               return (
                 <div
                   key={ev._id}
                   onClick={() => navigate(layout === "admin" ? `/admin-dashboard/events/${ev._id}` : `/merchant-dashboard/events/${ev._id}`)}
-                  className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+                  className="group rounded-2xl border border-border/80 bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-all cursor-pointer shadow-xs h-auto w-full min-w-0"
                 >
-                  {/* Image */}
-                  <div className="relative overflow-hidden bg-secondary flex-shrink-0 h-[180px] w-full">
-                    {imgSrc(ev.image) ? (<img src={imgSrc(ev.image)} alt={ev.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
+                  {/* Image (compact 140px-170px height on mobile) */}
+                  <div className="relative overflow-hidden bg-secondary flex-shrink-0 h-[140px] sm:h-[175px] w-full">
+                    {imgSrc(ev.image) ? (
+                      <img src={imgSrc(ev.image)} alt={ev.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                    ) : (
+                      <div className="flex h-full items-center justify-center bg-gradient-mesh text-primary/30">
                         <ImageIcon className="h-10 w-10 opacity-30"/>
-                      </div>)}
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none"/>
-                    <span className={`absolute top-3 left-3 rounded-full px-2.5 py-0.5 text-[10px] font-semibold capitalize backdrop-blur-md shadow-xs ${ev.status === "upcoming" ? "bg-blue-500/80 text-white" : ev.status === "ongoing" ? "bg-green-500/80 text-white" : "bg-gray-500/80 text-white"}`}>
+                    
+                    {/* Primary Status Overlay (Single placement on image) */}
+                    <span className={`absolute top-2.5 left-2.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold capitalize backdrop-blur-md shadow-xs ${
+                      ev.status === "upcoming" ? "bg-blue-600/90 text-white" : ev.status === "ongoing" ? "bg-emerald-600/90 text-white" : "bg-gray-600/90 text-white"
+                    }`}>
                       {ev.status}
                     </span>
-                    {ev.live && (
-                      <span className="absolute top-3 right-3 rounded-full bg-red-500 hover:bg-red-600 text-white px-2 py-0.5 text-[10px] font-semibold flex items-center gap-1 backdrop-blur-md shadow-xs animate-pulse">
+
+                    {/* Category or Live Badge */}
+                    {ev.live ? (
+                      <span className="absolute top-2.5 right-2.5 rounded-full bg-red-500 text-white px-2 py-0.5 text-[10px] font-bold flex items-center gap-1 backdrop-blur-md shadow-xs animate-pulse">
                         <Video className="h-3 w-3"/> LIVE
                       </span>
+                    ) : (
+                      <span className="absolute top-2.5 right-2.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-0.5 text-[10px] font-semibold text-white">
+                        {ev.category}
+                      </span>
                     )}
-                    <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-2.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                      {ev.category}
-                    </span>
                   </div>
 
-                  {/* Info */}
-                  <div className="p-4 flex flex-col flex-1 min-w-0 justify-between">
+                  {/* Info Body */}
+                  <div className="p-3.5 sm:p-4 flex flex-col flex-1 min-w-0 justify-between">
                     <div>
-                      <h3 className="font-display font-semibold text-base text-foreground line-clamp-2 h-[44px] leading-tight" title={itemName}>{itemName}</h3>
+                      <h3 className="font-bold text-base sm:text-lg text-foreground line-clamp-2 leading-snug" title={itemName}>
+                        {itemName}
+                      </h3>
                       
                       {/* Date & Location Metadata */}
-                      <div className="space-y-[6px] text-xs text-muted-foreground mt-2.5">
+                      <div className="space-y-1.5 text-xs text-muted-foreground mt-2">
                         {schedule.dateText && (
-                          <div className="flex items-center gap-1.5 h-[18px]">
+                          <div className="flex items-center gap-1.5">
                             <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
                             <span className="truncate">
                               {schedule.dateText}
@@ -481,99 +517,67 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                           </div>
                         )}
                         {ev.location && (
-                          <div className="flex items-center gap-1.5 h-[18px]" title={ev.location}>
+                          <div className="flex items-center gap-1.5" title={ev.location}>
                             <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
                             <span className="truncate">{ev.location}</span>
                           </div>
                         )}
-                        {/* Summary Line */}
-                        {ev.eventType === "ticketed" ? (
-                          <div className="flex items-center gap-1.5 h-[18px]">
-                            <Ticket className="h-3.5 w-3.5 text-primary shrink-0"/>
-                            <span className="truncate">
-                              Tickets Booked: <span className="font-semibold text-foreground">{totalSold}</span> / {totalCapacity}
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 h-[18px]">
-                            <span className="text-primary shrink-0">👥</span>
-                            <span className="truncate">
-                              Attendees: <span className="font-semibold text-foreground">{ev.attendeesCount || 0}</span>
-                              {ev.maxAttendees > 0 && ` / ${ev.maxAttendees}`}
-                            </span>
-                          </div>
-                        )}
                       </div>
-                    </div>
 
-                    <div className="flex-1 min-h-[12px]"/>
-
-                    <div className="flex items-center justify-between mt-4">
-                      <span className="text-sm font-bold text-primary">
-                        {ev.eventType === "ticketed"
-                      ? (() => {
-                          const allPrices = [];
-                          if (ev.hasMultipleSessions && ev.sessions) {
-                              ["day", "night"].forEach((s) => { if (ev.sessions[s]?.enabled)
-                                  ev.sessions[s].tickets?.forEach((t) => { if (t.price > 0)
-                                      allPrices.push(t.price); }); });
-                          }
-                          else {
-                              (ev.tickets || []).forEach((t) => { if (t.price > 0)
-                                  allPrices.push(t.price); });
-                          }
-                          if (!allPrices.length)
-                              return "Free";
-                          const min = Math.min(...allPrices), max = Math.max(...allPrices);
-                          return min === max ? `${formatCurrency(min)}` : `${formatCurrency(min)} – ${formatCurrency(max)}`;
-                      })()
-                      : `${formatCurrency(ev.price)}`}
-                      </span>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${ev.status === "upcoming" ? "bg-blue-500/15 text-blue-400" : ev.status === "ongoing" ? "bg-green-500/15 text-green-400" : "bg-gray-500/15 text-gray-400"}`}>
-                        {ev.status}
-                      </span>
+                      {/* Stats Grid: Price & Attendees */}
+                      <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-secondary/40 border border-border/50 text-xs mt-3">
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">Price</p>
+                          <p className="font-bold text-foreground font-mono text-sm sm:text-base truncate">{priceText}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">Attendees</p>
+                          <p className="font-bold text-foreground font-mono text-sm sm:text-base truncate">{attendeesText}</p>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Live Event Toggle */}
                     <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-2.5" onClick={(e) => e.stopPropagation()}>
                       <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                         <Video className={`h-3.5 w-3.5 ${ev.live ? "text-red-500 animate-pulse" : "text-muted-foreground"}`} />
-                        {ev.live ? <span className="text-red-500 font-semibold">Live Event</span> : "Regular Event"}
+                        {ev.live ? <span className="text-red-500 font-semibold">Live Event</span> : <span>Regular Event</span>}
                       </span>
                       <button
                         type="button"
                         onClick={(e) => handleToggleLive(ev, e)}
                         disabled={togglingLiveId === ev._id}
-                        className="focus:outline-none cursor-pointer transition-transform active:scale-95 disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-secondary transition-colors cursor-pointer disabled:opacity-50 min-h-[36px]"
                         title={ev.live ? "Remove from live events" : "Mark as live event"}
                       >
+                        <span className="text-[11px] font-semibold text-muted-foreground">{ev.live ? "Live" : "Off"}</span>
                         {togglingLiveId === ev._id ? (
-                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                         ) : ev.live ? (
-                          <ToggleRight className="h-7 w-7 text-red-500 transition-colors" />
+                          <ToggleRight className="h-6 w-6 text-red-500" />
                         ) : (
-                          <ToggleLeft className="h-7 w-7 text-gray-400 transition-colors" />
+                          <ToggleLeft className="h-6 w-6 text-muted-foreground" />
                         )}
                       </button>
                     </div>
 
                     {/* Actions */}
-                    <div className="mt-2.5 flex gap-2 border-t border-border/50 pt-2.5" onClick={(e) => e.stopPropagation()}>
+                    <div className="mt-2.5 flex items-center gap-2 border-t border-border/50 pt-2.5" onClick={(e) => e.stopPropagation()}>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 h-[36px] rounded-xl font-semibold border-border/80 hover:bg-secondary text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="flex-1 h-9 rounded-xl font-semibold border-border/80 hover:bg-secondary text-xs flex items-center justify-center gap-1.5 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
                           openEdit(ev);
                         }}
                       >
-                        <Pencil className="mr-1 h-3 w-3"/> Edit Event
+                        <Pencil className="h-3.5 w-3.5"/> Edit Event
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-red-500 hover:text-white hover:bg-red-500 shrink-0 h-[36px] w-[36px] p-0 rounded-xl cursor-pointer"
+                        className="text-red-500 hover:text-white hover:bg-red-500 shrink-0 h-9 w-9 p-0 rounded-xl cursor-pointer"
                         disabled={deletingId === ev._id}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -587,7 +591,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                 </div>
               );
             })}
-          </div>)}
+          </div>)}   </div>)}
 
         {/* Modal */}
         {showModal && (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">

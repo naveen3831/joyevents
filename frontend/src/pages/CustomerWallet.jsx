@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/utils";
 import { Wallet, ArrowUpRight, ArrowDownLeft, Landmark, Plus, Loader2, History, CreditCard, RotateCcw, Gift } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
+import PageHeader from "@/components/PageHeader";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -93,6 +95,7 @@ const getTxClassification = (tx) => {
 
 const CustomerWallet = () => {
     const navigate = useNavigate();
+    const goBack = useBackNavigation("/customer-dashboard");
     const { token, user } = useAuth();
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -137,8 +140,8 @@ const CustomerWallet = () => {
         <div className="w-full pt-1 sm:pt-2 pb-8 space-y-6">
           
           {/* ── Page Header ─────────────────────────────── */}
+          <PageHeader title="Wallet" onBack={goBack} />
           <div>
-            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Wallet</h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Manage your balance, add funds, or withdraw to your bank account.
             </p>
@@ -231,71 +234,98 @@ const CustomerWallet = () => {
                     <p className="text-sm font-medium">No transaction history found</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse" style={{ tableLayout: "fixed" }}>
-                      <colgroup>
-                        <col style={{ width: "190px", minWidth: "190px" }} />
-                        <col style={{ minWidth: "300px" }} />
-                        <col style={{ width: "160px", minWidth: "160px" }} />
-                        <col style={{ width: "130px", minWidth: "130px" }} />
-                      </colgroup>
-                      <thead>
-                        <tr className="border-b border-border bg-secondary/50 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                          <th className="px-5 py-3.5">Transaction</th>
-                          <th className="px-5 py-3.5">Description</th>
-                          <th className="px-5 py-3.5">Date & Time</th>
-                          <th className="px-5 py-3.5 text-right">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody ref={txRef} className="divide-y divide-border/60">
-                        {transactions.map((tx) => {
-                          const { label, badgeClass, Icon, isPositive } = getTxClassification(tx);
-                          const { date, time } = formatTxDate(tx.createdAt);
-                          return (
-                            <tr key={tx._id} className="hover:bg-secondary/40 transition-colors align-middle">
-                              {/* Transaction Badge — fixed width container */}
-                              <td className="px-5 py-[18px]">
-                                <span
-                                  className={`inline-flex items-center gap-1.5 rounded-full border text-[12px] font-semibold whitespace-nowrap ${badgeClass}`}
-                                  style={{
-                                    width: "150px",
-                                    minWidth: "150px",
-                                    height: "30px",
-                                    paddingLeft: "10px",
-                                    paddingRight: "10px",
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  <Icon className="h-3 w-3 flex-shrink-0" />
-                                  {label}
-                                </span>
-                              </td>
-                              {/* Description */}
-                              <td className="px-5 py-[18px]">
-                                <p className="text-[13.5px] font-medium text-foreground leading-snug">{tx.description}</p>
-                                {tx.relatedId && (
-                                  <p className="text-[11px] text-muted-foreground mt-1 font-mono tracking-tight">
-                                    Ref: {tx.relatedId}
-                                  </p>
-                                )}
-                              </td>
-                              {/* Date & Time */}
-                              <td className="px-5 py-[18px] whitespace-nowrap">
-                                <div className="text-[13px] font-medium text-foreground/80">{date}</div>
-                                <div className="text-[11.5px] text-muted-foreground mt-0.5">{time}</div>
-                              </td>
-                              {/* Amount */}
-                              <td className={`px-5 py-[18px] text-right font-bold text-[14px] whitespace-nowrap ${
-                                isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                              }`}>
+                  <>
+                    {/* Desktop Table (>= 768px) */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full text-left border-collapse" style={{ tableLayout: "fixed" }}>
+                        <colgroup>
+                          <col style={{ width: "190px", minWidth: "190px" }} />
+                          <col style={{ minWidth: "300px" }} />
+                          <col style={{ width: "160px", minWidth: "160px" }} />
+                          <col style={{ width: "130px", minWidth: "130px" }} />
+                        </colgroup>
+                        <thead>
+                          <tr className="border-b border-border bg-secondary/50 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                            <th className="px-5 py-3.5">Transaction</th>
+                            <th className="px-5 py-3.5">Description</th>
+                            <th className="px-5 py-3.5">Date & Time</th>
+                            <th className="px-5 py-3.5 text-right">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody ref={txRef} className="divide-y divide-border/60">
+                          {transactions.map((tx) => {
+                            const { label, badgeClass, Icon, isPositive } = getTxClassification(tx);
+                            const { date, time } = formatTxDate(tx.createdAt);
+                            return (
+                              <tr key={tx._id} className="hover:bg-secondary/40 transition-colors align-middle">
+                                <td className="px-5 py-[18px]">
+                                  <span
+                                    className={`inline-flex items-center gap-1.5 rounded-full border text-[12px] font-semibold whitespace-nowrap ${badgeClass}`}
+                                    style={{
+                                      width: "150px",
+                                      minWidth: "150px",
+                                      height: "30px",
+                                      paddingLeft: "10px",
+                                      paddingRight: "10px",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <Icon className="h-3 w-3 flex-shrink-0" />
+                                    {label}
+                                  </span>
+                                </td>
+                                <td className="px-5 py-[18px]">
+                                  <p className="text-[13.5px] font-medium text-foreground leading-snug">{tx.description}</p>
+                                  {tx.relatedId && (
+                                    <p className="text-[11px] text-muted-foreground mt-1 font-mono tracking-tight">
+                                      Ref: {tx.relatedId}
+                                    </p>
+                                  )}
+                                </td>
+                                <td className="px-5 py-[18px] whitespace-nowrap">
+                                  <div className="text-[13px] font-medium text-foreground/80">{date}</div>
+                                  <div className="text-[11.5px] text-muted-foreground mt-0.5">{time}</div>
+                                </td>
+                                <td className={`px-5 py-[18px] text-right font-bold text-[14px] whitespace-nowrap ${
+                                  isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                                }`}>
+                                  {isPositive ? "+" : "-"}{formatCurrency(Math.abs(tx.amount))}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile Cards (< 768px) */}
+                    <div className="block md:hidden divide-y divide-border/60">
+                      {transactions.map((tx) => {
+                        const { label, badgeClass, Icon, isPositive } = getTxClassification(tx);
+                        const { date, time } = formatTxDate(tx.createdAt);
+                        return (
+                          <div key={tx._id} className="p-4 space-y-2.5 hover:bg-secondary/30 transition-colors">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${badgeClass}`}>
+                                <Icon className="h-3 w-3 shrink-0" />
+                                {label}
+                              </span>
+                              <span className={`font-bold text-sm ${isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                                 {isPositive ? "+" : "-"}{formatCurrency(Math.abs(tx.amount))}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                              </span>
+                            </div>
+                            <div>
+                              <p className="text-xs font-medium text-foreground leading-snug">{tx.description}</p>
+                              <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-1.5">
+                                <span>{date} • {time}</span>
+                                {tx.relatedId && <span className="font-mono text-[10px]">Ref: {tx.relatedId.slice(-8)}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>

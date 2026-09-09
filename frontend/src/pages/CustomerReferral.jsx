@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Copy, Gift, Link as LinkIcon, Loader2, Wallet, Users, Clock, CheckCircle2, Tag } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
+import PageHeader from "@/components/PageHeader";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +23,8 @@ const statusClass = (status) => {
 };
 
 const CustomerReferral = () => {
+    const navigate = useNavigate();
+    const goBack = useBackNavigation("/customer-dashboard");
     const { token, updateUser } = useAuth();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -75,7 +80,7 @@ const CustomerReferral = () => {
       <div className="w-full py-2 sm:py-6">
         <div className="w-full space-y-6">
           <div className="mb-6 sm:mb-8">
-            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Referral</h1>
+            <PageHeader title="Referral Program" onBack={goBack} />
             <p className="text-sm text-muted-foreground mt-1">
               Share your referral ID. Your friend gets a discount, and your wallet gets a bonus after their booking is completed.
             </p>
@@ -147,41 +152,73 @@ const CustomerReferral = () => {
                   {!data?.referredBookings?.length ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
                       <Gift className="h-10 w-10 mx-auto mb-3 opacity-30"/>
                       <p className="text-muted-foreground">No referral bookings yet.</p>
-                    </div>) : (<div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm">
-                        <thead className="border-b border-border text-xs uppercase text-muted-foreground">
-                          <tr>
-                            <th className="py-3 pr-4">Event / Service</th>
-                            <th className="py-3 pr-4">Booking Status</th>
-                            <th className="py-3 pr-4">Payment</th>
-                            <th className="py-3 pr-4">Bonus Status</th>
-                            <th className="py-3 pr-4">Bonus</th>
-                            <th className="py-3 pr-4">Date</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {data.referredBookings.map((booking) => (<tr key={booking._id}>
-                              <td className="py-3 pr-4">
-                                <p className="font-medium">{booking.serviceName || booking.eventName || "Booking"}</p>
-                                <p className="text-xs text-muted-foreground">{booking.serviceName ? "Service booking" : "Event booking"}</p>
-                              </td>
-                              <td className="py-3 pr-4">
-                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${statusClass(booking.status)}`}>
+                    </div>) : (
+                      <>
+                        {/* Desktop Table (>= 768px) */}
+                        <div className="hidden md:block overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead className="border-b border-border text-xs uppercase text-muted-foreground">
+                              <tr>
+                                <th className="py-3 pr-4">Event / Service</th>
+                                <th className="py-3 pr-4">Booking Status</th>
+                                <th className="py-3 pr-4">Payment</th>
+                                <th className="py-3 pr-4">Bonus Status</th>
+                                <th className="py-3 pr-4">Bonus</th>
+                                <th className="py-3 pr-4">Date</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {data.referredBookings.map((booking) => (<tr key={booking._id}>
+                                  <td className="py-3 pr-4">
+                                    <p className="font-medium">{booking.serviceName || booking.eventName || "Booking"}</p>
+                                    <p className="text-xs text-muted-foreground">{booking.serviceName ? "Service booking" : "Event booking"}</p>
+                                  </td>
+                                  <td className="py-3 pr-4">
+                                    <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${statusClass(booking.status)}`}>
+                                      {booking.status || "pending"}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 pr-4">
+                                    <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${statusClass(booking.paymentStatus)}`}>
+                                      {booking.paymentStatus || "pending"}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 pr-4 capitalize">{booking.referral?.bonusCredited ? "credited to wallet" : "waiting for completion"}</td>
+                                  <td className="py-3 pr-4">{formatCurrency(booking.referral?.bonusAmount || 0)}</td>
+                                  <td className="py-3 pr-4 text-muted-foreground">{new Date(booking.createdAt).toLocaleDateString()}</td>
+                                </tr>))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Mobile Cards (< 768px) */}
+                        <div className="block md:hidden divide-y divide-border/60">
+                          {data.referredBookings.map((booking) => (
+                            <div key={booking._id} className="py-3.5 space-y-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <p className="font-bold text-sm text-foreground">{booking.serviceName || booking.eventName || "Booking"}</p>
+                                  <p className="text-xs text-muted-foreground">{booking.serviceName ? "Service booking" : "Event booking"}</p>
+                                </div>
+                                <span className="font-bold text-sm text-primary">{formatCurrency(booking.referral?.bonusAmount || 0)}</span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2 text-xs">
+                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold capitalize ${statusClass(booking.status)}`}>
                                   {booking.status || "pending"}
                                 </span>
-                              </td>
-                              <td className="py-3 pr-4">
-                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${statusClass(booking.paymentStatus)}`}>
+                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold capitalize ${statusClass(booking.paymentStatus)}`}>
                                   {booking.paymentStatus || "pending"}
                                 </span>
-                              </td>
-                              <td className="py-3 pr-4 capitalize">{booking.referral?.bonusCredited ? "credited to wallet" : "waiting for completion"}</td>
-                              <td className="py-3 pr-4">{formatCurrency(booking.referral?.bonusAmount || 0)}</td>
-                              <td className="py-3 pr-4 text-muted-foreground">{new Date(booking.createdAt).toLocaleDateString()}</td>
-                            </tr>))}
-                        </tbody>
-                      </table>
-                    </div>)}
+                              </div>
+                              <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-1">
+                                <span className="capitalize">{booking.referral?.bonusCredited ? "Credited to wallet" : "Waiting for completion"}</span>
+                                <span>{new Date(booking.createdAt).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                 </CardContent>
               </Card>
 
@@ -193,44 +230,76 @@ const CustomerReferral = () => {
                   {!data?.usedReferralBookings?.length ? (<div className="bg-card border border-border rounded-xl p-10 text-center">
                       <Tag className="h-10 w-10 mx-auto mb-3 opacity-30"/>
                       <p className="text-muted-foreground">No bookings made with a referral code yet.</p>
-                    </div>) : (<div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm">
-                        <thead className="border-b border-border text-xs uppercase text-muted-foreground">
-                          <tr>
-                            <th className="py-3 pr-4">Event / Service</th>
-                            <th className="py-3 pr-4">Referral Code</th>
-                            <th className="py-3 pr-4">Booking Status</th>
-                            <th className="py-3 pr-4">Payment</th>
-                            <th className="py-3 pr-4">Discount</th>
-                            <th className="py-3 pr-4">Date</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {data.usedReferralBookings.map((booking) => (<tr key={booking._id}>
-                              <td className="py-3 pr-4">
-                                <p className="font-medium">{booking.serviceName || booking.eventName || "Booking"}</p>
-                                <p className="text-xs text-muted-foreground">{booking.serviceName ? "Service booking" : "Event booking"}</p>
-                              </td>
-                              <td className="py-3 pr-4">
-                                <p className="font-mono font-semibold">{booking.referral?.code}</p>
-                                <p className="text-xs text-muted-foreground">{booking.referral?.referrer?.name || "Referrer"}</p>
-                              </td>
-                              <td className="py-3 pr-4">
-                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${statusClass(booking.status)}`}>
-                                  {booking.status || "pending"}
-                                </span>
-                              </td>
-                              <td className="py-3 pr-4">
-                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${statusClass(booking.paymentStatus)}`}>
-                                  {booking.paymentStatus || "pending"}
-                                </span>
-                              </td>
-                              <td className="py-3 pr-4">{formatCurrency(booking.referral?.discountAmount || 0)}</td>
-                              <td className="py-3 pr-4 text-muted-foreground">{new Date(booking.createdAt).toLocaleDateString()}</td>
-                            </tr>))}
-                        </tbody>
-                      </table>
-                    </div>)}
+                    </div>) : (
+                      <>
+                        {/* Desktop Table (>= 768px) */}
+                        <div className="hidden md:block overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead className="border-b border-border text-xs uppercase text-muted-foreground">
+                              <tr>
+                                <th className="py-3 pr-4">Event / Service</th>
+                                <th className="py-3 pr-4">Referral Code</th>
+                                <th className="py-3 pr-4">Booking Status</th>
+                                <th className="py-3 pr-4">Payment</th>
+                                <th className="py-3 pr-4">Discount</th>
+                                <th className="py-3 pr-4">Date</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {data.usedReferralBookings.map((booking) => (<tr key={booking._id}>
+                                  <td className="py-3 pr-4">
+                                    <p className="font-medium">{booking.serviceName || booking.eventName || "Booking"}</p>
+                                    <p className="text-xs text-muted-foreground">{booking.serviceName ? "Service booking" : "Event booking"}</p>
+                                  </td>
+                                  <td className="py-3 pr-4">
+                                    <p className="font-mono font-semibold">{booking.referral?.code}</p>
+                                    <p className="text-xs text-muted-foreground">{booking.referral?.referrer?.name || "Referrer"}</p>
+                                  </td>
+                                  <td className="py-3 pr-4">
+                                    <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${statusClass(booking.status)}`}>
+                                      {booking.status || "pending"}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 pr-4">
+                                    <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${statusClass(booking.paymentStatus)}`}>
+                                      {booking.paymentStatus || "pending"}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 pr-4">{formatCurrency(booking.referral?.discountAmount || 0)}</td>
+                                  <td className="py-3 pr-4 text-muted-foreground">{new Date(booking.createdAt).toLocaleDateString()}</td>
+                                </tr>))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Mobile Cards (< 768px) */}
+                        <div className="block md:hidden divide-y divide-border/60">
+                          {data.usedReferralBookings.map((booking) => (
+                            <div key={booking._id} className="py-3.5 space-y-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <p className="font-bold text-sm text-foreground">{booking.serviceName || booking.eventName || "Booking"}</p>
+                                  <p className="text-xs text-muted-foreground">{booking.serviceName ? "Service booking" : "Event booking"}</p>
+                                </div>
+                                <span className="font-bold text-sm text-primary">{formatCurrency(booking.referral?.discountAmount || 0)}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="font-mono font-semibold bg-secondary px-2 py-0.5 rounded text-[11px]">{booking.referral?.code}</span>
+                                <span className="text-muted-foreground">by {booking.referral?.referrer?.name || "Referrer"}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${statusClass(booking.status)}`}>
+                                    {booking.status || "pending"}
+                                  </span>
+                                </div>
+                                <span>{new Date(booking.createdAt).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                 </CardContent>
               </Card>
             </>)}

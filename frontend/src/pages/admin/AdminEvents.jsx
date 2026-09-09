@@ -13,6 +13,7 @@ import {
   ToggleRight,
   Video,
   Pencil,
+  ChevronRight,
 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import PageHeader from "@/components/common/PageHeader";
@@ -201,132 +202,199 @@ const AdminEvents = () => {
             </TableBody>
           </DataTable>
         ) : (
-          <div className="rounded-xl border border-border/70 bg-card shadow-xs overflow-hidden w-full">
-            <div className="overflow-x-auto md:overflow-x-hidden w-full no-scrollbar">
-              <table className="w-full text-xs border-collapse min-w-[780px] md:min-w-full" style={{ tableLayout: "fixed" }}>
-                <thead>
-                  <tr className="bg-muted/40 border-b border-border/70">
-                    <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "25%" }}>Event</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "12%" }}>Category</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "15%" }}>Organizer</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "11%" }}>Price</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "20%" }}>Date & Location</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "11%" }}>Status</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-center align-middle" style={{ width: "6%" }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {filteredEvents.map((ev) => {
-                    const image = imgSrc(ev.image);
-                    const isToggling = togglingLiveId === ev._id;
-                    return (
-                      <tr key={ev._id} className="hover:bg-muted/30 transition-colors" style={{ height: "72px" }}>
-                        {/* Event */}
-                        <td className="px-4 py-3 align-middle">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="h-11 w-14 rounded-lg bg-muted overflow-hidden shrink-0 border border-border/60 flex items-center justify-center">
-                              {image ? (
-                                <img src={image} alt={ev.title} className="h-full w-full object-cover" />
-                              ) : (
-                                <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
-                              )}
+          <div className="w-full space-y-4">
+            {/* Desktop Table View (>= 768px) */}
+            <div className="hidden md:block rounded-xl border border-border/70 bg-card shadow-xs overflow-hidden w-full">
+              <div className="overflow-x-auto w-full no-scrollbar">
+                <table className="w-full text-xs border-collapse min-w-full" style={{ tableLayout: "fixed" }}>
+                  <thead>
+                    <tr className="bg-muted/40 border-b border-border/70">
+                      <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "25%" }}>Event</th>
+                      <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "12%" }}>Category</th>
+                      <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "15%" }}>Organizer</th>
+                      <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "11%" }}>Price</th>
+                      <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "20%" }}>Date & Location</th>
+                      <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-left align-middle" style={{ width: "11%" }}>Status</th>
+                      <th className="px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider text-center align-middle" style={{ width: "6%" }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {filteredEvents.map((ev) => {
+                      const image = imgSrc(ev.image);
+                      const isToggling = togglingLiveId === ev._id;
+                      return (
+                        <tr key={ev._id} className="hover:bg-muted/30 transition-colors" style={{ height: "72px" }}>
+                          {/* Event */}
+                          <td className="px-4 py-3 align-middle">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="h-11 w-14 rounded-lg bg-muted overflow-hidden shrink-0 border border-border/60 flex items-center justify-center">
+                                {image ? (
+                                  <img src={image} alt={ev.title} className="h-full w-full object-cover" />
+                                ) : (
+                                  <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-xs text-foreground truncate" title={ev.title}>
+                                  {ev.title}
+                                </p>
+                                {ev.live && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping" />
+                                    LIVE NOW
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-xs text-foreground truncate" title={ev.title}>
-                                {ev.title}
+                          </td>
+
+                          {/* Category */}
+                          <td className="px-4 py-3 align-middle">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-muted-foreground text-xs font-medium border border-border/40 whitespace-nowrap max-w-full truncate">
+                              {ev.category || "General"}
+                            </span>
+                          </td>
+
+                          {/* Organizer */}
+                          <td className="px-4 py-3 align-middle">
+                            <div className="flex items-center gap-1.5 text-xs text-foreground font-medium min-w-0">
+                              <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span className="truncate">{ev.createdBy?.name || "Merchant"}</span>
+                            </div>
+                          </td>
+
+                          {/* Price */}
+                          <td className="px-4 py-3 align-middle">
+                            <span className="text-xs font-semibold text-foreground whitespace-nowrap">
+                              {getEventPriceLabel(ev)}
+                            </span>
+                          </td>
+
+                          {/* Date & Location */}
+                          <td className="px-4 py-3 align-middle">
+                            <div className="space-y-1 text-xs text-muted-foreground min-w-0">
+                              <p className="flex items-center gap-1.5 min-w-0">
+                                <MapPin className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{ev.location || "—"}</span>
                               </p>
-                              {ev.live && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 mt-0.5">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping" />
-                                  LIVE NOW
+                              <p className="flex items-center gap-1.5 min-w-0">
+                                <CalendarDays className="h-3 w-3 shrink-0" />
+                                <span className="whitespace-nowrap">
+                                  {ev.datetime
+                                    ? new Date(ev.datetime).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                                    : "—"}
                                 </span>
-                              )}
+                              </p>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* Category */}
-                        <td className="px-4 py-3 align-middle">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-muted-foreground text-xs font-medium border border-border/40 whitespace-nowrap max-w-full truncate">
-                            {ev.category || "General"}
-                          </span>
-                        </td>
+                          {/* Status */}
+                          <td className="px-4 py-3 align-middle">
+                            <StatusBadge
+                              status={ev.live ? "live" : ev.status}
+                              className="w-[88px] min-w-[88px] h-[28px] px-0"
+                            />
+                          </td>
 
-                        {/* Organizer */}
-                        <td className="px-4 py-3 align-middle">
-                          <div className="flex items-center gap-1.5 text-xs text-foreground font-medium min-w-0">
-                            <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                            <span className="truncate">{ev.createdBy?.name || "Merchant"}</span>
-                          </div>
-                        </td>
-
-                        {/* Price */}
-                        <td className="px-4 py-3 align-middle">
-                          <span className="text-xs font-semibold text-foreground whitespace-nowrap">
-                            {getEventPriceLabel(ev)}
-                          </span>
-                        </td>
-
-                        {/* Date & Location */}
-                        <td className="px-4 py-3 align-middle">
-                          <div className="space-y-1 text-xs text-muted-foreground min-w-0">
-                            <p className="flex items-center gap-1.5 min-w-0">
-                              <MapPin className="h-3 w-3 shrink-0" />
-                              <span className="truncate">{ev.location || "—"}</span>
-                            </p>
-                            <p className="flex items-center gap-1.5 min-w-0">
-                              <CalendarDays className="h-3 w-3 shrink-0" />
-                              <span className="whitespace-nowrap">
-                                {ev.datetime
-                                  ? new Date(ev.datetime).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-                                  : "—"}
-                              </span>
-                            </p>
-                          </div>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-4 py-3 align-middle">
-                          <StatusBadge
-                            status={ev.live ? "live" : ev.status}
-                            className="w-[88px] min-w-[88px] h-[28px] px-0"
-                          />
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-4 py-3 align-middle text-center">
-                          <div className="flex items-center justify-center">
-                            {(() => {
-                              const createdRole = ev.createdByRole || (typeof ev.createdBy === "object" ? ev.createdBy?.role : null);
-                              const isCreatedByAdmin = createdRole === "admin" || ev.permissions?.canEdit === true;
-                              const menuItems = [
-                                {
-                                  label: "View Event",
-                                  icon: Eye,
-                                  onClick: () => navigate(`/admin-dashboard/events/${ev._id}`),
+                          {/* Actions */}
+                          <td className="px-4 py-3 align-middle text-center">
+                            <div className="flex items-center justify-center">
+                              {(() => {
+                                const createdRole = ev.createdByRole || (typeof ev.createdBy === "object" ? ev.createdBy?.role : null);
+                                const isCreatedByAdmin = createdRole === "admin" || ev.permissions?.canEdit === true;
+                                const menuItems = [
+                                  {
+                                    label: "View Event",
+                                    icon: Eye,
+                                    onClick: () => navigate(`/admin-dashboard/events/${ev._id}`),
+                                  }
+                                ];
+                                if (isCreatedByAdmin) {
+                                  menuItems.push({
+                                    label: isToggling
+                                      ? "Updating..."
+                                      : ev.live
+                                      ? "Stop Live"
+                                      : "Go Live",
+                                    icon: ev.live ? ToggleRight : ToggleLeft,
+                                    disabled: isToggling,
+                                    onClick: () => handleToggleLive(ev),
+                                  });
                                 }
-                              ];
-                              if (isCreatedByAdmin) {
-                                menuItems.push({
-                                  label: isToggling
-                                    ? "Updating..."
-                                    : ev.live
-                                    ? "Stop Live"
-                                    : "Go Live",
-                                  icon: ev.live ? ToggleRight : ToggleLeft,
-                                  disabled: isToggling,
-                                  onClick: () => handleToggleLive(ev),
-                                });
-                              }
-                              return <ActionMenu items={menuItems} />;
-                            })()}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                                return <ActionMenu items={menuItems} />;
+                              })()}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile Card List (< 768px) */}
+            <div className="block md:hidden space-y-3 w-full max-w-full">
+              {filteredEvents.map((ev) => {
+                const image = imgSrc(ev.image);
+                const isToggling = togglingLiveId === ev._id;
+                const createdRole = ev.createdByRole || (typeof ev.createdBy === "object" ? ev.createdBy?.role : null);
+                const isCreatedByAdmin = createdRole === "admin" || ev.permissions?.canEdit === true;
+                const menuItems = [
+                  {
+                    label: "View Event",
+                    icon: Eye,
+                    onClick: () => navigate(`/admin-dashboard/events/${ev._id}`),
+                  }
+                ];
+                if (isCreatedByAdmin) {
+                  menuItems.push({
+                    label: isToggling ? "Updating..." : ev.live ? "Stop Live" : "Go Live",
+                    icon: ev.live ? ToggleRight : ToggleLeft,
+                    disabled: isToggling,
+                    onClick: () => handleToggleLive(ev),
+                  });
+                }
+
+                return (
+                  <div
+                    key={ev._id}
+                    onClick={() => navigate(`/admin-dashboard/events/${ev._id}`)}
+                    className="w-full bg-card border border-border/80 rounded-2xl p-4 space-y-3 shadow-2xs hover:border-primary/40 active:scale-[0.99] transition-all cursor-pointer min-w-0"
+                  >
+                    <div className="flex items-start justify-between gap-3 min-w-0">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="h-11 w-14 rounded-lg bg-muted overflow-hidden shrink-0 border border-border/60 flex items-center justify-center">
+                          {image ? (
+                            <img src={image} alt={ev.title} className="h-full w-full object-cover" />
+                          ) : (
+                            <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-semibold text-[15px] text-foreground truncate leading-snug">
+                            {ev.title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5 min-w-0">
+                            {ev.createdBy?.name || "Merchant"} • {getEventPriceLabel(ev)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <StatusBadge status={ev.live ? "live" : ev.status} />
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <ActionMenu items={menuItems} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="truncate max-w-[60%]">📍 {ev.location || "Online"}</span>
+                      <span>📅 {ev.datetime ? new Date(ev.datetime).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "—"}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

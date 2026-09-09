@@ -27,6 +27,8 @@ import {
   CalendarDays
 } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
+import PageHeader from "@/components/PageHeader";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -52,6 +54,7 @@ const CustomerEventDetail = () => {
     const { id } = useParams();
     const { isLoggedIn, token } = useAuth();
     const navigate = useNavigate();
+    const goBack = useBackNavigation("/customer-dashboard/browse-events");
     const { addToCart } = useCart();
 
     const [event, setEvent] = useState(null);
@@ -358,19 +361,24 @@ const CustomerEventDetail = () => {
         <CustomerLayout>
             <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-5 font-sans text-slate-900 dark:text-slate-100">
                 
-                {/* Breadcrumb Navigation */}
-                <div className="mb-4 flex items-center gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                    <button
-                        onClick={() => navigate("/customer-dashboard/browse-events")}
-                        className="hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex items-center gap-1 font-medium cursor-pointer"
-                    >
-                        <ArrowLeft className="h-3.5 w-3.5" /> Events
-                    </button>
-                    <span className="text-slate-300 dark:text-slate-700">/</span>
-                    <span className="truncate max-w-[280px] sm:max-w-md text-slate-900 dark:text-slate-100 font-medium">
-                        {formatTitle(event.title)}
-                    </span>
-                </div>
+                {/* Back Navigation */}
+                <PageHeader
+                    title="Event Details"
+                    onBack={goBack}
+                    rightSlot={
+                        <button
+                            type="button"
+                            onClick={handleToggleFavorite}
+                            disabled={favLoading}
+                            className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/80 hover:bg-secondary border border-border/80 hover:border-primary/30 text-foreground/80 hover:text-primary transition-all active:scale-95"
+                            aria-label="Toggle favorite"
+                        >
+                            <Heart
+                                className={`h-[18px] w-[18px] ${isFavorited ? "fill-red-500 text-red-500" : ""}`}
+                            />
+                        </button>
+                    }
+                />
 
                 {/* 1. FULL-WIDTH EVENT HERO BANNER */}
                 <div className="relative w-full h-[280px] sm:h-[320px] lg:h-[340px] rounded-[18px] overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-800 shadow-xs mb-5">

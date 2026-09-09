@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomerLayout from "@/components/CustomerLayout";
+import PageHeader from "@/components/PageHeader";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +17,7 @@ import LocationAutocomplete from "@/components/LocationAutocomplete";
 export default function RequestCustomServicePage() {
   const { token, isLoggedIn } = useAuth();
   const navigate = useNavigate();
+  const goBack = useBackNavigation("/customer-dashboard/browse-services");
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState({
@@ -70,26 +73,10 @@ export default function RequestCustomServicePage() {
     <CustomerLayout>
       <div className="max-w-[980px] mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-5">
         {/* Compact Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-1">
-          <div className="space-y-1">
-            <h1 className="text-xl sm:text-2xl font-bold font-display tracking-tight text-foreground flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary shrink-0" />
-              Request a Custom Service
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl leading-relaxed">
-              Can't find what you're looking for? Describe your custom requirements and our team will provide a tailored quotation.
-            </p>
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate("/customer-dashboard/browse-services")}
-            className="self-start sm:self-center h-9 px-3.5 text-xs font-semibold rounded-xl border-border hover:bg-secondary shrink-0 gap-1.5"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to Services
-          </Button>
-        </div>
+        <PageHeader title="Request a Custom Service" onBack={goBack} />
+        <p className="-mt-3 mb-2 text-xs sm:text-sm text-muted-foreground max-w-2xl leading-relaxed">
+          Can't find what you're looking for? Describe your custom requirements and our team will provide a tailored quotation.
+        </p>
 
         {/* Compact Form Card */}
         <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-7 shadow-xs">

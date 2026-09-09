@@ -271,7 +271,9 @@ export const MerchantTopHeader = ({ onSidebarToggle }) => {
             </div>
           </Link>
 
-          <nav className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium truncate">
+          <span className="sm:hidden font-bold text-sm text-foreground tracking-tight">Merchant Portal</span>
+
+          <nav className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground font-medium truncate">
             {breadcrumbs.map((crumb, idx) => (
               <React.Fragment key={idx}>
                 {idx > 0 && <ChevronRight className="h-3 w-3 shrink-0 opacity-40" />}
@@ -439,7 +441,7 @@ export const MerchantTopHeader = ({ onSidebarToggle }) => {
                   </AvatarFallback>
                 )}
               </Avatar>
-              <div className="flex flex-col text-left min-w-0">
+              <div className="hidden sm:flex flex-col text-left min-w-0">
                 <span className="text-xs font-semibold text-foreground leading-none truncate max-w-[120px]">
                   {userName}
                 </span>

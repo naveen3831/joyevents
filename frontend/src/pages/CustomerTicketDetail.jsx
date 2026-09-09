@@ -5,9 +5,10 @@ import { apiGetBookingById } from "@/lib/api";
 import { formatCurrency, formatTime12, formatEventSchedule } from "@/lib/utils";
 import { API_URL } from "@/lib/config";
 import CustomerLayout from "@/components/CustomerLayout";
+import PageHeader from "@/components/PageHeader";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Button } from "@/components/ui/button";
 import { 
-  ArrowLeft, 
   Download, 
   Printer, 
   Calendar, 
@@ -30,6 +31,7 @@ const CustomerTicketDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { token, user } = useAuth();
+  const goBack = useBackNavigation("/customer-dashboard/bookings");
 
   const [booking, setBooking] = useState(location.state?.booking || null);
   const [loading, setLoading] = useState(!location.state?.booking);
@@ -270,15 +272,8 @@ const CustomerTicketDetail = () => {
     <CustomerLayout>
       <div className="w-full max-w-[750px] mx-auto pt-1 pb-10 px-2 sm:px-4 space-y-4">
         
-        {/* Compact Back Navigation */}
-        <div>
-          <button
-            onClick={() => navigate("/customer-dashboard/bookings")}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to My Bookings
-          </button>
-        </div>
+        {/* Back Navigation */}
+        <PageHeader title="Ticket Details" onBack={goBack} />
 
         {/* Premium Digital Event Pass (Compact 2-Column Desktop Layout) */}
         <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">

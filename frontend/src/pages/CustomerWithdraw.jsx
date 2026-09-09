@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomerLayout from "@/components/CustomerLayout";
+import PageHeader from "@/components/PageHeader";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +14,7 @@ import { toast } from "sonner";
 
 export default function CustomerWithdraw() {
   const navigate = useNavigate();
+  const goBack = useBackNavigation("/customer-dashboard/wallet");
   const { token, user, updateUser } = useAuth();
 
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -85,17 +88,8 @@ export default function CustomerWithdraw() {
       <div className="w-full pt-1 sm:pt-2 pb-8 max-w-5xl space-y-5">
         {/* ── Page Header ─────────────────────────────── */}
         <div className="space-y-1.5">
-          <button
-            type="button"
-            onClick={() => navigate("/customer-dashboard/wallet")}
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-primary transition-colors cursor-pointer mb-1"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back to Wallet
-          </button>
+          <PageHeader title="Withdraw Funds" onBack={goBack} />
           <div>
-            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground tracking-tight">
-              Withdraw <span className="text-gradient">Funds</span>
-            </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 font-normal">
               Transfer wallet funds directly to your verified bank account or UPI ID.
             </p>

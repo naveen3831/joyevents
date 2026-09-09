@@ -3,6 +3,8 @@ import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Sparkles, Calendar, MapPin, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
+import PageHeader from "@/components/PageHeader";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,6 +71,7 @@ const RecommendationCard = ({ event, index, navigate, imgSrc }) => {
 const AIRecommendations = () => {
     const { token } = useAuth();
     const navigate = useNavigate();
+    const goBack = useBackNavigation("/customer-dashboard");
     const [recommendations, setRecommendations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [totalHistory, setTotalHistory] = useState(0);
@@ -90,19 +93,7 @@ const AIRecommendations = () => {
         <div className="w-full">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }}>
             <div className="flex items-center gap-3 mb-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground">
-                <Sparkles className="h-5 w-5"/>
-              </div>
-              <div>
-                <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-                  AI <span className="text-gradient">Recommendations</span>
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {totalHistory > 0
-            ? `Personalised picks based on your ${totalHistory} past bookings`
-            : "Trending events you might love"}
-                </p>
-              </div>
+              <PageHeader title="AI Recommendations" onBack={goBack} className="flex-1 mb-0" />
             </div>
 
             {/* AI badge */}

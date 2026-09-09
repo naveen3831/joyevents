@@ -134,7 +134,7 @@ const AdminServices = () => {
             {filteredServices.map((svc) => {
               const image = imgSrc(svc.image);
               return (
-                <TableRow key={svc._id}>
+                <TableRow key={svc._id} onClick={() => navigate(`/admin-dashboard/services/${svc._id}`)}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="h-9 w-9 rounded-lg bg-muted overflow-hidden shrink-0 border border-border/60 flex items-center justify-center">

@@ -6,7 +6,9 @@ const MobileBottomNav = () => {
     const { isLoggedIn, role } = useAuth();
     const location = useLocation();
 
-    // Determine navigation tabs based on role
+    // Never render bottom navigation if user is not authenticated
+    if (!isLoggedIn) return null;
+
     let navItems = [];
 
     if (role === "merchant") {
@@ -26,19 +28,44 @@ const MobileBottomNav = () => {
             { to: "/admin-dashboard/profile", label: "Profile", icon: User },
         ];
     } else {
-        // Customer or Guest
         navItems = [
-            { to: isLoggedIn ? "/customer-dashboard/browse-services" : "/services", label: "Browse", icon: Compass },
-            { to: isLoggedIn ? "/customer-dashboard/bookings" : "/events", label: "Bookings", icon: CalendarDays },
-            { to: isLoggedIn ? "/customer-dashboard" : "/", label: "Home", icon: Home, exact: true, isCenter: true },
-            { to: isLoggedIn ? "/customer-dashboard/messages" : "/contact", label: "Messages", icon: MessageSquare },
-            { to: isLoggedIn ? "/customer-dashboard/profile" : "/login", label: "Profile", icon: User },
+            { to: "/customer-dashboard/browse-services", label: "Browse", icon: Compass },
+            { to: "/customer-dashboard/bookings", label: "Bookings", icon: CalendarDays },
+            { to: "/customer-dashboard", label: "Home", icon: Home, exact: true, isCenter: true },
+            { to: "/customer-dashboard/messages", label: "Messages", icon: MessageSquare },
+            { to: "/customer-dashboard/profile", label: "Profile", icon: User },
         ];
     }
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card/95 backdrop-blur-xl border-t border-border/80 px-3 py-2 shadow-[0_-4px_30px_rgba(0,0,0,0.12)]">
-            <div className="flex items-center justify-around h-16 max-w-lg mx-auto relative">
+        <nav
+            style={{
+                position: "fixed",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                zIndex: 50,
+                background: "hsl(var(--card) / 0.97)",
+                borderTop: "1px solid hsl(var(--border) / 0.8)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                boxShadow: "0 -4px 30px rgba(0,0,0,0.12)",
+                paddingBottom: "env(safe-area-inset-bottom, 0px)",
+            }}
+            className="md:hidden"
+        >
+            <div
+                style={{
+                    display: "flex",
+                    alignItems: "stretch",
+                    justifyContent: "space-around",
+                    height: "60px",
+                    maxWidth: "480px",
+                    margin: "0 auto",
+                    padding: "0 4px",
+                    position: "relative",
+                }}
+            >
                 {navItems.map((item, idx) => {
                     const isActive = item.exact
                         ? location.pathname === item.to
@@ -50,21 +77,59 @@ const MobileBottomNav = () => {
                             <Link
                                 key={idx}
                                 to={item.to}
-                                className="flex flex-col items-center justify-end relative -mt-6 group shrink-0 px-1"
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flex: 1,
+                                    position: "relative",
+                                    gap: "2px",
+                                    textDecoration: "none",
+                                }}
                             >
+                                {/* Elevated center button */}
                                 <div
-                                    className={`h-13 w-13 rounded-2xl flex items-center justify-center border-4 border-card transition-all duration-300 shadow-glow ${
-                                        isActive
-                                            ? "bg-gradient-primary text-white scale-105 shadow-primary/50"
-                                            : "bg-gradient-primary text-white group-hover:scale-105 opacity-95"
-                                    }`}
+                                    style={{
+                                        position: "absolute",
+                                        top: "-14px",
+                                        width: "52px",
+                                        height: "52px",
+                                        borderRadius: "16px",
+                                        background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        border: "3px solid hsl(var(--card))",
+                                        boxShadow: isActive
+                                            ? "0 4px 20px hsl(var(--primary) / 0.6)"
+                                            : "0 4px 16px hsl(var(--primary) / 0.4)",
+                                        transform: isActive ? "scale(1.08)" : "scale(1)",
+                                        transition: "all 0.25s ease",
+                                    }}
                                 >
-                                    <Icon className="h-6 w-6 stroke-[2.5]" />
+                                    <Icon
+                                        style={{
+                                            width: "22px",
+                                            height: "22px",
+                                            color: "white",
+                                            strokeWidth: isActive ? 2.5 : 2,
+                                        }}
+                                    />
                                 </div>
+                                {/* Label at the bottom, pushed down to sit within the nav bar */}
                                 <span
-                                    className={`text-xs font-bold mt-1 tracking-tight transition-colors ${
-                                        isActive ? "text-primary font-black" : "text-muted-foreground group-hover:text-foreground"
-                                    }`}
+                                    style={{
+                                        marginTop: "auto",
+                                        paddingBottom: "2px",
+                                        fontSize: "10px",
+                                        fontWeight: isActive ? 700 : 600,
+                                        color: isActive
+                                            ? "hsl(var(--primary))"
+                                            : "hsl(var(--muted-foreground))",
+                                        letterSpacing: "0.02em",
+                                        lineHeight: 1,
+                                    }}
                                 >
                                     {item.label}
                                 </span>
@@ -76,16 +141,48 @@ const MobileBottomNav = () => {
                         <Link
                             key={idx}
                             to={item.to}
-                            className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-200 ${
-                                isActive
-                                    ? "text-primary font-bold scale-105"
-                                    : "text-muted-foreground hover:text-foreground opacity-80"
-                            }`}
+                            style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flex: 1,
+                                gap: "2px",
+                                textDecoration: "none",
+                                color: isActive
+                                    ? "hsl(var(--primary))"
+                                    : "hsl(var(--muted-foreground))",
+                                transition: "all 0.2s ease",
+                                transform: isActive ? "scale(1.05)" : "scale(1)",
+                                opacity: isActive ? 1 : 0.8,
+                            }}
                         >
-                            <div className={`p-1.5 rounded-xl transition-all ${isActive ? "bg-primary/10" : ""}`}>
-                                <Icon className={`h-6 w-6 ${isActive ? "stroke-[2.5]" : "stroke-[1.8]"}`} />
+                            <div
+                                style={{
+                                    padding: "6px",
+                                    borderRadius: "10px",
+                                    background: isActive
+                                        ? "hsl(var(--primary) / 0.12)"
+                                        : "transparent",
+                                    transition: "all 0.2s ease",
+                                }}
+                            >
+                                <Icon
+                                    style={{
+                                        width: "22px",
+                                        height: "22px",
+                                        strokeWidth: isActive ? 2.5 : 1.8,
+                                    }}
+                                />
                             </div>
-                            <span className={`text-xs tracking-tight ${isActive ? "font-bold text-primary" : "font-medium"}`}>
+                            <span
+                                style={{
+                                    fontSize: "10px",
+                                    fontWeight: isActive ? 700 : 500,
+                                    letterSpacing: "0.02em",
+                                    lineHeight: 1,
+                                }}
+                            >
                                 {item.label}
                             </span>
                         </Link>

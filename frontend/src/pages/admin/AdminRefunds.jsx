@@ -216,7 +216,7 @@ const AdminRefunds = () => {
                   {filteredBookings.map((booking) => {
                     const refundStatus = getRefundStatus(booking);
                     return (
-                      <TableRow key={booking._id}>
+                      <TableRow key={booking._id} onClick={() => navigate(`/admin-dashboard/bookings/${booking._id}`)}>
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           {booking._id.slice(-8)}
                         </TableCell>

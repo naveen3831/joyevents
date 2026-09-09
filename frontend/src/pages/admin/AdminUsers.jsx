@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Plus, Users, CheckCircle, AlertTriangle, Search, Filter, UserX, UserCheck, KeyRound, FileText, CheckCircle2, IndianRupee, Sparkles, XCircle, Eye, Pencil, Trash2, MessageSquare, Download, X, MoreHorizontal, Copy } from "lucide-react";
+import { Plus, Users, CheckCircle, AlertTriangle, Search, Filter, UserX, UserCheck, KeyRound, FileText, CheckCircle2, IndianRupee, Sparkles, XCircle, Eye, Pencil, Trash2, MessageSquare, Download, X, MoreHorizontal, Copy, ChevronRight } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { useGsapReveal } from "@/lib/gsapAnimations";
 import { Input } from "@/components/ui/input";
@@ -229,148 +229,202 @@ const UsersTableBody = ({
         </div>
       </div>
 
-      {/* Table Card: single container with border + radius */}
-      <div className="rounded-[14px] border border-border/80 overflow-hidden bg-card shadow-xs">
+      {/* Table / Mobile Cards Container */}
+      <div className="w-full">
         {loading ? (
           <TableSkeleton columns={4} rows={6} minWidth="100%" />
         ) : (
           <>
-            {/* Table without its own border (DataTable stripped) */}
-            <div className="overflow-x-auto w-full no-scrollbar">
-              <table
-                className="w-full text-xs sm:text-sm border-collapse"
-                style={{ minWidth: "100%" }}
-              >
-                {/* Header */}
-                <thead className="bg-[#FAFBFC] dark:bg-slate-900/90 border-b border-border/80">
-                  <tr>
-                    <th
-                      className={`${
-                        isMerchantTable ? "w-[27%]" : "w-[28%]"
-                      } text-left text-[12px] font-semibold text-slate-500 dark:text-slate-400 tracking-[0.04em] uppercase py-[14px] px-4 sm:px-5`}
-                    >
-                      {isMerchantTable ? "MERCHANT" : "USER"}
-                    </th>
-                    <th
-                      className={`${
-                        isMerchantTable ? "w-[40%]" : "w-[38%]"
-                      } text-left text-[12px] font-semibold text-slate-500 dark:text-slate-400 tracking-[0.04em] uppercase py-[14px] px-4 sm:px-5`}
-                    >
-                      {isMerchantTable ? "CONTACT" : "EMAIL"}
-                    </th>
-                    <th
-                      className={`${
-                        isMerchantTable ? "w-[15%]" : "w-[16%]"
-                      } text-left text-[12px] font-semibold text-slate-500 dark:text-slate-400 tracking-[0.04em] uppercase py-[14px] px-4 sm:px-5`}
-                    >
-                      STATUS
-                    </th>
-                    <th className="w-[18%] text-left text-[12px] font-semibold text-slate-500 dark:text-slate-400 tracking-[0.04em] uppercase py-[14px] px-4 sm:px-5 whitespace-nowrap">
-                      JOINED
-                    </th>
-                  </tr>
-                </thead>
-
-                {/* Body */}
-                <tbody>
-                  {paginatedList.map((u) => {
-                    const initials = (u.name || "User").slice(0, 2).toUpperCase();
-                    const targetRoute = `/admin-dashboard/users/${u._id}`;
-
-                    return (
-                      <tr
-                        key={u._id}
-                        onClick={() => navigate(targetRoute)}
-                        tabIndex={0}
-                        role="button"
-                        aria-label={`View details for ${u.name || "user"}`}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            navigate(targetRoute);
-                          }
-                        }}
-                        style={{ transition: "background-color 150ms ease" }}
-                        className="group border-b border-border/60 last:border-b-0 cursor-pointer
-                          h-[66px] hover:bg-[rgba(109,40,217,0.025)] dark:hover:bg-slate-800/40
-                          focus-visible:outline-none focus-visible:bg-[rgba(109,40,217,0.025)] dark:focus-visible:bg-slate-800/40
-                          focus-visible:ring-2 focus-visible:ring-primary/40"
-                      >
-                        {/* 1. Name Column */}
-                        <td className={`${
+            {/* Desktop Table View (>= 768px) */}
+            <div className="hidden md:block rounded-[14px] border border-border/80 overflow-hidden bg-card shadow-xs">
+              <div className="overflow-x-auto w-full no-scrollbar">
+                <table
+                  className="w-full text-xs sm:text-sm border-collapse"
+                  style={{ minWidth: "100%" }}
+                >
+                  {/* Header */}
+                  <thead className="bg-[#FAFBFC] dark:bg-slate-900/90 border-b border-border/80">
+                    <tr>
+                      <th
+                        className={`${
                           isMerchantTable ? "w-[27%]" : "w-[28%]"
-                        } py-[14px] px-4 sm:px-5 align-middle`}>
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="h-[38px] w-[38px] rounded-full bg-blue-50 text-blue-700 border border-blue-100/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40 flex items-center justify-center text-[12px] font-bold shrink-0">
-                              {initials}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p
-                                className="font-semibold text-[14px] leading-snug text-foreground truncate"
-                                title={u.name}
-                              >
-                                {u.name}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* 2. Email / Contact Column */}
-                        <td className={`${
+                        } text-left text-[12px] font-semibold text-slate-500 dark:text-slate-400 tracking-[0.04em] uppercase py-[14px] px-4 sm:px-5`}
+                      >
+                        {isMerchantTable ? "MERCHANT" : "USER"}
+                      </th>
+                      <th
+                        className={`${
                           isMerchantTable ? "w-[40%]" : "w-[38%]"
-                        } py-[14px] px-4 sm:px-5 align-middle`}>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 max-w-full">
-                              <span
-                                className="text-[14px] font-medium text-slate-800 dark:text-slate-200 truncate"
-                                style={{ maxWidth: "calc(100% - 28px)" }}
-                                title={u.email}
-                              >
-                                {u.email}
-                              </span>
-                              <CopyEmailButton email={u.email} />
-                            </div>
-                            {isMerchantTable && u.mobile && (
-                              <p className="text-[12px] text-slate-500 dark:text-slate-400 font-normal mt-[3px] truncate">
-                                {u.mobile}
-                              </p>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* 3. Status Column */}
-                        <td className={`${
+                        } text-left text-[12px] font-semibold text-slate-500 dark:text-slate-400 tracking-[0.04em] uppercase py-[14px] px-4 sm:px-5`}
+                      >
+                        {isMerchantTable ? "CONTACT" : "EMAIL"}
+                      </th>
+                      <th
+                        className={`${
                           isMerchantTable ? "w-[15%]" : "w-[16%]"
-                        } py-[14px] px-4 sm:px-5 align-middle`}>
-                          {renderStatusBadge(u.status || "active")}
-                        </td>
+                        } text-left text-[12px] font-semibold text-slate-500 dark:text-slate-400 tracking-[0.04em] uppercase py-[14px] px-4 sm:px-5`}
+                      >
+                        STATUS
+                      </th>
+                      <th className="w-[18%] text-left text-[12px] font-semibold text-slate-500 dark:text-slate-400 tracking-[0.04em] uppercase py-[14px] px-4 sm:px-5 whitespace-nowrap">
+                        JOINED
+                      </th>
+                    </tr>
+                  </thead>
 
-                        {/* 4. Joined Date Column */}
-                        <td className="w-[18%] py-[14px] px-4 sm:px-5 align-middle text-[13px] font-normal text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                          {formatJoinedDate(u.createdAt)}
+                  {/* Body */}
+                  <tbody>
+                    {paginatedList.map((u) => {
+                      const initials = (u.name || "User").slice(0, 2).toUpperCase();
+                      const targetRoute = `/admin-dashboard/users/${u._id}`;
+
+                      return (
+                        <tr
+                          key={u._id}
+                          onClick={() => navigate(targetRoute)}
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`View details for ${u.name || "user"}`}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              navigate(targetRoute);
+                            }
+                          }}
+                          style={{ transition: "background-color 150ms ease" }}
+                          className="group border-b border-border/60 last:border-b-0 cursor-pointer
+                            h-[66px] hover:bg-[rgba(109,40,217,0.025)] dark:hover:bg-slate-800/40
+                            focus-visible:outline-none focus-visible:bg-[rgba(109,40,217,0.025)] dark:focus-visible:bg-slate-800/40
+                            focus-visible:ring-2 focus-visible:ring-primary/40"
+                        >
+                          {/* 1. Name Column */}
+                          <td className={`${
+                            isMerchantTable ? "w-[27%]" : "w-[28%]"
+                          } py-[14px] px-4 sm:px-5 align-middle`}>
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="h-[38px] w-[38px] rounded-full bg-blue-50 text-blue-700 border border-blue-100/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40 flex items-center justify-center text-[12px] font-bold shrink-0">
+                                {initials}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p
+                                  className="font-semibold text-[14px] leading-snug text-foreground truncate"
+                                  title={u.name}
+                                >
+                                  {u.name}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 2. Email / Contact Column */}
+                          <td className={`${
+                            isMerchantTable ? "w-[40%]" : "w-[38%]"
+                          } py-[14px] px-4 sm:px-5 align-middle`}>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 max-w-full">
+                                <span
+                                  className="text-[14px] font-medium text-slate-800 dark:text-slate-200 truncate"
+                                  style={{ maxWidth: "calc(100% - 28px)" }}
+                                  title={u.email}
+                                >
+                                  {u.email}
+                                </span>
+                                <CopyEmailButton email={u.email} />
+                              </div>
+                              {isMerchantTable && u.mobile && (
+                                <p className="text-[12px] text-slate-500 dark:text-slate-400 font-normal mt-[3px] truncate">
+                                  {u.mobile}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* 3. Status Column */}
+                          <td className={`${
+                            isMerchantTable ? "w-[15%]" : "w-[16%]"
+                          } py-[14px] px-4 sm:px-5 align-middle`}>
+                            {renderStatusBadge(u.status || "active")}
+                          </td>
+
+                          {/* 4. Joined Date Column */}
+                          <td className="w-[18%] py-[14px] px-4 sm:px-5 align-middle text-[13px] font-normal text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                            {formatJoinedDate(u.createdAt)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {/* Empty State */}
+                    {paginatedList.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="py-12 text-center">
+                          <TableEmptyState
+                            title={emptyMessage}
+                            description="Try adjusting your search query or filters."
+                          />
                         </td>
                       </tr>
-                    );
-                  })}
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-                  {/* Empty State */}
-                  {paginatedList.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="py-12 text-center">
-                        <TableEmptyState
-                          title={emptyMessage}
-                          description="Try adjusting your search query or filters."
-                        />
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            {/* Mobile Card List View (< 768px) */}
+            <div className="block md:hidden space-y-3 w-full max-w-full">
+              {paginatedList.map((u) => {
+                const initials = (u.name || "User").slice(0, 2).toUpperCase();
+                const targetRoute = `/admin-dashboard/users/${u._id}`;
+
+                return (
+                  <div
+                    key={u._id}
+                    onClick={() => navigate(targetRoute)}
+                    className="w-full bg-card border border-border/80 rounded-2xl p-4 space-y-3 shadow-2xs hover:border-primary/40 active:scale-[0.99] transition-all cursor-pointer min-w-0"
+                  >
+                    {/* Header Row: Avatar + Name + Email + Chevron */}
+                    <div className="flex items-start justify-between gap-3 min-w-0">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="h-10 w-10 rounded-full bg-blue-50 text-blue-700 border border-blue-100/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40 flex items-center justify-center text-xs font-bold shrink-0">
+                          {initials}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-semibold text-[15px] text-foreground truncate leading-snug">
+                            {u.name}
+                          </h4>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5 min-w-0">
+                            {u.email}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {renderStatusBadge(u.status || "active")}
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/60 shrink-0" />
+                      </div>
+                    </div>
+
+                    {/* Metadata Footer: Joined Date & Contact */}
+                    <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Joined: <strong className="text-foreground font-medium">{formatJoinedDate(u.createdAt)}</strong></span>
+                      {isMerchantTable && u.mobile && <span className="font-mono">{u.mobile}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {paginatedList.length === 0 && (
+                <div className="p-6 text-center border border-border/70 rounded-2xl bg-card">
+                  <TableEmptyState
+                    title={emptyMessage}
+                    description="Try adjusting your search query or filters."
+                  />
+                </div>
+              )}
             </div>
 
             {/* Pagination Controls */}
             {totalItems > 0 && (
-              <div className="border-t border-border/70">
+              <div className="border-t border-border/70 pt-3">
                 <SmartPagination
                   currentPage={currentPage}
                   totalPages={totalPages}

@@ -6,6 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, Ticket, Calendar, Briefcase, MapPin, Loader2, ShoppingBag, Percent } from "lucide-react";
 import CustomerLayout from "@/components/CustomerLayout";
+import PageHeader from "@/components/PageHeader";
+import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import SimplePayment from "@/components/SimplePayment";
@@ -17,6 +19,7 @@ const Cart = () => {
     const { cartItems, removeFromCart, clearCart } = useCart();
     const { token } = useAuth();
     const navigate = useNavigate();
+    const goBack = useBackNavigation("/customer-dashboard");
     const [checkoutLoading, setCheckoutLoading] = useState(false);
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
     const [createdBookingForPayment, setCreatedBookingForPayment] = useState(null);
@@ -193,53 +196,62 @@ const Cart = () => {
     };
 
     return (<CustomerLayout>
-      <div className="w-full pt-1 sm:pt-2 pb-8">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 py-3 sm:py-5 space-y-4 sm:space-y-5">
 
         {/* ── Page Header ─────────────────────────────── */}
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">Shopping Cart</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              You have {cartItems.length} configured {cartItems.length === 1 ? "item" : "items"} in your cart
-            </p>
+        <div className="flex items-center justify-between pb-1 border-b border-border/40">
+          <div className="flex items-center gap-2.5">
+            <PageHeader title="Shopping Cart" onBack={goBack} className="mb-0" />
+            {cartItems.length > 0 && (
+              <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
+                {cartItems.length} {cartItems.length === 1 ? "item" : "items"}
+              </span>
+            )}
           </div>
           {cartItems.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={clearCart}
-              className="text-red-400 hover:text-red-300 hover:bg-red-400/10 text-xs font-semibold h-8 px-3 rounded-lg">
-              Clear All
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearCart}
+              className="text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 text-xs font-semibold h-8 px-3 rounded-xl transition-all"
+            >
+              Clear Cart
             </Button>
           )}
         </div>
 
         {/* ── Empty State ───────────────────────────────── */}
         {cartItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="p-5 rounded-full bg-secondary/60 mb-4">
-              <ShoppingBag className="h-10 w-10 text-muted-foreground/40" />
+          <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-secondary/80 flex items-center justify-center border border-border/80 shadow-inner mb-4">
+              <ShoppingBag className="h-8 w-8 text-muted-foreground/60" />
             </div>
-            <h2 className="font-semibold text-lg text-foreground mb-1">Your cart is empty</h2>
-            <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-              Looks like you haven't added anything yet. Browse events or services to get started.
+            <h2 className="font-bold text-xl text-foreground mb-1.5">Your cart is empty</h2>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+              Browse events and services to start booking your next experience.
             </p>
-            <div className="flex items-center gap-3">
-              <Button variant="outline"
-                className="rounded-xl h-10 px-5 text-sm font-semibold"
-                onClick={() => navigate("/customer-dashboard/browse-events")}>
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto rounded-xl h-10 px-5 text-sm font-semibold border-border/80 hover:bg-secondary"
+                onClick={() => navigate("/customer-dashboard/browse-events")}
+              >
                 Browse Events
               </Button>
               <Button
-                className="rounded-xl h-10 px-5 text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-glow"
-                onClick={() => navigate("/customer-dashboard/browse-services")}>
+                className="w-full sm:w-auto rounded-xl h-10 px-5 text-sm font-semibold bg-gradient-primary text-primary-foreground hover:opacity-95 shadow-glow"
+                onClick={() => navigate("/customer-dashboard/browse-services")}
+              >
                 Browse Services
               </Button>
             </div>
           </div>
         ) : (
           /* ── Two-column checkout layout ─────────── */
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px] gap-5 xl:gap-6 items-start">
 
             {/* ════ LEFT – Cart items ═════════════════════ */}
-            <div ref={itemsRef} className="min-w-0 w-full space-y-3">
+            <div ref={itemsRef} className="min-w-0 w-full space-y-3.5">
               <AnimatePresence>
                 {cartItems.map((item) => (
                   <motion.div
@@ -248,34 +260,40 @@ const Cart = () => {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -40 }}
-                    className="flex flex-col sm:flex-row rounded-2xl border border-border bg-card shadow-sm overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
+                    className="group rounded-2xl border border-border/80 bg-card p-0 shadow-2xs hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col sm:flex-row"
                   >
                     {/* ── Event / Service Image ─────────────── */}
-                    <div className="w-full sm:w-[200px] sm:min-w-[200px] sm:max-w-[200px] aspect-video sm:aspect-auto sm:h-auto bg-secondary/60 dark:bg-secondary relative overflow-hidden border-b sm:border-b-0 sm:border-r border-border flex-shrink-0">
-                      {imgSrc(item.image)
-                        ? (<img src={imgSrc(item.image)} alt={item.name} className="h-full w-full object-cover"/>)
-                        : (<div className="flex h-full items-center justify-center min-h-[120px] bg-gradient-mesh">
-                            {item.type === "event" ? (<Calendar className="h-10 w-10 opacity-10"/>) : (<Briefcase className="h-10 w-10 opacity-10"/>)}
-                          </div>)}
+                    <div className="w-full sm:w-[190px] sm:min-w-[190px] sm:max-w-[190px] aspect-[16/10] sm:aspect-auto bg-secondary relative overflow-hidden shrink-0 border-b sm:border-b-0 sm:border-r border-border/60">
+                      {imgSrc(item.image) ? (
+                        <img src={imgSrc(item.image)} alt={item.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+                      ) : (
+                        <div className="flex h-full items-center justify-center min-h-[120px] bg-secondary">
+                          {item.type === "event" ? <Calendar className="h-9 w-9 text-muted-foreground/30"/> : <Briefcase className="h-9 w-9 text-muted-foreground/30"/>}
+                        </div>
+                      )}
                       {/* Type badge */}
-                      <span className={`absolute top-2.5 left-2.5 rounded-full text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 shadow ${item.type === "event" ? "bg-primary text-primary-foreground" : "bg-amber-500 text-black"}`}>
+                      <span className={`absolute top-2.5 left-2.5 rounded-full text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 shadow-xs ${item.type === "event" ? "bg-primary text-primary-foreground" : "bg-amber-500 text-black"}`}>
                         {item.type}
                       </span>
                     </div>
 
                     {/* ── Item info + Price/Delete ───────────── */}
-                    <div className="flex-1 p-4 sm:p-5 flex flex-col justify-between min-w-0">
-                      <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 p-3.5 sm:p-4.5 flex flex-col justify-between min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
 
                         {/* Left: category + title + date + tickets */}
-                        <div className="flex-1 min-w-0 space-y-2">
+                        <div className="flex-1 min-w-0 space-y-1.5">
                           {item.category && (
-                            <p className="text-[10px] text-primary uppercase font-bold tracking-widest">{item.category}</p>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-primary block">
+                              {item.category}
+                            </span>
                           )}
-                          <h3 className="font-semibold text-base leading-snug text-foreground truncate">{item.name}</h3>
+                          <h3 className="font-semibold text-base sm:text-lg text-foreground tracking-tight line-clamp-1">
+                            {item.name}
+                          </h3>
 
                           {/* Date row */}
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
                             <Calendar className="h-3.5 w-3.5 text-primary shrink-0"/>
                             <span>
                               {new Date(item.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} • {item.time}
@@ -283,80 +301,91 @@ const Cart = () => {
                           </div>
 
                           {/* ── Event-specific config ─────────── */}
-                          {item.type === "event" && (<>
-                            {item.details.selectedSession && (
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <span className="font-semibold shrink-0">Session:</span>
-                                <span className="capitalize">{item.details.selectedSession} Session</span>
-                              </div>
-                            )}
-                            {item.details.selectedTickets && Object.keys(item.details.selectedTickets).length > 0 && (
-                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                                <Ticket className="h-3.5 w-3.5 text-primary shrink-0"/>
-                                {Object.entries(item.details.selectedTickets)
-                                  .filter(([_, qty]) => qty > 0)
-                                  .map(([type, qty]) => (
-                                    <span key={type} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-semibold border border-primary/20">
-                                      {type} Tier × {qty}
-                                    </span>
-                                  ))}
-                              </div>
-                            )}
-                            {item.details.selectedSeatNumbers && item.details.selectedSeatNumbers.length > 0 && (
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <span className="font-semibold">Seats:</span>
-                                <span className="font-mono text-[10px] bg-secondary border px-1.5 py-0.5 rounded-md">{item.details.selectedSeatNumbers.join(", ")}</span>
-                              </div>
-                            )}
-                            {item.details.quantity && item.details.quantity > 1 && (
-                              <div className="text-xs text-muted-foreground">
-                                <span className="font-semibold">Qty:</span> {item.details.quantity}
-                              </div>
-                            )}
-                          </>)}
+                          {item.type === "event" && (
+                            <div className="space-y-1 pt-0.5">
+                              {item.details.selectedSession && (
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <span className="font-semibold text-foreground/80 shrink-0">Session:</span>
+                                  <span className="capitalize">{item.details.selectedSession} Session</span>
+                                </div>
+                              )}
+                              {item.details.selectedTickets && Object.keys(item.details.selectedTickets).length > 0 && (
+                                <div className="flex flex-wrap items-center gap-1 mt-1">
+                                  <Ticket className="h-3.5 w-3.5 text-primary shrink-0 mr-0.5"/>
+                                  {Object.entries(item.details.selectedTickets)
+                                    .filter(([_, qty]) => qty > 0)
+                                    .map(([type, qty]) => (
+                                      <span key={type} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-semibold border border-primary/20">
+                                        {type} Tier × {qty}
+                                      </span>
+                                    ))}
+                                </div>
+                              )}
+                              {item.details.selectedSeatNumbers && item.details.selectedSeatNumbers.length > 0 && (
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <span className="font-semibold text-foreground/80">Seats:</span>
+                                  <span className="font-mono text-[10px] bg-secondary border border-border px-1.5 py-0.5 rounded-md font-semibold">{item.details.selectedSeatNumbers.join(", ")}</span>
+                                </div>
+                              )}
+                              {item.details.quantity && item.details.quantity > 1 && (
+                                <div className="text-xs text-muted-foreground">
+                                  <span className="font-semibold text-foreground/80">Qty:</span> {item.details.quantity}
+                                </div>
+                              )}
+                            </div>
+                          )}
 
                           {/* ── Service-specific config ───────── */}
-                          {item.type === "service" && (<>
-                            {item.details.customerLocation && (
-                              <div className="flex items-start gap-1.5 text-xs text-muted-foreground mt-1">
-                                <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5"/>
-                                <span className="break-all">{item.details.customerLocation.address}</span>
-                              </div>
-                            )}
-                            {item.details.addOns && item.details.addOns.length > 0 && (
-                              <div className="flex items-start gap-1.5 text-xs text-muted-foreground mt-1">
-                                <Briefcase className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5"/>
-                                <div>
-                                  <span className="font-semibold block">Add-ons: </span>
-                                  {item.details.addOns.map((add) => (<span key={add.name} className="mr-1">{add.name} (x{add.quantity})</span>))}
+                          {item.type === "service" && (
+                            <div className="space-y-1 pt-0.5">
+                              {item.details.customerLocation && (
+                                <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                                  <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5"/>
+                                  <span className="break-all">{item.details.customerLocation.address}</span>
                                 </div>
-                              </div>
-                            )}
-                            {item.details.guestCount && item.details.guestCount > 0 && (
-                              <div className="text-xs text-muted-foreground">
-                                <span className="font-semibold">Guests:</span> {item.details.guestCount}
-                              </div>
-                            )}
-                          </>)}
+                              )}
+                              {item.details.addOns && item.details.addOns.length > 0 && (
+                                <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                                  <Briefcase className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5"/>
+                                  <div>
+                                    <span className="font-semibold text-foreground/80 block">Add-ons:</span>
+                                    {item.details.addOns.map((add) => (<span key={add.name} className="mr-1">{add.name} (x{add.quantity})</span>))}
+                                  </div>
+                                </div>
+                              )}
+                              {item.details.guestCount && item.details.guestCount > 0 && (
+                                <div className="text-xs text-muted-foreground">
+                                  <span className="font-semibold text-foreground/80">Guests:</span> {item.details.guestCount}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {/* Right: price + delete */}
-                        <div className="flex flex-col items-end gap-2 shrink-0">
-                          <div className="text-right">
+                        <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-between gap-3 mt-3 sm:mt-0 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-border/60 shrink-0">
+                          <div className="text-left sm:text-right">
                             {item.discountAmount > 0 && (
-                              <span className="block text-xs text-muted-foreground line-through">{formatCurrency(item.originalPrice)}</span>
+                              <span className="block text-xs text-muted-foreground line-through font-medium">
+                                {formatCurrency(item.originalPrice)}
+                              </span>
                             )}
-                            <span className="font-display font-bold text-lg text-primary leading-none">{formatCurrency(item.price)}</span>
-                          </div>
-                          {item.appliedPromo && (
-                            <span className="inline-flex items-center gap-1 text-[10px] bg-green-500/10 text-green-500 border border-green-500/20 px-2 py-0.5 rounded font-mono">
-                              <Percent className="h-3 w-3"/> {item.appliedPromo.code}
+                            <span className="font-display font-bold text-lg sm:text-xl text-primary leading-none">
+                              {formatCurrency(item.price)}
                             </span>
-                          )}
+                            {item.appliedPromo && (
+                              <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-mono mt-1">
+                                <Percent className="h-2.5 w-2.5"/> {item.appliedPromo.code}
+                              </span>
+                            )}
+                          </div>
+
                           <button
+                            type="button"
                             onClick={() => removeFromCart(item.id)}
-                            className="text-muted-foreground/50 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-400/10 transition-colors"
+                            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 border border-border/50 hover:border-destructive/30 transition-all active:scale-95 shrink-0 shadow-2xs"
                             aria-label="Remove item"
+                            title="Remove item"
                           >
                             <Trash2 className="h-4 w-4"/>
                           </button>
@@ -370,50 +399,55 @@ const Cart = () => {
 
             {/* ════ RIGHT – Order Summary ═════════════════ */}
             <div className="min-w-0 w-full">
-              <div className="sticky top-24 bg-card rounded-2xl border border-border p-5 shadow-sm space-y-4">
-                <h3 className="font-semibold text-base text-foreground">Order Summary</h3>
+              <div className="sticky top-20 rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                  <h3 className="font-bold text-base sm:text-lg text-foreground tracking-tight">Order Summary</h3>
+                  <span className="text-xs text-muted-foreground font-medium">{cartItems.length} {cartItems.length === 1 ? 'Item' : 'Items'}</span>
+                </div>
 
                 {/* Subtotals */}
-                <div className="space-y-2 text-sm border-b border-border pb-4">
+                <div className="space-y-2.5 text-sm">
                   {eventItems.length > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Events ({eventItems.length})</span>
-                      <span className="font-medium">{formatCurrency(eventsSubtotal)}</span>
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>Events ({eventItems.length})</span>
+                      <span className="font-semibold text-foreground">{formatCurrency(eventsSubtotal)}</span>
                     </div>
                   )}
                   {serviceItems.length > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Services ({serviceItems.length})</span>
-                      <span className="font-medium">{formatCurrency(servicesSubtotal)}</span>
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>Services ({serviceItems.length})</span>
+                      <span className="font-semibold text-foreground">{formatCurrency(servicesSubtotal)}</span>
                     </div>
                   )}
                   {totalDiscount > 0 && (
-                    <div className="flex justify-between items-center text-green-500 font-medium">
+                    <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-medium">
                       <span>Promo Savings</span>
                       <span>-{formatCurrency(totalDiscount)}</span>
                     </div>
                   )}
                 </div>
 
+                <div className="h-px bg-border/80 my-3" />
+
                 {/* Grand Total */}
-                <div className="flex justify-between items-baseline">
-                  <span className="font-bold text-sm">Grand Total</span>
-                  <span className="font-display font-black text-2xl text-gradient">{formatCurrency(grandTotal)}</span>
+                <div className="flex justify-between items-baseline pt-0.5">
+                  <span className="font-bold text-sm text-foreground">Grand Total</span>
+                  <span className="font-display font-black text-2xl text-primary">{formatCurrency(grandTotal)}</span>
                 </div>
 
                 {/* Subtle helper text */}
                 {eventItems.length > 0 && serviceItems.length === 0 && (
-                  <p className="text-[11px] text-muted-foreground leading-relaxed -mt-1">
-                    Payment confirms your booking and generates your digital ticket.
+                  <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
+                    Payment confirms your booking and generates your digital ticket instantly.
                   </p>
                 )}
                 {eventItems.length > 0 && serviceItems.length > 0 && (
-                  <p className="text-[11px] text-muted-foreground leading-relaxed -mt-1">
+                  <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
                     Complete payment for events. Service requests will be sent to providers for quotation.
                   </p>
                 )}
                 {serviceItems.length > 0 && eventItems.length === 0 && (
-                  <p className="text-[11px] text-amber-500/80 leading-relaxed -mt-1">
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed pt-1">
                     No immediate payment required. Providers will send quotations for your service requests.
                   </p>
                 )}
@@ -422,7 +456,7 @@ const Cart = () => {
                 <Button
                   onClick={handleCheckoutClick}
                   disabled={checkoutLoading}
-                  className="w-full h-12 text-sm font-bold bg-gradient-primary hover:opacity-90 disabled:opacity-50 rounded-xl"
+                  className="w-full h-11 sm:h-12 text-sm font-bold bg-gradient-primary text-primary-foreground hover:opacity-95 shadow-glow rounded-xl transition-all active:scale-[0.99] mt-2"
                 >
                   {checkoutLoading ? (
                     <><Loader2 className="h-4 w-4 animate-spin mr-2"/> Processing…</>

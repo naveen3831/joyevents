@@ -327,14 +327,15 @@ export const AdminTopHeader = ({ onSidebarToggle }) => {
           <Menu className="h-4.5 w-4.5" />
         </button>
 
-        <div className="flex items-center gap-2">
-          <Link to="/admin-dashboard" className="hidden sm:flex items-center gap-2 group">
+        <div className="flex items-center gap-2 min-w-0">
+          <Link to="/admin-dashboard" className="flex items-center gap-2 group shrink-0">
             <div className="h-7 w-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary/15 transition-colors">
               <Shield className="h-3.5 w-3.5" />
             </div>
+            <span className="font-bold text-sm text-foreground lg:hidden">Admin Portal</span>
           </Link>
 
-          <nav className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium truncate">
+          <nav className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground font-medium truncate">
             {breadcrumbs.map((crumb, idx) => (
               <React.Fragment key={idx}>
                 {idx > 0 && <ChevronRight className="h-3 w-3 shrink-0 opacity-40" />}
@@ -533,7 +534,7 @@ export const AdminTopHeader = ({ onSidebarToggle }) => {
                   </AvatarFallback>
                 )}
               </Avatar>
-              <div className="flex flex-col text-left min-w-0">
+              <div className="hidden md:flex flex-col text-left min-w-0">
                 <span className="text-xs font-semibold text-foreground leading-none truncate max-w-[120px]">
                   {userName}
                 </span>
