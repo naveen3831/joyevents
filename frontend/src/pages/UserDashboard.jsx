@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import SimplePayment from "@/components/SimplePayment";
-import ContactMerchantModal from "@/components/ContactMerchantModal";
+
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import LocationAutocomplete from "@/components/LocationAutocomplete";
 
@@ -69,7 +69,7 @@ const UserDashboard = () => {
   const [serviceCategories, setServiceCategories] = useState([]);
   const [selectedEventCategory, setSelectedEventCategory] = useState(null);
   const [selectedServiceCategory, setSelectedServiceCategory] = useState(null);
-  const [contactService, setContactService] = useState(null);
+
 
   // Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -809,7 +809,7 @@ const UserDashboard = () => {
                                 <CalendarCheck className="h-4 w-4"/> Book Now
                               </button>
                             </div>
-                            <button onClick={() => setContactService(svc)} className="w-full min-h-[34px] rounded-xl text-xs font-medium border border-border/80 hover:bg-secondary transition-all text-muted-foreground flex items-center justify-center gap-1.5">
+                            <button onClick={() => navigate(`/customer-dashboard/contact-organiser?title=${encodeURIComponent(svc.name)}&serviceId=${svc._id}&merchantId=${svc.createdBy?._id || svc.createdBy}&returnTo=/customer-dashboard`)} className="w-full min-h-[34px] rounded-xl text-xs font-medium border border-border/80 hover:bg-secondary transition-all text-muted-foreground flex items-center justify-center gap-1.5">
                               <Mail className="h-3.5 w-3.5"/> Contact Provider
                             </button>
                           </div>
@@ -823,14 +823,7 @@ const UserDashboard = () => {
           </div>
         </div>
 
-        {/* Contact Merchant Modal */}
-        {contactService && (
-          <ContactMerchantModal
-            open={!!contactService}
-            onOpenChange={(op) => !op && setContactService(null)}
-            service={contactService}
-          />
-        )}
+
 
         {/* Standard Booking Payment Modal */}
         {paymentBooking && (() => {

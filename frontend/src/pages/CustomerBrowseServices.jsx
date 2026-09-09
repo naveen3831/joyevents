@@ -11,7 +11,7 @@ import { useCart } from "@/contexts/CartContext";
 import { apiListServices, apiGetAllPromoCodes, apiValidatePromoCode } from "@/lib/api";
 import { API_URL } from "@/lib/config";
 import { toast } from "sonner";
-import ContactMerchantModal from "@/components/ContactMerchantModal";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useGsapStagger } from "@/lib/gsapAnimations";
 const SORT_OPTIONS = [
@@ -28,7 +28,7 @@ const CustomerBrowseServices = () => {
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
-    const [contactService, setContactService] = useState(null);
+
     const [showCustomModal, setShowCustomModal] = useState(false);
     // Filters
     const [showFilters, setShowFilters] = useState(false);
@@ -434,7 +434,7 @@ const CustomerBrowseServices = () => {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setContactService(svc);
+                                navigate(`/customer-dashboard/contact-organiser?title=${encodeURIComponent(svc.name)}&serviceId=${svc._id}&merchantId=${svc.createdBy?._id || svc.createdBy}&returnTo=/customer-dashboard/browse-services`);
                               }}
                               className="w-full h-[24px] max-h-[24px] text-[12px] font-semibold text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1.5 cursor-pointer pt-0.5"
                             >
@@ -450,7 +450,7 @@ const CustomerBrowseServices = () => {
             </div>
         </div>
       </section>
-      {contactService && (<ContactMerchantModal itemTitle={contactService.name} serviceId={contactService._id} onClose={() => setContactService(null)}/>)}
+
     </CustomerLayout>);
 };
 export default CustomerBrowseServices;

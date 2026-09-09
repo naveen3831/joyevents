@@ -20,7 +20,7 @@ import LocationPicker from "@/components/LocationPicker";
 import ManageCategoriesModal from "@/components/ManageCategoriesModal";
 import SimplePayment from "@/components/SimplePayment";
 import { savePendingServiceBooking, getPendingServiceBooking, clearPendingServiceBooking } from "@/lib/bookingState";
-import ContactMerchantModal from "@/components/ContactMerchantModal";
+
 import { useHomepageSettings } from "@/hooks/useHomepageSettings";
 import { CountUp, Reveal, FloatingBalloons } from "@/components/motion/MotionSystem";
 const PENDING_CONTACT_SVC_KEY = "pendingContactService";
@@ -140,9 +140,7 @@ const Services = () => {
     const [favMap, setFavMap] = useState({});
     const [promoCodes, setPromoCodes] = useState([]);
     const [promoLoading, setPromoLoading] = useState(true);
-    // contact organiser
-    const [contactService, setContactService] = useState(null);
-    // Auto-open contact modal after login redirect
+    // Auto-navigate to contact page after login redirect
     useEffect(() => {
         if (!isLoggedIn || services.length === 0)
             return;
@@ -152,7 +150,7 @@ const Services = () => {
                 const svc = services.find((s) => s._id === pendingId);
                 if (svc) {
                     localStorage.removeItem(PENDING_CONTACT_SVC_KEY);
-                    setContactService(svc);
+                    handleContactService(svc);
                 }
             }
         }
@@ -897,7 +895,6 @@ const Services = () => {
 
       {showCatModal && (<ManageCategoriesModal type="service" onClose={() => setShowCatModal(false)} onCategoriesChanged={loadCategories}/>)}
 
-      {contactService && (<ContactMerchantModal itemTitle={contactService.name} serviceId={contactService._id} merchantId={contactService.createdBy?._id || contactService.createdBy} onClose={() => setContactService(null)}/>)}
     </Layout>);
 };
 export default Services;
