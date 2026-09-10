@@ -328,4 +328,27 @@
     min-height: 44px;
     min-width: 44px;
   }
+
+  /* Mobile Commission Card Utility Standards */
+  .mobile-commission-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .mobile-commission-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 16px;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.8);
+    border-radius: 16px;
+    height: auto;
+    box-sizing: border-box;
+  }
 }

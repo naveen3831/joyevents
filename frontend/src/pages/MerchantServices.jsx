@@ -296,7 +296,7 @@ const MerchantServices = ({ layout = "merchant" } = {}) => {
               <AlertCircle className="mx-auto mb-3 h-10 w-10 opacity-30"/>
               <p className="font-medium">No services yet</p>
               <p className="text-xs mt-1">Click "New Service" to create your first service. Only your services are shown here.</p>
-            </div>) : (<div ref={gridRef} className="grid grid-cols-2 gap-3 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
+            </div>) : (<div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
               {services.map((svc) => (<div
                   key={svc._id}
                   onClick={() => navigate(`/merchant-dashboard/services/${svc._id}`)}

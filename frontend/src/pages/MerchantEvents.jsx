@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { formatCurrency, formatEventSchedule } from "@/lib/utils";
 import { useGsapStagger } from "@/lib/gsapAnimations";
-import { Calendar, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, IndianRupee, Upload, Ticket, Eye, ToggleLeft, ToggleRight, Video } from "lucide-react";
+import { Calendar, Trash2, Pencil, Plus, ImageIcon, Loader2, AlertCircle, X, Clock, MapPin, IndianRupee, Upload, Ticket, Eye, ToggleLeft, ToggleRight, Video, MoreVertical } from "lucide-react";
 import MerchantLayout from "@/components/MerchantLayout";
 import AdminLayout from "@/components/AdminLayout";
 import PageHeader from "@/components/common/PageHeader";
@@ -9,6 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiListMyEvents, apiCreateEventWithImage, apiUpdateEventWithImage, apiDeleteEvent, apiListCategories, apiCreateCategory } from "@/lib/api";
@@ -401,7 +407,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
             { label: "My Events" },
           ]}
           actions={
-            <Button onClick={openCreate} className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-xs font-semibold h-9 px-3.5">
+            <Button onClick={openCreate} className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl text-xs font-semibold h-9.5 sm:h-9 px-4">
               <Plus className="mr-1.5 h-4 w-4"/> Add Event
             </Button>
           }
@@ -412,7 +418,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
           </div>) : events.length === 0 ? (<div className="rounded-xl border border-border bg-card p-10 text-center flex flex-col items-center">
             <AlertCircle className="mx-auto mb-3 h-8 w-8 opacity-30 text-muted-foreground"/>
             <p className="text-muted-foreground">No events yet. Create your first event to get started. Only your events are shown here.</p>
-          </          ) : (<div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:grid-cols-3">
+          </div>) : (<div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
             {events.map((ev) => {
               const itemName = ev.title;
               const schedule = formatEventSchedule(ev);
@@ -466,10 +472,10 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                 <div
                   key={ev._id}
                   onClick={() => navigate(layout === "admin" ? `/admin-dashboard/events/${ev._id}` : `/merchant-dashboard/events/${ev._id}`)}
-                  className="group rounded-2xl border border-border/80 bg-card overflow-hidden flex flex-col hover:border-primary/50 transition-all cursor-pointer shadow-xs h-auto w-full min-w-0"
+                  className="group rounded-2xl border border-border/80 bg-card overflow-hidden flex flex-col hover:border-primary/40 transition-all cursor-pointer shadow-2xs h-auto w-full min-w-0 box-border"
                 >
-                  {/* Image (compact 140px-170px height on mobile) */}
-                  <div className="relative overflow-hidden bg-secondary flex-shrink-0 h-[140px] sm:h-[175px] w-full">
+                  {/* Image (compact max 140px-165px height on mobile) */}
+                  <div className="relative overflow-hidden bg-secondary flex-shrink-0 h-[140px] sm:h-[165px] w-full">
                     {imgSrc(ev.image) ? (
                       <img src={imgSrc(ev.image)} alt={ev.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>
                     ) : (
@@ -480,15 +486,15 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none"/>
                     
                     {/* Primary Status Overlay (Single placement on image) */}
-                    <span className={`absolute top-2.5 left-2.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold capitalize backdrop-blur-md shadow-xs ${
-                      ev.status === "upcoming" ? "bg-blue-600/90 text-white" : ev.status === "ongoing" ? "bg-emerald-600/90 text-white" : "bg-gray-600/90 text-white"
+                    <span className={`absolute top-2.5 left-2.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold capitalize backdrop-blur-md shadow-2xs ${
+                      ev.status === "upcoming" ? "bg-blue-600/90 text-white" : ev.status === "ongoing" ? "bg-emerald-600/90 text-white" : "bg-gray-700/90 text-white"
                     }`}>
                       {ev.status}
                     </span>
 
                     {/* Category or Live Badge */}
                     {ev.live ? (
-                      <span className="absolute top-2.5 right-2.5 rounded-full bg-red-500 text-white px-2 py-0.5 text-[10px] font-bold flex items-center gap-1 backdrop-blur-md shadow-xs animate-pulse">
+                      <span className="absolute top-2.5 right-2.5 rounded-full bg-red-500 text-white px-2 py-0.5 text-[10px] font-bold flex items-center gap-1 backdrop-blur-md shadow-2xs animate-pulse">
                         <Video className="h-3 w-3"/> LIVE
                       </span>
                     ) : (
@@ -501,23 +507,23 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                   {/* Info Body */}
                   <div className="p-3.5 sm:p-4 flex flex-col flex-1 min-w-0 justify-between">
                     <div>
-                      <h3 className="font-bold text-base sm:text-lg text-foreground line-clamp-2 leading-snug" title={itemName}>
+                      <h3 className="font-bold text-base sm:text-[17px] text-foreground line-clamp-2 leading-snug" title={itemName}>
                         {itemName}
                       </h3>
                       
                       {/* Date & Location Metadata */}
                       <div className="space-y-1.5 text-xs text-muted-foreground mt-2">
                         {schedule.dateText && (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 font-medium">
                             <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
                             <span className="truncate">
                               {schedule.dateText}
-                              {schedule.isMultiDay ? ` • ${schedule.badgeText}` : schedule.timeText ? ` at ${schedule.timeText}` : ""}
+                              {schedule.isMultiDay ? ` (${schedule.badgeText})` : schedule.timeText ? ` • ${schedule.timeText}` : ""}
                             </span>
                           </div>
                         )}
                         {ev.location && (
-                          <div className="flex items-center gap-1.5" title={ev.location}>
+                          <div className="flex items-center gap-1.5 font-medium" title={ev.location}>
                             <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
                             <span className="truncate">{ev.location}</span>
                           </div>
@@ -525,34 +531,41 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                       </div>
 
                       {/* Stats Grid: Price & Attendees */}
-                      <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-secondary/40 border border-border/50 text-xs mt-3">
-                        <div>
-                          <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">Price</p>
+                      <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-secondary/40 border border-border/50 text-xs mt-2.5">
+                        <div className="min-w-0">
+                          <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mb-0.5">Price</p>
                           <p className="font-bold text-foreground font-mono text-sm sm:text-base truncate">{priceText}</p>
                         </div>
-                        <div>
-                          <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">Attendees</p>
+                        <div className="min-w-0">
+                          <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mb-0.5">Attendees</p>
                           <p className="font-bold text-foreground font-mono text-sm sm:text-base truncate">{attendeesText}</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Live Event Toggle */}
-                    <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-2.5" onClick={(e) => e.stopPropagation()}>
+                    <div className="mt-2.5 flex items-center justify-between border-t border-border/50 pt-2.5" onClick={(e) => e.stopPropagation()}>
                       <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                         <Video className={`h-3.5 w-3.5 ${ev.live ? "text-red-500 animate-pulse" : "text-muted-foreground"}`} />
-                        {ev.live ? <span className="text-red-500 font-semibold">Live Event</span> : <span>Regular Event</span>}
+                        {ev.live ? (
+                          <span className="text-red-500 font-bold">Live Event</span>
+                        ) : (
+                          <span>{ev.eventType === "ticketed" ? "Ticketed Event" : "Regular Event"}</span>
+                        )}
                       </span>
+
                       <button
                         type="button"
                         onClick={(e) => handleToggleLive(ev, e)}
                         disabled={togglingLiveId === ev._id}
-                        className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-secondary transition-colors cursor-pointer disabled:opacity-50 min-h-[36px]"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-secondary transition-colors cursor-pointer disabled:opacity-50 min-h-[38px] touch-target"
                         title={ev.live ? "Remove from live events" : "Mark as live event"}
                       >
-                        <span className="text-[11px] font-semibold text-muted-foreground">{ev.live ? "Live" : "Off"}</span>
+                        <span className="text-[11px] font-semibold text-muted-foreground">
+                          {ev.live ? "Live" : "Not Live"}
+                        </span>
                         {togglingLiveId === ev._id ? (
-                          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                         ) : ev.live ? (
                           <ToggleRight className="h-6 w-6 text-red-500" />
                         ) : (
@@ -561,7 +574,7 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                       </button>
                     </div>
 
-                    {/* Actions */}
+                    {/* Action Footer Row */}
                     <div className="mt-2.5 flex items-center gap-2 border-t border-border/50 pt-2.5" onClick={(e) => e.stopPropagation()}>
                       <Button
                         size="sm"
@@ -569,29 +582,69 @@ const MerchantEvents = ({ layout = "merchant" } = {}) => {
                         className="flex-1 h-9 rounded-xl font-semibold border-border/80 hover:bg-secondary text-xs flex items-center justify-center gap-1.5 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
-                          openEdit(ev);
+                          navigate(layout === "admin" ? `/admin-dashboard/events/${ev._id}` : `/merchant-dashboard/events/${ev._id}`);
                         }}
                       >
-                        <Pencil className="h-3.5 w-3.5"/> Edit Event
+                        Manage Event
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-red-500 hover:text-white hover:bg-red-500 shrink-0 h-9 w-9 p-0 rounded-xl cursor-pointer"
-                        disabled={deletingId === ev._id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(ev._id);
-                        }}
-                      >
-                        {deletingId === ev._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
-                      </Button>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="h-9 w-9 rounded-xl border border-border/80 bg-card hover:bg-secondary text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                            aria-label="Event options"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44 p-1 bg-card border-border shadow-md rounded-xl text-foreground">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(layout === "admin" ? `/admin-dashboard/events/${ev._id}` : `/merchant-dashboard/events/${ev._id}`);
+                            }}
+                            className="px-2.5 py-1.5 text-xs font-medium rounded-lg cursor-pointer hover:bg-muted"
+                          >
+                            <Eye className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> View Details
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEdit(ev);
+                            }}
+                            className="px-2.5 py-1.5 text-xs font-medium rounded-lg cursor-pointer hover:bg-muted"
+                          >
+                            <Pencil className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Edit Event
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            onClick={(e) => handleToggleLive(ev, e)}
+                            disabled={togglingLiveId === ev._id}
+                            className="px-2.5 py-1.5 text-xs font-medium rounded-lg cursor-pointer hover:bg-muted"
+                          >
+                            <Video className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> {ev.live ? "Stop Live" : "Go Live"}
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            disabled={deletingId === ev._id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(ev._id);
+                            }}
+                            className="px-2.5 py-1.5 text-xs font-medium text-rose-600 dark:text-rose-400 rounded-lg cursor-pointer hover:bg-rose-500/10 focus:bg-rose-500/10"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-2 text-rose-600 dark:text-rose-400" /> Delete Event
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 </div>
               );
             })}
-          </div>)}   </div>)}
+          </div>)}
 
         {/* Modal */}
         {showModal && (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
