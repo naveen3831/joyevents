@@ -7,6 +7,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { clearSession } from "@/lib/session";
 import { useGsapAccordion } from "@/lib/gsapAnimations";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const useGroups = (t) => [
     { label: t("overview"), items: [{ to: "/customer-dashboard", label: t("overview"), icon: LayoutDashboard, exact: true }] },
@@ -117,6 +127,7 @@ const CustomerSidebar = ({ open, onClose, onToggle }) => {
     const { t } = useTranslation();
     const { setIsLoggedIn, setToken, setUser } = useAuth();
     const navigate = useNavigate();
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
 
     const handleLogout = () => {
         sessionStorage.setItem("forceLoginNoRedirect", "1");
@@ -144,7 +155,7 @@ const CustomerSidebar = ({ open, onClose, onToggle }) => {
           <NavLinks onClose={() => {}} />
         </div>
         <div className="border-t border-border/80 p-3.5">
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-500/10 transition-colors">
+          <button onClick={() => setShowLogoutModal(true)} className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer">
             <LogOut className="h-4 w-4 shrink-0"/> {t("logout")}
           </button>
         </div>
@@ -167,12 +178,37 @@ const CustomerSidebar = ({ open, onClose, onToggle }) => {
               <NavLinks onClose={onClose}/>
             </div>
             <div className="border-t border-border p-3.5">
-              <button onClick={handleLogout} className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-500/10 transition-colors">
+              <button onClick={() => setShowLogoutModal(true)} className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer">
                 <LogOut className="h-4 w-4 shrink-0"/> {t("logout")}
               </button>
             </div>
           </motion.aside>)}
       </AnimatePresence>
+
+      {/* Logout Confirmation Modal */}
+      <AlertDialog open={showLogoutModal} onOpenChange={setShowLogoutModal}>
+        <AlertDialogContent className="rounded-2xl max-w-sm sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold">
+              <LogOut className="h-5 w-5" /> Logout?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm pt-1 text-muted-foreground leading-relaxed">
+              Are you sure you want to log out of your Eventoza account?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0 pt-2">
+            <AlertDialogCancel className="rounded-xl h-10 text-xs font-semibold cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl h-10 text-xs font-semibold cursor-pointer"
+            >
+              Logout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>);
 };
 

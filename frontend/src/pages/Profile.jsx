@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { User, Edit2, Save, X, Shield, Store, UserCircle, Wallet, Gift, Sparkles, Calendar, ShieldCheck, Mail, CheckCircle } from "lucide-react";
+import { User, Edit2, Save, X, Shield, Store, UserCircle, Wallet, Gift, Sparkles, Calendar, ShieldCheck, Mail, CheckCircle, LogOut, ChevronRight, Ticket, Heart, Settings as SettingsIcon, HelpCircle, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
@@ -7,13 +7,40 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { API_URL } from "@/lib/config";
 import { sanitizeNameInput, validateName, NAME_MAX_LENGTH, NAME_HINT } from "@/lib/validation";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { clearSession } from "@/lib/session";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Profile = () => {
-    const { user, token, updateUser } = useAuth();
+    const navigate = useNavigate();
+    const { user, token, updateUser, setIsLoggedIn, setToken, setUser } = useAuth();
     const [editing, setEditing] = useState(false);
     const [name, setName] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+    const handleLogout = () => {
+        sessionStorage.setItem("forceLoginNoRedirect", "1");
+        setIsLoggedIn(false);
+        setToken(null);
+        setUser(null);
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("role");
+        localStorage.removeItem("authReturnTo");
+        clearSession();
+        sessionStorage.removeItem("bookingReturnTo");
+        navigate("/login", { replace: true });
+    };
 
     useEffect(() => {
         if (user) {
@@ -283,11 +310,75 @@ const Profile = () => {
                         </div>
                     </div>
 
-                    {/* Account Information & Logout Bar */}
+                    {/* Account Options & Shortcuts */}
+                    <div className="space-y-3.5 pt-4 border-t border-border/60">
+                        <div className="flex items-center gap-2 pb-0.5">
+                            <SettingsIcon className="h-4.5 w-4.5 text-primary" />
+                            <h3 className="font-semibold text-base text-foreground">Account & Navigation</h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            {user?.role === "customer" && (
+                                <Link
+                                    to="/customer-dashboard/bookings"
+                                    className="p-3 rounded-xl border border-border/70 bg-card hover:bg-secondary/60 transition-colors flex items-center justify-between text-xs font-semibold text-foreground group"
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <Ticket className="h-4 w-4 text-primary shrink-0" />
+                                        <span>My Bookings</span>
+                                    </div>
+                                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                                </Link>
+                            )}
+
+                            <Link
+                                to={
+                                    user?.role === "admin" ? "/admin-dashboard/settings" :
+                                    user?.role === "merchant" ? "/merchant-dashboard/settings" :
+                                    "/customer-dashboard/settings"
+                                }
+                                className="p-3 rounded-xl border border-border/70 bg-card hover:bg-secondary/60 transition-colors flex items-center justify-between text-xs font-semibold text-foreground group"
+                            >
+                                <div className="flex items-center gap-2.5">
+                                    <SettingsIcon className="h-4 w-4 text-primary shrink-0" />
+                                    <span>Account Settings & Preferences</span>
+                                </div>
+                                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                            </Link>
+
+                            {user?.role === "customer" && (
+                                <Link
+                                    to="/customer-dashboard/favorites"
+                                    className="p-3 rounded-xl border border-border/70 bg-card hover:bg-secondary/60 transition-colors flex items-center justify-between text-xs font-semibold text-foreground group"
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <Heart className="h-4 w-4 text-rose-500 shrink-0" />
+                                        <span>Saved & Favorites</span>
+                                    </div>
+                                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                                </Link>
+                            )}
+
+                            {user?.role === "customer" && (
+                                <Link
+                                    to="/customer-dashboard/contact-organiser"
+                                    className="p-3 rounded-xl border border-border/70 bg-card hover:bg-secondary/60 transition-colors flex items-center justify-between text-xs font-semibold text-foreground group"
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <HelpCircle className="h-4 w-4 text-blue-500 shrink-0" />
+                                        <span>Help & Support</span>
+                                    </div>
+                                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                                </Link>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Account Information */}
                     <div className="space-y-3.5 pt-4 border-t border-border/60">
                         <div className="flex items-center gap-2 pb-0.5">
                             <Calendar className="h-4.5 w-4.5 text-indigo-500" />
-                            <h3 className="font-semibold text-base text-foreground">Account Information</h3>
+                            <h3 className="font-semibold text-base text-foreground">Account Summary</h3>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -307,10 +398,48 @@ const Profile = () => {
                         </div>
                     </div>
 
-
+                    {/* Dedicated Red Logout Row Button (At bottom of Account options) */}
+                    <div className="pt-4 border-t border-border/60">
+                        <button
+                            type="button"
+                            onClick={() => setShowLogoutModal(true)}
+                            className="w-full h-12 px-4 rounded-xl border border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-semibold text-sm sm:text-base flex items-center justify-between transition-all cursor-pointer shadow-2xs active:scale-[0.99]"
+                        >
+                            <div className="flex items-center gap-3">
+                                <LogOut className="h-5 w-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                                <span>Logout</span>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-rose-500/70 shrink-0" />
+                        </button>
+                    </div>
 
                 </div>
             </motion.div>
+
+            {/* Logout Confirmation Modal */}
+            <AlertDialog open={showLogoutModal} onOpenChange={setShowLogoutModal}>
+                <AlertDialogContent className="rounded-2xl max-w-sm sm:max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold">
+                            <LogOut className="h-5 w-5" /> Logout?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-xs sm:text-sm pt-1 text-muted-foreground leading-relaxed">
+                            Are you sure you want to log out of your Eventoza account?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2 sm:gap-0 pt-2">
+                        <AlertDialogCancel className="rounded-xl h-10 text-xs font-semibold cursor-pointer">
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleLogout}
+                            className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl h-10 text-xs font-semibold cursor-pointer"
+                        >
+                            Logout
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };
