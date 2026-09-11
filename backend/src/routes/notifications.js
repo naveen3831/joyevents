@@ -85,4 +85,91 @@ router.delete("/:id", verifyToken, async (req, res) => {
   }
 });
 
+// Register FCM Device Token for authenticated user
+router.post("/device-token", verifyToken, async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token || typeof token !== "string" || !token.trim()) {
+      return res.status(400).json({ error: "FCM token is required" });
+    }
+
+    const User = (await import("../models/User.js")).default;
+    await User.findByIdAndUpdate(req.user._id, {
+      $addToSet: { fcmTokens: token.trim() },
+    });
+
+    console.log(`[FCM] Registered token for user ${req.user._id}: ${token.slice(0, 15)}...`);
+    res.json({ message: "FCM device token registered successfully" });
+  } catch (err) {
+    console.error("[FCM] Error registering device token:", err);
+    res.status(500).json({ error: "Failed to register FCM device token" });
+  }
+});
+
+// Remove FCM Device Token for authenticated user
+router.delete("/device-token", verifyToken, async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token || typeof token !== "string") {
+      return res.status(400).json({ error: "FCM token is required" });
+    }
+
+    const User = (await import("../models/User.js")).default;
+    await User.findByIdAndUpdate(req.user._id, {
+      $pull: { fcmTokens: token.trim() },
+    });
+
+    console.log(`[FCM] Unregistered token for user ${req.user._id}`);
+    res.json({ message: "FCM device token removed successfully" });
+  } catch (err) {
+    console.error("[FCM] Error removing device token:", err);
+    res.status(500).json({ error: "Failed to remove FCM device token" });
+  }
+});
+
+// DEVELOPMENT-ONLY Test Push Notification Endpoint
+router.post("/test-push", verifyToken, async (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ message: "Not found" });
+  }
+
+  try {
+    const { sendPushNotificationToUser } = await import("../services/firebaseAdminService.js");
+
+    const result = await sendPushNotificationToUser(req.user._id, {
+      title: "JoyEvents Test Notification",
+      body: "Firebase push notifications are working successfully.",
+      data: {
+        type: "general",
+        source: "test"
+      }
+    });
+
+    if (!result.success) {
+      if (result.reason?.includes("no registered FCM tokens") || result.reason?.includes("no valid FCM tokens")) {
+        return res.status(400).json({
+          success: false,
+          message: "No FCM token registered for this user"
+        });
+      }
+      return res.status(500).json({
+        success: false,
+        message: result.reason || result.error || "Failed to send test push notification"
+      });
+    }
+
+    console.log(`[FCM TEST] Push sent to current user (${req.user._id})`);
+    res.json({
+      success: true,
+      message: "Test push notification sent"
+    });
+  } catch (err) {
+    console.error("[FCM TEST ERROR]", err?.message || err);
+    res.status(500).json({
+      success: false,
+      message: "An unexpected error occurred while sending test push notification"
+    });
+  }
+});
+
 export default router;

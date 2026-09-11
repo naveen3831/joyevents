@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "408900535215",
+    "project_id": "joyevents-3b288",
+    "storage_bucket": "joyevents-3b288.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:408900535215:android:4eddcd5f947a81dbf3e55a",
+        "android_client_info": {
+          "package_name": "com.example.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_O0M2mgu8eQE0mi9RzXgFAWDKAsROzq4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
