@@ -59,8 +59,9 @@ class ApiService {
             _storage.delete(key: 'auth_token');
           }
 
-          // Automatic network endpoint fallback (e.g., switch between 127.0.0.1 USB & LAN IP)
-          if ((e.type == DioExceptionType.connectionError ||
+          // Automatic network endpoint fallback for DEBUG mode only (e.g., switch between 127.0.0.1 USB & LAN IP)
+          if (!kReleaseMode &&
+              (e.type == DioExceptionType.connectionError ||
                   e.type == DioExceptionType.connectionTimeout) &&
               e.requestOptions.extra['retried_fallback'] != true) {
             final currentBase = ApiConfig.baseUrl;

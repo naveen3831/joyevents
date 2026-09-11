@@ -1,19 +1,55 @@
+import 'package:flutter/foundation.dart';
+
 class ApiConfig {
-  // Base URL for physical Android USB & LAN development
-  // 127.0.0.1 works over USB with 'adb reverse tcp:5000 tcp:5000'
-  // 192.168.1.37 works over local Wi-Fi LAN
-  static String baseUrl = 'http://127.0.0.1:5000/api';
+  // Development URLs (Localhost / ADB reverse & LAN)
+  static const String devBaseUrl = 'http://127.0.0.1:5000/api';
   static const String lanBaseUrl = 'http://192.168.1.37:5000/api';
-  
+
+  // Production Live URLs
+  static const String prodBaseUrl = 'https://joyevents.speshway.site/api';
+  static const String prodWsUrl = 'wss://joyevents.speshway.site/ws';
+  static const String devWsUrl = 'ws://127.0.0.1:5000/ws';
+
+  // Internal dynamic override for debug mode only
+  static String _overrideBaseUrl = '';
+
+  static String get baseUrl {
+    if (kReleaseMode) {
+      return prodBaseUrl;
+    }
+    if (_overrideBaseUrl.isNotEmpty) {
+      return _overrideBaseUrl;
+    }
+    return devBaseUrl;
+  }
+
+  static set baseUrl(String value) {
+    if (!kReleaseMode) {
+      _overrideBaseUrl = value;
+    }
+  }
+
+  static String get wsUrl {
+    if (kReleaseMode) {
+      return prodWsUrl;
+    }
+    if (_overrideBaseUrl.contains('192.168.')) {
+      final uri = Uri.parse(_overrideBaseUrl);
+      return 'ws://${uri.host}:5000/ws';
+    }
+    return devWsUrl;
+  }
+
   // Storage key for user override IP if needed
   static const String keyCustomIp = 'custom_base_ip';
 
   // Base domain for resolving image URLs (strips /api)
   static String get mediaBaseUrl {
-    if (baseUrl.endsWith('/api')) {
-      return baseUrl.substring(0, baseUrl.length - 4);
+    final currentBase = baseUrl;
+    if (currentBase.endsWith('/api')) {
+      return currentBase.substring(0, currentBase.length - 4);
     }
-    return baseUrl;
+    return currentBase;
   }
 
   // Resolves image relative path e.g. "/uploads/abc.jpg" to full network URL
