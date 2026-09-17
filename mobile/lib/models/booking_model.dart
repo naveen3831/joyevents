@@ -20,6 +20,7 @@ class BookingModel {
   final String? eventId;
   final String? serviceId;
   final bool isEvent;
+  final String? image;
   final double price;
   final String status;
   final String paymentStatus;
@@ -40,6 +41,7 @@ class BookingModel {
     this.eventId,
     this.serviceId,
     required this.isEvent,
+    this.image,
     required this.price,
     required this.status,
     required this.paymentStatus,
@@ -89,6 +91,19 @@ class BookingModel {
       sId = json['serviceId'].toString();
     }
 
+    String? img;
+    if (json['event'] is Map && json['event']['image'] != null) {
+      img = json['event']['image']?.toString();
+    } else if (json['service'] is Map && json['service']['image'] != null) {
+      img = json['service']['image']?.toString();
+    } else if (json['image'] != null) {
+      img = json['image']?.toString();
+    } else if (json['eventImage'] != null) {
+      img = json['eventImage']?.toString();
+    } else if (json['serviceImage'] != null) {
+      img = json['serviceImage']?.toString();
+    }
+
     RatingInfo? ratingObj;
     if (json['rating'] is Map && json['rating']['score'] != null) {
       ratingObj = RatingInfo.fromJson(json['rating'] as Map<String, dynamic>);
@@ -100,6 +115,7 @@ class BookingModel {
       eventId: eId,
       serviceId: sId,
       isEvent: eId != null || (eName != null && eName.isNotEmpty),
+      image: img,
       price: (json['price'] is num)
           ? (json['price'] as num).toDouble()
           : double.tryParse(json['price']?.toString() ?? '0') ?? 0.0,

@@ -9,6 +9,7 @@ import '../../services/cart_service.dart';
 import '../../services/message_service.dart';
 
 import '../../widgets/app_button.dart';
+import '../../widgets/contact_bottom_sheet.dart';
 import '../../widgets/customer_app_bar.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/loading_view.dart';
@@ -90,70 +91,39 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
     context.push('/customer/checkout', extra: checkoutPayload);
   }
 
-  void _showEnquiryDialog() {
-    final messageController = TextEditingController();
-    showDialog(
+  void _showEnquiryDialog() async {
+    final result = await ContactBottomSheet.show(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Contact Provider (${_service?.createdByName ?? "Provider"})'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Send a direct message regarding this service.',
-              style: TextStyle(fontSize: 13, color: AppTheme.subtitleColor),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: messageController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                hintText: 'Type your message or custom requirements...',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (messageController.text.trim().isEmpty) return;
-              Navigator.pop(ctx);
-              try {
-                await _messageService.sendEnquiry(
-                  senderName: 'Customer',
-                  senderEmail: 'customer@example.com',
-                  message: messageController.text.trim(),
-                  merchantId: _service?.createdById,
-                  serviceId: _service?.id,
-                );
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Enquiry message sent to the service provider!'),
-                      backgroundColor: AppTheme.successColor,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Failed to send message: $e'),
-                      backgroundColor: AppTheme.errorColor,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Send Message'),
-          ),
-        ],
-      ),
+      title: 'Contact Provider',
+      personName: _service?.createdByName ?? "Provider",
+      description: 'Send a message regarding this service or share your custom requirements.',
+      hintText: 'Type your message or custom requirements...',
+      onSend: (message) async {
+        await _messageService.sendEnquiry(
+          senderName: 'Customer',
+          senderEmail: 'customer@example.com',
+          message: message,
+          merchantId: _service?.createdById,
+          serviceId: _service?.id,
+        );
+      },
     );
+
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enquiry message sent to the service provider!'),
+          backgroundColor: AppTheme.successColor,
+        ),
+      );
+    } else if (result is String && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to send message: $result'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+    }
   }
 
   @override

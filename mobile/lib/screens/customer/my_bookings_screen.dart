@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../config/app_theme.dart';
 import '../../models/booking_model.dart';
@@ -84,31 +85,52 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
       appBar: const CustomerAppBar(title: 'My Bookings'),
       body: Column(
         children: [
+          // Filter Tabs (Eventoza style - Pill Chips)
           Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             color: Colors.white,
             child: TabBar(
               controller: _tabController,
               onTap: (_) => setState(() {}),
-              labelColor: AppTheme.primaryColor,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              dividerColor: Colors.transparent,
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicator: BoxDecoration(
+                color: AppTheme.primaryColor,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              labelColor: Colors.white,
               unselectedLabelColor: AppTheme.subtitleColor,
-              indicatorColor: AppTheme.primaryColor,
-              indicatorWeight: 3,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              labelStyle: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+              unselectedLabelStyle: GoogleFonts.poppins(
+                fontWeight: FontWeight.w500,
+                fontSize: 13,
+              ),
               tabs: const [
-                Tab(text: 'All'),
-                Tab(text: 'Upcoming'),
-                Tab(text: 'Completed'),
-                Tab(text: 'Cancelled'),
+                Tab(height: 34, text: 'All'),
+                Tab(height: 34, text: 'Upcoming'),
+                Tab(height: 34, text: 'Completed'),
+                Tab(height: 34, text: 'Cancelled'),
               ],
             ),
           ),
+
+          // Bookings List Area
           Expanded(
             child: RefreshIndicator(
               onRefresh: _fetchBookings,
               child: _isLoading
                   ? const LoadingView(message: 'Loading your bookings...')
                   : _errorMessage != null
-                      ? ErrorView(message: _errorMessage!, onRetry: _fetchBookings)
+                      ? ErrorView(
+                          message: _errorMessage!,
+                          onRetry: _fetchBookings,
+                        )
                       : TabBarView(
                           controller: _tabController,
                           children: List.generate(4, (index) {
@@ -117,13 +139,15 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                             if (filteredList.isEmpty) {
                               return const EmptyState(
                                 title: 'No Bookings Found',
-                                message: 'You have no bookings in this category.',
+                                message:
+                                    'You have no bookings in this category.',
                                 icon: Icons.confirmation_number_outlined,
                               );
                             }
 
                             return ListView.builder(
-                              padding: const EdgeInsets.all(16),
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 12, 16, 80),
                               itemCount: filteredList.length,
                               itemBuilder: (context, idx) {
                                 final booking = filteredList[idx];

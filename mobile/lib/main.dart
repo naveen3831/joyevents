@@ -5,11 +5,15 @@ import 'package:flutter/services.dart';
 
 import 'config/app_routes.dart';
 import 'config/app_theme.dart';
+import 'services/app_lifecycle_service.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize App Lifecycle & Battery Optimization Observer
+  AppLifecycleService().initialize();
 
   // Safely initialize Firebase Core & FCM Service
   try {

@@ -7,6 +7,7 @@ import '../../models/event_model.dart';
 import '../../services/event_service.dart';
 import '../../services/message_service.dart';
 import '../../widgets/app_button.dart';
+import '../../widgets/contact_bottom_sheet.dart';
 import '../../widgets/customer_app_bar.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/loading_view.dart';
@@ -89,70 +90,39 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     return _event!.price * _quantity;
   }
 
-  void _showEnquiryDialog() {
-    final messageController = TextEditingController();
-    showDialog(
+  void _showEnquiryDialog() async {
+    final result = await ContactBottomSheet.show(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Contact Organiser (${_event?.createdByName ?? "Organiser"})'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Send a direct message regarding this event to the organiser.',
-              style: TextStyle(fontSize: 13, color: AppTheme.subtitleColor),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: messageController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                hintText: 'Type your message or questions here...',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (messageController.text.trim().isEmpty) return;
-              Navigator.pop(ctx);
-              try {
-                await _messageService.sendEnquiry(
-                  senderName: 'Customer',
-                  senderEmail: 'customer@example.com',
-                  message: messageController.text.trim(),
-                  merchantId: _event?.createdById,
-                  eventId: _event?.id,
-                );
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Enquiry message sent to the organiser!'),
-                      backgroundColor: AppTheme.successColor,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Failed to send message: $e'),
-                      backgroundColor: AppTheme.errorColor,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Send Message'),
-          ),
-        ],
-      ),
+      title: 'Contact Organiser',
+      personName: _event?.createdByName ?? "Organiser",
+      description: 'Send a message regarding this event to the organiser.',
+      hintText: 'Type your message or questions here...',
+      onSend: (message) async {
+        await _messageService.sendEnquiry(
+          senderName: 'Customer',
+          senderEmail: 'customer@example.com',
+          message: message,
+          merchantId: _event?.createdById,
+          eventId: _event?.id,
+        );
+      },
     );
+
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enquiry message sent to the organiser!'),
+          backgroundColor: AppTheme.successColor,
+        ),
+      );
+    } else if (result is String && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to send message: $result'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+    }
   }
 
   void _proceedToCheckout() {

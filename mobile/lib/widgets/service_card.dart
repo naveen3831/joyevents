@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../config/api_config.dart';
 import '../config/app_theme.dart';
 import '../models/service_model.dart';
 
+/// Redesigned compact mobile ServiceCard.
+///
+/// Hierarchy (Top → Bottom):
+///   1. Image (105px, cover) + Category Badge (top-left)
+///   2. Service Title (max 2 lines)
+///   3. Short Description preview (max 2 lines, single flow text, no bullet points)
+///   4. From ₹Price
+///   5. Book Now Gradient Button (Purple → Pink, 40px height)
 class ServiceCard extends StatelessWidget {
   final ServiceModel service;
   final VoidCallback onTap;
@@ -13,14 +22,40 @@ class ServiceCard extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Extracts a single clean short description string preview.
+  /// Removes bullet points, newlines, or dummy/N/A values.
+  String? _getShortDescription(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return null;
+    final clean = trimmed
+        .replaceAll(RegExp(r'[\n;•\r]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (clean.isEmpty ||
+        clean.toLowerCase() == 'n/a' ||
+        clean.toLowerCase() == 'null' ||
+        clean.toLowerCase() == 'undefined' ||
+        clean.toLowerCase() == 'no description available') {
+      return null;
+    }
+    return clean;
+  }
+
+  /// Formats currency: 7999 -> "7,999"
+  String _formatCurrency(double price) {
+    final numStr = price.toStringAsFixed(0);
+    final RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+    return numStr.replaceAllMapped(reg, (Match m) => '${m[1]},');
+  }
+
   Widget _buildImagePlaceholder() {
     return Container(
-      color: Colors.purple.shade50,
-      child: Center(
+      color: AppTheme.tintVioletBg,
+      child: const Center(
         child: Icon(
           Icons.design_services_outlined,
-          size: 36,
-          color: Colors.purple.shade300,
+          size: 30,
+          color: AppTheme.primaryColor,
         ),
       ),
     );
@@ -29,25 +64,23 @@ class ServiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageUrl = ApiConfig.resolveImageUrl(service.mainImage);
-    final providerName = service.createdByName != null && service.createdByName!.isNotEmpty
-        ? service.createdByName!
-        : (service.location.isNotEmpty ? service.location : 'Provider');
+    final shortDesc = _getShortDescription(service.description);
 
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppTheme.borderColor, width: 1),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF060B28).withOpacity(0.06),
-                blurRadius: 12,
+                color: const Color(0xFF060B28).withOpacity(0.05),
+                blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
             ],
@@ -55,128 +88,159 @@ class ServiceCard extends StatelessWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              // Service Image with Category Badge
-              Stack(
-                children: [
-                  AspectRatio(
-                    aspectRatio: 1.5,
-                    child: imageUrl.isNotEmpty
+              // 1. IMAGE WITH CATEGORY BADGE (Fixed 105px height)
+              SizedBox(
+                height: 105,
+                width: double.infinity,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    imageUrl.isNotEmpty
                         ? Image.network(
                             imageUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildImagePlaceholder(),
                           )
                         : _buildImagePlaceholder(),
-                  ),
 
-                  // Category Badge (Top-Left Overlay)
-                  Positioned(
-                    top: 6,
-                    left: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppTheme.tintPinkBg,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: AppTheme.tintPinkFg.withOpacity(0.3),
+                    // Category Badge (Top-Left)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
                         ),
-                      ),
-                      child: Text(
-                        service.category,
-                        style: const TextStyle(
-                          color: AppTheme.tintPinkFg,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              // Service Information Content (Tightly Grouped)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Service Title
-                    Text(
-                      service.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textColor,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-
-                    // Provider Row
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.storefront_outlined,
-                          size: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            providerName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade600,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.92),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: AppTheme.primaryColor.withOpacity(0.2),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 4,
                             ),
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-
-                    // Price Row (Directly below provider)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          '₹${service.price.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
+                        child: Text(
+                          service.category,
+                          style: GoogleFonts.poppins(
                             color: AppTheme.primaryColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        if (service.averageRating > 0)
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.star_rounded, size: 12, color: Colors.amber),
-                              const SizedBox(width: 2),
-                              Text(
-                                '${service.averageRating}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade700,
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
               ),
 
+              // 2. CARD CONTENT
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Top Section: Title & Short Description
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            service.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.textColor,
+                              height: 1.2,
+                            ),
+                          ),
+                          if (shortDesc != null) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              shortDesc,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: AppTheme.subtitleColor,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+
+                      // Bottom Section: Price & Book Now CTA Button
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'From ₹${_formatCurrency(service.price)}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            height: 40,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.gradientPrimary,
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryColor.withOpacity(0.22),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: onTap,
+                                borderRadius: BorderRadius.circular(8),
+                                splashColor: Colors.white.withOpacity(0.15),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.shopping_bag_outlined,
+                                      size: 14,
+                                      color: Colors.white,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      'Book Now',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -184,5 +248,3 @@ class ServiceCard extends StatelessWidget {
     );
   }
 }
-
-
