@@ -1,14 +1,14 @@
 import 'package:flutter/foundation.dart';
 
 class ApiConfig {
-  // Development URLs (Localhost / ADB reverse & LAN)
-  static const String devBaseUrl = 'http://127.0.0.1:5000/api';
-  static const String lanBaseUrl = 'http://192.168.1.37:5000/api';
+  // Development URLs (Configured for live backend testing)
+  static const String devBaseUrl = 'https://joyevents.speshway.site/api';
+  static const String lanBaseUrl = 'https://joyevents.speshway.site/api';
 
   // Production Live URLs
   static const String prodBaseUrl = 'https://joyevents.speshway.site/api';
   static const String prodWsUrl = 'wss://joyevents.speshway.site/ws';
-  static const String devWsUrl = 'ws://127.0.0.1:5000/ws';
+  static const String devWsUrl = 'wss://joyevents.speshway.site/ws';
 
   // Internal dynamic override for debug mode only
   static String _overrideBaseUrl = '';
@@ -20,7 +20,7 @@ class ApiConfig {
     if (_overrideBaseUrl.isNotEmpty) {
       return _overrideBaseUrl;
     }
-    return devBaseUrl;
+    return prodBaseUrl;
   }
 
   static set baseUrl(String value) {

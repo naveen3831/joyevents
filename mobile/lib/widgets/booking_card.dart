@@ -15,14 +15,21 @@ class BookingCard extends StatelessWidget {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'confirmed':
-      case 'completed':
         return AppTheme.successColor;
+      case 'completed':
+        return AppTheme.primaryColor; // purple — matches React
       case 'pending_approval':
       case 'awaiting_payment':
+      case 'pending':
         return AppTheme.warningColor;
       case 'cancelled':
       case 'rejected':
         return AppTheme.errorColor;
+      case 'cancellation_requested':
+        return const Color(0xFFF59E0B); // amber
+      case 'refunded':
+      case 'refund_pending':
+        return AppTheme.accentColor; // pink
       default:
         return AppTheme.subtitleColor;
     }
@@ -67,14 +74,19 @@ class BookingCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: booking.isEvent
-                          ? AppTheme.primaryColor.withOpacity(0.1)
-                          : AppTheme.accentColor.withOpacity(0.1),
+                          ? AppTheme.tintVioletBg
+                          : AppTheme.tintPinkBg,
                       borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: booking.isEvent
+                            ? AppTheme.primaryColor.withOpacity(0.25)
+                            : AppTheme.tintPinkFg.withOpacity(0.25),
+                      ),
                     ),
                     child: Text(
                       booking.isEvent ? 'Event' : 'Service',
                       style: TextStyle(
-                        color: booking.isEvent ? AppTheme.primaryColor : AppTheme.accentColor,
+                        color: booking.isEvent ? AppTheme.primaryColor : AppTheme.tintPinkFg,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../config/app_theme.dart';
 import '../../services/auth_service.dart';
@@ -57,7 +58,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = e.toString().replaceFirst('Exception: ', '');
         });
       }
     } finally {
@@ -72,10 +73,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20,
+              color: AppTheme.textColor),
           onPressed: () => context.pop(),
         ),
       ),
@@ -87,35 +91,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Create Account',
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
                     color: AppTheme.textColor,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                const SizedBox(height: 6),
+                Text(
                   'Join JoyEvents to explore & book amazing events',
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
                     color: AppTheme.subtitleColor,
+                    height: 1.4,
                   ),
                 ),
                 const SizedBox(height: 28),
                 if (_errorMessage != null) ...[
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
-                      color: AppTheme.errorColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
+                      color: AppTheme.errorColor.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: AppTheme.errorColor.withOpacity(0.35)),
                     ),
-                    child: Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: AppTheme.errorColor, fontSize: 13),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.error_outline_rounded,
+                            color: AppTheme.errorColor, size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: GoogleFonts.poppins(
+                              color: AppTheme.errorColor,
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -189,17 +210,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'Already have an account? ',
-                      style: TextStyle(color: AppTheme.subtitleColor),
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: AppTheme.subtitleColor,
+                      ),
                     ),
                     GestureDetector(
                       onTap: () => context.pop(),
-                      child: const Text(
+                      child: Text(
                         'Sign In',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
                           color: AppTheme.primaryColor,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),

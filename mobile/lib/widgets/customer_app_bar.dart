@@ -24,6 +24,12 @@ class CustomerAppBar extends StatelessWidget implements PreferredSizeWidget {
     final cartService = CartService();
 
     return AppBar(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(height: 1, color: AppTheme.borderColor),
+      ),
       leading: showBack
           ? IconButton(
               icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
@@ -64,7 +70,7 @@ class CustomerAppBar extends StatelessWidget implements PreferredSizeWidget {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: const BoxDecoration(
-                            color: AppTheme.errorColor,
+                            color: AppTheme.accentColor,
                             shape: BoxShape.circle,
                           ),
                           constraints: const BoxConstraints(

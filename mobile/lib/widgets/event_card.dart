@@ -76,15 +76,23 @@ class EventCard extends StatelessWidget {
 
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200, width: 1),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppTheme.borderColor, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF060B28).withOpacity(0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            color: Colors.white,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,10 +117,10 @@ class EventCard extends StatelessWidget {
                     top: 6,
                     left: 6,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(4),
+                        gradient: AppTheme.gradientPrimary,
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         event.category,

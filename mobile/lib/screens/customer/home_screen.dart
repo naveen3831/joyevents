@@ -109,16 +109,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppTheme.primaryColor, AppTheme.accentColor],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  gradient: AppTheme.gradientPrimaryDiagonal,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withOpacity(0.3),
-                      blurRadius: 12,
+                      color: AppTheme.primaryColor.withOpacity(0.25),
+                      blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
                   ],
@@ -246,10 +242,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                         selectedColor: AppTheme.primaryColor,
+                        backgroundColor: AppTheme.inputFillColor,
                         labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : AppTheme.textColor,
+                          color: isSelected ? Colors.white : AppTheme.subtitleColor,
                           fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                        side: BorderSide(
+                          color: isSelected ? AppTheme.primaryColor : AppTheme.borderColor,
                         ),
                         onSelected: (_) {
                           setState(() {

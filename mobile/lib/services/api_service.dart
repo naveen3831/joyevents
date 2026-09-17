@@ -37,6 +37,7 @@ class ApiService {
 
           // Safe development logging (URL & method only, no passwords/tokens)
           if (kDebugMode) {
+            debugPrint('[ApiConfig] baseUrl: ${ApiConfig.baseUrl}');
             debugPrint('[HTTP REQUEST] ${options.method} ${options.uri}');
           }
 
@@ -57,33 +58,6 @@ class ApiService {
           if (e.response?.statusCode == 401) {
             // Token expired or invalid — clear token
             _storage.delete(key: 'auth_token');
-          }
-
-          // Automatic network endpoint fallback for DEBUG mode only (e.g., switch between 127.0.0.1 USB & LAN IP)
-          if (!kReleaseMode &&
-              (e.type == DioExceptionType.connectionError ||
-                  e.type == DioExceptionType.connectionTimeout) &&
-              e.requestOptions.extra['retried_fallback'] != true) {
-            final currentBase = ApiConfig.baseUrl;
-            final fallbackBase = currentBase.contains('127.0.0.1')
-                ? ApiConfig.lanBaseUrl
-                : 'http://127.0.0.1:5000/api';
-
-            if (kDebugMode) {
-              debugPrint(
-                  '[HTTP FALLBACK] Connection failed on $currentBase. Attempting fallback to $fallbackBase...');
-            }
-            ApiConfig.baseUrl = fallbackBase;
-
-            try {
-              final opts = e.requestOptions;
-              opts.baseUrl = fallbackBase;
-              opts.extra['retried_fallback'] = true;
-              final response = await dio.fetch(opts);
-              return handler.resolve(response);
-            } catch (_) {
-              // Fallback failed as well, proceed with original error handler
-            }
           }
 
           return handler.next(e);
@@ -108,9 +82,8 @@ class ApiService {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.receiveTimeout:
         case DioExceptionType.sendTimeout:
-          return 'Connection timed out. Please check your network connection.';
         case DioExceptionType.connectionError:
-          return 'Unable to connect to server. Ensure backend is running and reachable.';
+          return 'Unable to connect. Please try again.';
         default:
           if (error.response?.statusCode == 401) {
             return 'Session expired. Please log in again.';
