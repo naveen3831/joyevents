@@ -37,6 +37,9 @@ const CustomerBrowseEvents = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [favMap, setFavMap] = useState({});
+    // favOrder: array of eventIds ordered most-recently-favorited first.
+    // Used to sort favorites to the top and among themselves.
+    const [favOrder, setFavOrder] = useState([]);
 
     // Quick Add to Cart State
     const [selectedEventForCart, setSelectedEventForCart] = useState(null);
@@ -108,11 +111,16 @@ const CustomerBrowseEvents = () => {
         apiGetFavorites(token)
             .then((res) => {
             const map = {};
+            const order = [];
+            // favorites are returned newest-first from the backend
             (res.favorites || []).forEach((f) => {
-                if (f.type === "event" && f.event?._id)
+                if (f.type === "event" && f.event?._id) {
                     map[f.event._id] = f._id;
+                    order.push(f.event._id);
+                }
             });
             setFavMap(map);
+            setFavOrder(order);
         })
             .catch(() => { });
     }, [isLoggedIn, token, role]);
@@ -136,6 +144,7 @@ const CustomerBrowseEvents = () => {
         setPriceMax("");
     };
     const filtered = useMemo(() => {
+        // Step 1: Filter by search / category / type / price
         let list = events.filter(e => {
             const q = search.toLowerCase();
             const matchSearch = !q ||
@@ -149,6 +158,7 @@ const CustomerBrowseEvents = () => {
             const matchMax = !priceMax || price <= Number(priceMax);
             return matchSearch && matchCat && matchType && matchMin && matchMax;
         });
+        // Step 2: Apply user-selected sort (applies within each group below)
         switch (sortBy) {
             case "date-asc":
                 list = [...list].sort((a, b) => new Date(a.datetime || a.date).getTime() - new Date(b.datetime || b.date).getTime());
@@ -166,8 +176,23 @@ const CustomerBrowseEvents = () => {
                 list = [...list].sort((a, b) => (a.title || "").localeCompare(b.title || ""));
                 break;
         }
+        // Step 3: Favorite-first ordering.
+        // Partition into favorited and non-favorited events, then concatenate.
+        // Among favorites: ordered by favOrder (index 0 = most recently favorited).
+        // Among non-favorites: preserve the sorted order from Step 2.
+        if (Object.keys(favMap).length > 0) {
+            const favs = list.filter(e => favMap[e._id]);
+            const nonFavs = list.filter(e => !favMap[e._id]);
+            // Sort favorites by recency (favOrder[0] is most recently favorited)
+            const favOrderIndex = (id) => {
+                const idx = favOrder.indexOf(id);
+                return idx === -1 ? Infinity : idx;
+            };
+            favs.sort((a, b) => favOrderIndex(a._id) - favOrderIndex(b._id));
+            list = [...favs, ...nonFavs];
+        }
         return list;
-    }, [events, search, selectedCategory, selectedType, sortBy, priceMin, priceMax]);
+    }, [events, search, selectedCategory, selectedType, sortBy, priceMin, priceMax, favMap, favOrder]);
     const getCartEventTotalRaw = () => {
         if (!selectedEventForCart)
             return 0;
@@ -299,17 +324,32 @@ const CustomerBrowseEvents = () => {
         const favId = favMap[eventId];
         try {
             if (favId) {
-                await apiRemoveFavorite(favId, token);
+                // Optimistic UI update — remove from favorites immediately
                 setFavMap(prev => { const n = { ...prev }; delete n[eventId]; return n; });
+                setFavOrder(prev => prev.filter(id => id !== eventId));
+                await apiRemoveFavorite(favId, token);
                 toast.success("Removed from favorites");
             }
             else {
+                // Optimistic UI update — move to top immediately
+                // We'll set a temporary placeholder favId; it gets replaced on success
+                setFavMap(prev => ({ ...prev, [eventId]: "pending" }));
+                setFavOrder(prev => [eventId, ...prev.filter(id => id !== eventId)]);
                 const res = await apiAddFavorite(eventId, null, "event", token);
+                // Replace placeholder with real favoriteId from backend
                 setFavMap(prev => ({ ...prev, [eventId]: res.favorite._id }));
                 toast.success("Saved to favorites");
             }
         }
         catch {
+            // Revert optimistic update on error
+            if (favId) {
+                setFavMap(prev => ({ ...prev, [eventId]: favId }));
+                setFavOrder(prev => prev.includes(eventId) ? prev : [eventId, ...prev]);
+            } else {
+                setFavMap(prev => { const n = { ...prev }; delete n[eventId]; return n; });
+                setFavOrder(prev => prev.filter(id => id !== eventId));
+            }
             toast.error("Failed to update favorites");
         }
     };
