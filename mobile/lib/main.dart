@@ -2,6 +2,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'config/app_routes.dart';
 import 'config/app_theme.dart';
@@ -37,7 +39,7 @@ void main() async {
   runApp(JoyEventsApp(authService: authService));
 }
 
-class JoyEventsApp extends StatelessWidget {
+class JoyEventsApp extends StatefulWidget {
   final AuthService authService;
 
   const JoyEventsApp({
@@ -46,14 +48,30 @@ class JoyEventsApp extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final router = AppRoutes.createRouter(authService);
+  State<JoyEventsApp> createState() => _JoyEventsAppState();
+}
 
-    return MaterialApp.router(
-      title: 'JoyEvents',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      routerConfig: router,
+class _JoyEventsAppState extends State<JoyEventsApp> {
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    _router = AppRoutes.createRouter(widget.authService);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<AuthService>.value(
+      value: widget.authService,
+      child: MaterialApp.router(
+        title: 'JoyEvents',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        routerConfig: _router,
+      ),
     );
   }
 }
+
+

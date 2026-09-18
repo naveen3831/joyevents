@@ -30,11 +30,11 @@ class AuthService extends ChangeNotifier {
       final token = await _storage.read(key: 'auth_token');
       if (token != null && token.isNotEmpty) {
         final user = await getMe();
-        if (user != null && user.isCustomer) {
+        if (user != null && (user.isCustomer || user.isMerchant)) {
           _currentUser = user;
           FirebaseNotificationService().registerTokenWithBackend();
         } else {
-          // Non-customer roles or invalid session cleared
+          // Unknown/unsupported roles — clear session
           await logout();
         }
       }
@@ -64,8 +64,8 @@ class AuthService extends ChangeNotifier {
 
       final user = UserModel.fromJson(userData);
 
-      if (!user.isCustomer) {
-        throw Exception('Access restricted: Customer login only');
+      if (!user.isCustomer && !user.isMerchant) {
+        throw Exception('Access restricted: This app is for customers and merchants only.');
       }
 
       await _storage.write(key: 'auth_token', value: token);
@@ -189,12 +189,25 @@ class AuthService extends ChangeNotifier {
 
   // Logout
   Future<void> logout() async {
+    if (kDebugMode) {
+      debugPrint('[LOGOUT] Logout started. Setting currentUser = null & notifying listeners.');
+    }
+    _currentUser = null;
+    notifyListeners();
+
     try {
       await FirebaseNotificationService().unregisterTokenFromBackend();
       await _storage.delete(key: 'auth_token');
       await _storage.delete(key: 'user_data');
-    } catch (_) {}
-    _currentUser = null;
-    notifyListeners();
+      if (kDebugMode) {
+        debugPrint('[LOGOUT] Tokens and cached user data cleared from storage successfully.');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[LOGOUT WARNING] Error during token removal: $e');
+      }
+    }
   }
 }
+
+

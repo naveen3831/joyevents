@@ -28,7 +28,9 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () async {
               Navigator.pop(ctx);
               await AuthService().logout();
-              // GoRouter redirect guard will handle navigating to /login
+              if (ctx.mounted) {
+                ctx.go('/login');
+              }
             },
             child: const Text('Logout'),
           ),
