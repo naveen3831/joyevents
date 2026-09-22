@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../config/api_config.dart';
 import '../../config/app_theme.dart';
 import '../../models/event_model.dart';
+import '../../services/auth_service.dart';
 import '../../services/event_service.dart';
 import '../../services/message_service.dart';
 import '../../widgets/app_button.dart';
@@ -91,6 +93,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   void _showEnquiryDialog() async {
+    final user = Provider.of<AuthService>(context, listen: false).currentUser;
     final result = await ContactBottomSheet.show(
       context: context,
       title: 'Contact Organiser',
@@ -99,11 +102,12 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       hintText: 'Type your message or questions here...',
       onSend: (message) async {
         await _messageService.sendEnquiry(
-          senderName: 'Customer',
-          senderEmail: 'customer@example.com',
+          senderName: user?.name ?? 'Customer',
+          senderEmail: user?.email ?? '',
           message: message,
           merchantId: _event?.createdById,
           eventId: _event?.id,
+          customerId: user?.id,
         );
       },
     );

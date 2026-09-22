@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,10 @@ import 'package:image_picker/image_picker.dart';
 import '../../config/app_theme.dart';
 import '../../config/api_config.dart';
 import '../../services/merchant_service.dart';
+import '../../widgets/location_autocomplete.dart';
+import '../../widgets/event_schedule_picker.dart';
+import '../../widgets/ai_title_suggestions_bottom_sheet.dart';
+import '../../widgets/ai_description_modal.dart';
 
 class CreateEditEventScreen extends StatefulWidget {
   final String? eventId;
@@ -30,20 +35,58 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
   final _picker = ImagePicker();
 
   bool _loading = false;
+  bool _loadingCategories = false;
+  bool _loadingCatAI = false;
 
-  // Form fields
+  // Form controllers
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _locationCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _maxAttendeesCtrl = TextEditingController();
+
+  // Session & Ticket Controllers for Ticketed Events
+  bool _hasMultipleSessions = false;
+  final _silverPriceCtrl = TextEditingController();
+  final _silverQtyCtrl = TextEditingController(text: '100');
+  final _goldPriceCtrl = TextEditingController();
+  final _goldQtyCtrl = TextEditingController(text: '100');
+  final _diamondPriceCtrl = TextEditingController();
+  final _diamondQtyCtrl = TextEditingController(text: '100');
+
+  // Day / Night Session Controllers
+  final _dayTimeCtrl = TextEditingController(text: '09:00 AM');
+  final _daySilverPriceCtrl = TextEditingController();
+  final _daySilverQtyCtrl = TextEditingController(text: '100');
+  final _dayGoldPriceCtrl = TextEditingController();
+  final _dayGoldQtyCtrl = TextEditingController(text: '100');
+  final _dayDiamondPriceCtrl = TextEditingController();
+  final _dayDiamondQtyCtrl = TextEditingController(text: '100');
+
+  final _nightTimeCtrl = TextEditingController(text: '06:00 PM');
+  final _nightSilverPriceCtrl = TextEditingController();
+  final _nightSilverQtyCtrl = TextEditingController(text: '100');
+  final _nightGoldPriceCtrl = TextEditingController();
+  final _nightGoldQtyCtrl = TextEditingController(text: '100');
+  final _nightDiamondPriceCtrl = TextEditingController();
+  final _nightDiamondQtyCtrl = TextEditingController(text: '100');
+
+  // Configuration & Type States
   String _category = 'Music';
-  String _eventType = 'Ticketed';
-  DateTime? _selectedDate;
-  TimeOfDay? _selectedTime;
+  String _eventType = 'fullService'; // 'fullService' or 'ticketed'
   File? _imageFile;
 
-  final List<String> _categories = [
+  // Schedule & Duration States
+  String _durationType = 'single'; // 'single' or 'multiple'
+  DateTime? _startDate;
+  DateTime? _endDate;
+  TimeOfDay? _startTime;
+  TimeOfDay? _endTime;
+  bool _hasCustomSchedule = false;
+  List<Map<String, dynamic>> _dailySchedule = [];
+
+  // Dynamic Categories from backend
+  List<String> _categories = [
     'Music',
     'Sports',
     'Food & Drink',
@@ -52,14 +95,45 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
     'Technology',
     'Health & Wellness',
     'Education',
+    'General',
     'Other'
   ];
-  final List<String> _eventTypes = ['Ticketed', 'Full Service'];
+
+  // AI Suggestions
+  String? _aiSuggestedCategory;
+  List<String> _aiSuggestedTags = [];
 
   @override
   void initState() {
     super.initState();
+    _loadCategories();
     _prefillFromInitialData();
+  }
+
+  Future<void> _loadCategories() async {
+    setState(() => _loadingCategories = true);
+    try {
+      final list = await _merchantService.getCategories(type: 'event');
+      if (mounted && list.isNotEmpty) {
+        final names = list
+            .map((e) => (e is Map) ? e['name']?.toString() : e.toString())
+            .whereType<String>()
+            .where((e) => e.isNotEmpty)
+            .toList();
+        if (names.isNotEmpty) {
+          setState(() {
+            _categories = names.toSet().toList();
+            if (!_categories.contains(_category)) {
+              _category = _categories.first;
+            }
+          });
+        }
+      }
+    } catch (_) {
+      // Graceful fallback to default categories
+    } finally {
+      if (mounted) setState(() => _loadingCategories = false);
+    }
   }
 
   void _prefillFromInitialData() {
@@ -70,20 +144,76 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
     _locationCtrl.text = d['location']?.toString() ?? '';
     _priceCtrl.text = d['price']?.toString() ?? '';
     _maxAttendeesCtrl.text = d['maxAttendees']?.toString() ?? '';
-    if (d['category'] != null && _categories.contains(d['category'].toString())) {
+
+    if (d['category'] != null) {
       _category = d['category'].toString();
     }
-    if (d['eventType'] != null && _eventTypes.contains(d['eventType'].toString())) {
-      _eventType = d['eventType'].toString();
-    }
-    final dateStr = d['date']?.toString() ?? '';
-    if (dateStr.isNotEmpty) {
+
+    final rawEventType = d['eventType']?.toString() ?? 'fullService';
+    _eventType = (rawEventType.toLowerCase() == 'ticketed') ? 'ticketed' : 'fullService';
+
+    _durationType = d['durationType']?.toString() ?? 'single';
+    _hasCustomSchedule = d['hasCustomSchedule'] == true || d['hasCustomSchedule']?.toString() == 'true';
+
+    final startStr = d['startDate']?.toString() ?? d['date']?.toString() ?? '';
+    if (startStr.isNotEmpty) {
       try {
-        final dt = DateTime.parse(dateStr);
-        _selectedDate = dt;
-        _selectedTime = TimeOfDay(hour: dt.hour, minute: dt.minute);
+        _startDate = DateTime.parse(startStr);
       } catch (_) {}
     }
+
+    final endStr = d['endDate']?.toString() ?? '';
+    if (endStr.isNotEmpty) {
+      try {
+        _endDate = DateTime.parse(endStr);
+      } catch (_) {}
+    }
+
+    final startT = d['startTime']?.toString() ?? d['time']?.toString() ?? '';
+    if (startT.isNotEmpty) {
+      _startTime = _parseTimeOfDay(startT);
+    }
+
+    final endT = d['endTime']?.toString() ?? '';
+    if (endT.isNotEmpty) {
+      _endTime = _parseTimeOfDay(endT);
+    }
+
+    // Prefill tickets if present
+    if (d['tickets'] is List && (d['tickets'] as List).isNotEmpty) {
+      final tList = d['tickets'] as List;
+      for (final t in tList) {
+        if (t is Map) {
+          final type = t['type']?.toString().toLowerCase();
+          final p = t['price']?.toString() ?? '';
+          final a = t['available']?.toString() ?? '100';
+          if (type == 'silver') {
+            _silverPriceCtrl.text = p;
+            _silverQtyCtrl.text = a;
+          } else if (type == 'gold') {
+            _goldPriceCtrl.text = p;
+            _goldQtyCtrl.text = a;
+          } else if (type == 'diamond') {
+            _diamondPriceCtrl.text = p;
+            _diamondQtyCtrl.text = a;
+          }
+        }
+      }
+    }
+  }
+
+  TimeOfDay? _parseTimeOfDay(String timeStr) {
+    try {
+      if (timeStr.contains(':')) {
+        final parts = timeStr.split(':');
+        int hour = int.parse(parts[0]);
+        int minute = int.parse(parts[1].split(' ')[0]);
+        if (timeStr.toLowerCase().contains('pm') && hour < 12) hour += 12;
+        if (timeStr.toLowerCase().contains('am') && hour == 12) hour = 0;
+        return TimeOfDay(hour: hour, minute: minute);
+      }
+    } catch (_) {}
+    return null;
   }
 
   @override
@@ -93,37 +223,27 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
     _locationCtrl.dispose();
     _priceCtrl.dispose();
     _maxAttendeesCtrl.dispose();
+    _silverPriceCtrl.dispose();
+    _silverQtyCtrl.dispose();
+    _goldPriceCtrl.dispose();
+    _goldQtyCtrl.dispose();
+    _diamondPriceCtrl.dispose();
+    _diamondQtyCtrl.dispose();
+    _dayTimeCtrl.dispose();
+    _daySilverPriceCtrl.dispose();
+    _daySilverQtyCtrl.dispose();
+    _dayGoldPriceCtrl.dispose();
+    _dayGoldQtyCtrl.dispose();
+    _dayDiamondPriceCtrl.dispose();
+    _dayDiamondQtyCtrl.dispose();
+    _nightTimeCtrl.dispose();
+    _nightSilverPriceCtrl.dispose();
+    _nightSilverQtyCtrl.dispose();
+    _nightGoldPriceCtrl.dispose();
+    _nightGoldQtyCtrl.dispose();
+    _nightDiamondPriceCtrl.dispose();
+    _nightDiamondQtyCtrl.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? DateTime.now().add(const Duration(days: 1)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppTheme.primaryColor),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked != null) setState(() => _selectedDate = picked);
-  }
-
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime ?? const TimeOfDay(hour: 18, minute: 0),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppTheme.primaryColor),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked != null) setState(() => _selectedTime = picked);
   }
 
   Future<void> _pickImage() async {
@@ -147,47 +267,190 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
         onSelect: (selected) {
           setState(() => _category = selected);
         },
+        onAddNew: _showAddCategoryDialog,
       ),
     );
   }
 
+  Future<void> _showAddCategoryDialog() async {
+    final textCtrl = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Create New Category', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16)),
+        content: TextField(
+          controller: textCtrl,
+          decoration: const InputDecoration(
+            hintText: 'e.g. Concert, Workshop, Festival',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newName = textCtrl.text.trim();
+              if (newName.isNotEmpty) {
+                Navigator.pop(ctx);
+                try {
+                  await _merchantService.createCategory(newName, type: 'event');
+                  await _loadCategories();
+                  setState(() => _category = newName);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Category "$newName" created!'), backgroundColor: AppTheme.successColor),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(e.toString()), backgroundColor: AppTheme.errorColor),
+                    );
+                  }
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor, foregroundColor: Colors.white),
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _fetchCategoryAndTagsAI() async {
+    setState(() => _loadingCatAI = true);
+    try {
+      final res = await _merchantService.generateAISuggestions({
+        'type': 'category_tags',
+        'title': _titleCtrl.text.trim(),
+        'currentDescription': _descCtrl.text.trim(),
+      });
+      if (mounted) {
+        setState(() {
+          _aiSuggestedCategory = res['category']?.toString();
+          if (res['tags'] is List) {
+            _aiSuggestedTags = (res['tags'] as List).map((e) => e.toString()).toList();
+          }
+          _loadingCatAI = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('AI analyzed content and generated suggestions!'), backgroundColor: AppTheme.successColor),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loadingCatAI = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to generate suggestions: ${e.toString()}'), backgroundColor: AppTheme.errorColor),
+        );
+      }
+    }
+  }
+
+  String _formatDateIso(DateTime? dt) {
+    if (dt == null) return '';
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+  }
+
+  String _formatTimeStr(TimeOfDay? time) {
+    if (time == null) return '09:00';
+    final h = time.hour.toString().padLeft(2, '0');
+    final m = time.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedDate == null) {
+    if (_startDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select an event date'),
-          backgroundColor: AppTheme.errorColor,
-        ),
+        const SnackBar(content: Text('Please select an event start date'), backgroundColor: AppTheme.errorColor),
       );
       return;
     }
 
+    if (_eventType == 'ticketed') {
+      if (!_hasMultipleSessions) {
+        if (_silverPriceCtrl.text.trim().isEmpty || double.tryParse(_silverPriceCtrl.text.trim()) == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please enter valid Silver ticket price'), backgroundColor: AppTheme.errorColor),
+          );
+          return;
+        }
+      }
+    }
+
     setState(() => _loading = true);
     try {
-      final dt = DateTime(
-        _selectedDate!.year,
-        _selectedDate!.month,
-        _selectedDate!.day,
-        _selectedTime?.hour ?? 0,
-        _selectedTime?.minute ?? 0,
-      );
+      final startDateStr = _formatDateIso(_startDate);
+      final endDateStr = _durationType == 'multiple' ? _formatDateIso(_endDate ?? _startDate) : startDateStr;
+      final startTimeStr = _formatTimeStr(_startTime);
+      final endTimeStr = _formatTimeStr(_endTime);
 
-      final formData = FormData.fromMap({
+      final map = <String, dynamic>{
         'title': _titleCtrl.text.trim(),
         'description': _descCtrl.text.trim(),
+        'durationType': _durationType,
+        'startDate': startDateStr,
+        'endDate': endDateStr,
+        'startTime': startTimeStr,
+        'endTime': endTimeStr,
+        'date': startDateStr,
+        'time': startTimeStr,
+        'hasCustomSchedule': (_hasCustomSchedule && _durationType == 'multiple').toString(),
         'location': _locationCtrl.text.trim(),
-        'price': _priceCtrl.text.trim(),
-        'maxAttendees': _maxAttendeesCtrl.text.trim(),
         'category': _category,
-        'eventType': _eventType,
-        'date': dt.toIso8601String(),
-        if (_imageFile != null)
-          'image': await MultipartFile.fromFile(
-            _imageFile!.path,
-            filename: 'event_cover.jpg',
-          ),
-      });
+        'status': 'upcoming',
+        'eventType': _eventType, // Normalized 'fullService' or 'ticketed'
+        'maxAttendees': _eventType == 'fullService' ? (_maxAttendeesCtrl.text.trim().isEmpty ? '0' : _maxAttendeesCtrl.text.trim()) : '0',
+        'price': _eventType == 'fullService' ? (_priceCtrl.text.trim().isEmpty ? '0' : _priceCtrl.text.trim()) : '0',
+      };
+
+      if (_hasCustomSchedule && _durationType == 'multiple' && _dailySchedule.isNotEmpty) {
+        map['dailySchedule'] = jsonEncode(_dailySchedule);
+      }
+
+      if (_eventType == 'ticketed') {
+        if (_hasMultipleSessions) {
+          map['hasMultipleSessions'] = 'true';
+          map['sessions'] = jsonEncode({
+            'day': {
+              'enabled': true,
+              'time': _dayTimeCtrl.text.trim(),
+              'tickets': [
+                {'type': 'silver', 'price': double.tryParse(_daySilverPriceCtrl.text.trim()) ?? 0.0, 'available': int.tryParse(_daySilverQtyCtrl.text.trim()) ?? 100},
+                {'type': 'gold', 'price': double.tryParse(_dayGoldPriceCtrl.text.trim()) ?? 0.0, 'available': int.tryParse(_dayGoldQtyCtrl.text.trim()) ?? 100},
+                {'type': 'diamond', 'price': double.tryParse(_dayDiamondPriceCtrl.text.trim()) ?? 0.0, 'available': int.tryParse(_dayDiamondQtyCtrl.text.trim()) ?? 100},
+              ],
+            },
+            'night': {
+              'enabled': true,
+              'time': _nightTimeCtrl.text.trim(),
+              'tickets': [
+                {'type': 'silver', 'price': double.tryParse(_nightSilverPriceCtrl.text.trim()) ?? 0.0, 'available': int.tryParse(_nightSilverQtyCtrl.text.trim()) ?? 100},
+                {'type': 'gold', 'price': double.tryParse(_nightGoldPriceCtrl.text.trim()) ?? 0.0, 'available': int.tryParse(_nightGoldQtyCtrl.text.trim()) ?? 100},
+                {'type': 'diamond', 'price': double.tryParse(_nightDiamondPriceCtrl.text.trim()) ?? 0.0, 'available': int.tryParse(_nightDiamondQtyCtrl.text.trim()) ?? 100},
+              ],
+            },
+          });
+        } else {
+          map['hasMultipleSessions'] = 'false';
+          map['tickets'] = jsonEncode([
+            {'type': 'silver', 'price': double.tryParse(_silverPriceCtrl.text.trim()) ?? 0.0, 'available': int.tryParse(_silverQtyCtrl.text.trim()) ?? 100},
+            {'type': 'gold', 'price': double.tryParse(_goldPriceCtrl.text.trim()) ?? 0.0, 'available': int.tryParse(_goldQtyCtrl.text.trim()) ?? 100},
+            {'type': 'diamond', 'price': double.tryParse(_diamondPriceCtrl.text.trim()) ?? 0.0, 'available': int.tryParse(_diamondQtyCtrl.text.trim()) ?? 100},
+          ]);
+        }
+      }
+
+      if (_imageFile != null) {
+        map['image'] = await MultipartFile.fromFile(_imageFile!.path, filename: 'event_cover.jpg');
+      }
+
+      final formData = FormData.fromMap(map);
 
       if (widget.isEditing) {
         await _merchantService.updateEvent(widget.eventId!, formData);
@@ -205,10 +468,7 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: AppTheme.errorColor,
-          ),
+          SnackBar(content: Text(e.toString()), backgroundColor: AppTheme.errorColor),
         );
       }
     } finally {
@@ -233,10 +493,10 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
         key: _formKey,
         child: SingleChildScrollView(
           padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
+            left: 18,
+            right: 18,
             top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 32,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,16 +506,67 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
               const SizedBox(height: 8),
               _buildCoverImageUploader(),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // Basic Information
+              // Basic Information Section
               _buildSectionHeading('Basic Information'),
               const SizedBox(height: 12),
 
-              _buildFieldLabel('EVENT TITLE', isRequired: true),
+              // Event Type Toggle (Single Ticket vs Ticketed Event)
+              _buildFieldLabel('EVENT TYPE', isRequired: true),
+              _buildEventTypeSelector(),
+
+              const SizedBox(height: 14),
+
+              // Event Title with AI Button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildFieldLabel('EVENT TITLE', isRequired: true),
+                  InkWell(
+                    onTap: () {
+                      if (_titleCtrl.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Enter an event title or topic first!')),
+                        );
+                        return;
+                      }
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (ctx) => AITitleSuggestionsBottomSheet(
+                          topic: _titleCtrl.text.trim(),
+                          category: _category,
+                          location: _locationCtrl.text.trim(),
+                          eventType: _eventType,
+                          onSelectTitle: (t) => setState(() => _titleCtrl.text = t),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.purple.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.auto_awesome, size: 12, color: Colors.purple),
+                          const SizedBox(width: 4),
+                          Text('✨ AI Suggestions', style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w600, color: Colors.purple)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               TextFormField(
                 controller: _titleCtrl,
                 style: _inputTextStyle(),
+                maxLength: 100,
                 decoration: _inputDecoration(
                   hintText: 'e.g. Summer Music Festival 2026',
                   prefixIcon: const Icon(Icons.event_outlined),
@@ -265,21 +576,145 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
 
               const SizedBox(height: 14),
 
-              _buildFieldLabel('CATEGORY', isRequired: true),
+              // Category Selector
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildFieldLabel('CATEGORY', isRequired: true),
+                  TextButton.icon(
+                    onPressed: _fetchCategoryAndTagsAI,
+                    icon: _loadingCatAI
+                        ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.purple)))
+                        : const Icon(Icons.auto_awesome, size: 12, color: Colors.purple),
+                    label: Text('✨ AI Category & Tags', style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w600, color: Colors.purple)),
+                  ),
+                ],
+              ),
               _buildCategorySelectorField(),
 
+              // AI Category / Tags Banner
+              if (_aiSuggestedCategory != null || _aiSuggestedTags.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.purple.withOpacity(0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_aiSuggestedCategory != null) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Suggested Category: ${_aiSuggestedCategory!}',
+                                style: GoogleFonts.poppins(fontSize: 11.5, fontWeight: FontWeight.w600, color: Colors.purple),
+                              ),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  if (!_categories.contains(_aiSuggestedCategory!)) {
+                                    _categories.add(_aiSuggestedCategory!);
+                                  }
+                                  _category = _aiSuggestedCategory!;
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.purple,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(60, 28),
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                              ),
+                              child: const Text('Apply', style: TextStyle(fontSize: 10.5)),
+                            ),
+                          ],
+                        ),
+                      ],
+                      if (_aiSuggestedTags.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: _aiSuggestedTags.map((tag) {
+                            return InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _descCtrl.text = (_descCtrl.text.isNotEmpty ? '${_descCtrl.text}\n' : '') + tag;
+                                });
+                              },
+                              child: Chip(
+                                label: Text(tag, style: const TextStyle(fontSize: 10, color: Colors.purple)),
+                                backgroundColor: Colors.white,
+                                side: BorderSide(color: Colors.purple.withOpacity(0.3)),
+                                padding: EdgeInsets.zero,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 14),
 
-              _buildFieldLabel('EVENT TYPE', isRequired: true),
-              _buildEventTypeSelector(),
-
-              const SizedBox(height: 14),
-
-              _buildFieldLabel('DESCRIPTION'),
+              // Description with AI Button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildFieldLabel('DESCRIPTION'),
+                  InkWell(
+                    onTap: () {
+                      if (_titleCtrl.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Enter an event title first to generate description!')),
+                        );
+                        return;
+                      }
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (ctx) => AIDescriptionModal(
+                          title: _titleCtrl.text.trim(),
+                          currentDescription: _descCtrl.text.trim(),
+                          category: _category,
+                          location: _locationCtrl.text.trim(),
+                          eventType: _eventType,
+                          onSelectDescription: (desc) => setState(() => _descCtrl.text = desc),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.indigo.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.auto_awesome, size: 12, color: Colors.indigo),
+                          const SizedBox(width: 4),
+                          Text('✨ AI Description', style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w600, color: Colors.indigo)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               TextFormField(
                 controller: _descCtrl,
                 minLines: 4,
                 maxLines: 6,
+                maxLength: 1000,
                 style: _inputTextStyle(),
                 decoration: _inputDecoration(
                   hintText: 'Tell customers about your event, highlights, and experience...',
@@ -290,74 +725,226 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // Schedule
-              _buildSectionHeading('Schedule'),
-              const SizedBox(height: 12),
-              _buildSchedulePicker(),
-
-              const SizedBox(height: 24),
-
-              // Location
-              _buildSectionHeading('Location'),
-              const SizedBox(height: 12),
-              _buildFieldLabel('VENUE / LOCATION', isRequired: true),
-              TextFormField(
-                controller: _locationCtrl,
-                style: _inputTextStyle(),
-                decoration: _inputDecoration(
-                  hintText: 'e.g. Palace Grounds, Bengaluru',
-                  prefixIcon: const Icon(Icons.location_on_outlined),
-                ),
-                validator: (v) => v == null || v.trim().isEmpty ? 'Please enter location' : null,
+              // Schedule Section (Single & Multi-Day)
+              _buildSectionHeading('Schedule & Duration'),
+              const SizedBox(height: 10),
+              EventSchedulePicker(
+                durationType: _durationType,
+                onDurationTypeChanged: (type) => setState(() => _durationType = type),
+                startDate: _startDate,
+                onStartDateChanged: (d) => setState(() => _startDate = d),
+                endDate: _endDate,
+                onEndDateChanged: (d) => setState(() => _endDate = d),
+                startTime: _startTime,
+                onStartTimeChanged: (t) => setState(() => _startTime = t),
+                endTime: _endTime,
+                onEndTimeChanged: (t) => setState(() => _endTime = t),
+                hasCustomSchedule: _hasCustomSchedule,
+                onHasCustomScheduleChanged: (val) => setState(() => _hasCustomSchedule = val),
+                dailySchedule: _dailySchedule,
+                onDailyScheduleChanged: (list) => setState(() => _dailySchedule = list),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // Pricing & Capacity
+              // Location Section with Autocomplete
+              _buildSectionHeading('Location'),
+              const SizedBox(height: 10),
+              _buildFieldLabel('VENUE / LOCATION', isRequired: true),
+              LocationAutocomplete(
+                controller: _locationCtrl,
+                label: 'VENUE / LOCATION',
+                hintText: 'e.g. Palace Grounds, Bengaluru',
+                isRequired: true,
+              ),
+
+              const SizedBox(height: 20),
+
+              // Pricing & Capacity Section
               _buildSectionHeading('Pricing & Capacity'),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 10),
+
+              if (_eventType == 'fullService') ...[
+                _buildFieldLabel('EVENT PRICE (₹)', isRequired: true),
+                TextFormField(
+                  controller: _priceCtrl,
+                  keyboardType: TextInputType.number,
+                  style: _inputTextStyle(),
+                  decoration: _inputDecoration(
+                    hintText: '0 for free',
+                    prefixIcon: const Icon(Icons.currency_rupee_rounded),
+                  ),
+                  validator: (v) => (_eventType == 'fullService' && (v == null || v.trim().isEmpty)) ? 'Required' : null,
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              // Ticketed Event Tiers & Sessions Section
+              if (_eventType == 'ticketed') ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.purple.withOpacity(0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildFieldLabel('SESSION TYPE'),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildSessionTypeButton(
+                              label: 'Single Session',
+                              isSelected: !_hasMultipleSessions,
+                              onTap: () => setState(() => _hasMultipleSessions = false),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildSessionTypeButton(
+                              label: 'Day & Night Sessions',
+                              isSelected: _hasMultipleSessions,
+                              onTap: () => setState(() => _hasMultipleSessions = true),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      if (!_hasMultipleSessions) ...[
+                        Text('Ticket Tiers & Pricing', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 10),
+                        _buildTicketTierRow('🥈 Silver (₹)', _silverPriceCtrl, _silverQtyCtrl),
+                        const SizedBox(height: 10),
+                        _buildTicketTierRow('🥇 Gold (₹)', _goldPriceCtrl, _goldQtyCtrl),
+                        const SizedBox(height: 10),
+                        _buildTicketTierRow('💎 Diamond (₹)', _diamondPriceCtrl, _diamondQtyCtrl),
+                      ] else ...[
+                        // Day Session Box
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text('☀️ ', style: TextStyle(fontSize: 16)),
+                                  Text('Day Session', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 13)),
+                                  const Spacer(),
+                                  SizedBox(
+                                    width: 100,
+                                    height: 36,
+                                    child: TextFormField(
+                                      controller: _dayTimeCtrl,
+                                      style: GoogleFonts.poppins(fontSize: 11),
+                                      decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 8), filled: true, fillColor: Colors.white),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              _buildTicketTierRow('🥈 Silver (₹)', _daySilverPriceCtrl, _daySilverQtyCtrl),
+                              const SizedBox(height: 8),
+                              _buildTicketTierRow('🥇 Gold (₹)', _dayGoldPriceCtrl, _dayGoldQtyCtrl),
+                              const SizedBox(height: 8),
+                              _buildTicketTierRow('💎 Diamond (₹)', _dayDiamondPriceCtrl, _dayDiamondQtyCtrl),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Night Session Box
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text('🌙 ', style: TextStyle(fontSize: 16)),
+                                  Text('Night Session', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 13)),
+                                  const Spacer(),
+                                  SizedBox(
+                                    width: 100,
+                                    height: 36,
+                                    child: TextFormField(
+                                      controller: _nightTimeCtrl,
+                                      style: GoogleFonts.poppins(fontSize: 11),
+                                      decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 8), filled: true, fillColor: Colors.white),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              _buildTicketTierRow('🥈 Silver (₹)', _nightSilverPriceCtrl, _nightSilverQtyCtrl),
+                              const SizedBox(height: 8),
+                              _buildTicketTierRow('🥇 Gold (₹)', _nightGoldPriceCtrl, _nightGoldQtyCtrl),
+                              const SizedBox(height: 8),
+                              _buildTicketTierRow('💎 Diamond (₹)', _nightDiamondPriceCtrl, _nightDiamondQtyCtrl),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Max Attendees Section
+              _buildFieldLabel('MAX ATTENDEES / CAPACITY'),
+              TextFormField(
+                controller: _maxAttendeesCtrl,
+                keyboardType: TextInputType.number,
+                style: _inputTextStyle(),
+                decoration: _inputDecoration(
+                  hintText: 'e.g. 500 or leave blank for unlimited',
+                  prefixIcon: const Icon(Icons.people_outline_rounded),
+                ),
+              ),
+
+              // Capacity quick preset pills
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildFieldLabel('BASE PRICE (₹)', isRequired: true),
-                        TextFormField(
-                          controller: _priceCtrl,
-                          keyboardType: TextInputType.number,
-                          style: _inputTextStyle(),
-                          decoration: _inputDecoration(
-                            hintText: '0 for free',
-                            prefixIcon: const Icon(Icons.currency_rupee_rounded),
-                          ),
-                          validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildFieldLabel('MAX ATTENDEES'),
-                        TextFormField(
-                          controller: _maxAttendeesCtrl,
-                          keyboardType: TextInputType.number,
-                          style: _inputTextStyle(),
-                          decoration: _inputDecoration(
-                            hintText: 'e.g. 500',
-                            prefixIcon: const Icon(Icons.people_outline_rounded),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                  {'label': 'Unlimited', 'value': '0'},
+                  {'label': '50', 'value': '50'},
+                  {'label': '100', 'value': '100'},
+                  {'label': '250', 'value': '250'},
+                  {'label': '500', 'value': '500'},
+                  {'label': '1,000', 'value': '1000'},
+                  {'label': '5,000', 'value': '5000'},
+                ].map((preset) {
+                  final val = preset['value']!;
+                  final isSelected = (_maxAttendeesCtrl.text.isEmpty && val == '0') || (_maxAttendeesCtrl.text == val);
+                  return ChoiceChip(
+                    label: Text(preset['label']!, style: TextStyle(fontSize: 11, color: isSelected ? Colors.white : AppTheme.textColor)),
+                    selected: isSelected,
+                    selectedColor: AppTheme.primaryColor,
+                    backgroundColor: AppTheme.inputFillColor,
+                    onSelected: (_) {
+                      setState(() {
+                        _maxAttendeesCtrl.text = val == '0' ? '' : val;
+                      });
+                    },
+                  );
+                }).toList(),
               ),
 
               const SizedBox(height: 32),
@@ -365,7 +952,7 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
               // Submit Primary CTA Button
               _buildSubmitButton(),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -544,7 +1131,10 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
                 ),
               ),
             ),
-            const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.subtitleColor, size: 22),
+            if (_loadingCategories)
+              const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+            else
+              const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.subtitleColor, size: 22),
           ],
         ),
       ),
@@ -552,23 +1142,30 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
   }
 
   Widget _buildEventTypeSelector() {
+    final types = [
+      {'id': 'fullService', 'name': 'Single Ticket Event', 'icon': Icons.auto_awesome_outlined},
+      {'id': 'ticketed', 'name': 'Ticketed Event', 'icon': Icons.confirmation_number_outlined},
+    ];
+
     return Row(
-      children: _eventTypes.map((type) {
-        final isSelected = _eventType == type;
-        final isTicketed = type == 'Ticketed';
+      children: types.map((item) {
+        final id = item['id'] as String;
+        final name = item['name'] as String;
+        final icon = item['icon'] as IconData;
+        final isSelected = _eventType == id;
 
         return Expanded(
           child: Padding(
-            padding: EdgeInsets.only(right: isTicketed ? 6 : 0, left: isTicketed ? 0 : 6),
+            padding: EdgeInsets.only(right: id == 'fullService' ? 6 : 0, left: id == 'fullService' ? 0 : 6),
             child: Material(
               color: isSelected ? AppTheme.tintVioletBg : Colors.white,
               borderRadius: BorderRadius.circular(14),
               child: InkWell(
-                onTap: () => setState(() => _eventType = type),
+                onTap: () => setState(() => _eventType = id),
                 borderRadius: BorderRadius.circular(14),
                 child: Container(
                   height: 52,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
@@ -579,20 +1176,18 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        isTicketed
-                            ? Icons.confirmation_number_outlined
-                            : Icons.auto_awesome_outlined,
-                        size: 18,
-                        color: isSelected ? AppTheme.primaryColor : AppTheme.subtitleColor,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        type,
-                        style: GoogleFonts.poppins(
-                          fontSize: 13.5,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected ? AppTheme.primaryColor : AppTheme.textColor,
+                      Icon(icon, size: 18, color: isSelected ? AppTheme.primaryColor : AppTheme.subtitleColor),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          name,
+                          style: GoogleFonts.poppins(
+                            fontSize: 12.5,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            color: isSelected ? AppTheme.primaryColor : AppTheme.textColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -606,87 +1201,73 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
     );
   }
 
-  Widget _buildSchedulePicker() {
-    final dateFormatted = _selectedDate == null
-        ? 'Select Date'
-        : '${_selectedDate!.day} ${_monthName(_selectedDate!.month)} ${_selectedDate!.year}';
-
-    final timeFormatted = _selectedTime == null
-        ? 'Select Time'
-        : _selectedTime!.format(context);
-
-    return Row(
-      children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: _pickDate,
-            child: Container(
-              height: 52,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: AppTheme.inputFillColor,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppTheme.borderColor),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_today_outlined,
-                      size: 18, color: AppTheme.subtitleColor),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      dateFormatted,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
-                        color: _selectedDate == null
-                            ? const Color(0xFF94A3B8)
-                            : AppTheme.textColor,
-                        fontSize: 13.5,
-                        fontWeight: _selectedDate == null
-                            ? FontWeight.w400
-                            : FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+  Widget _buildSessionTypeButton({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: isSelected ? Colors.purple.withOpacity(0.12) : Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          height: 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? Colors.purple : AppTheme.borderColor,
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected ? Colors.purple : AppTheme.textColor,
             ),
           ),
         ),
-        const SizedBox(width: 12),
+      ),
+    );
+  }
+
+  Widget _buildTicketTierRow(String label, TextEditingController priceCtrl, TextEditingController qtyCtrl) {
+    return Row(
+      children: [
         Expanded(
-          child: GestureDetector(
-            onTap: _pickTime,
-            child: Container(
-              height: 52,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: AppTheme.inputFillColor,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppTheme.borderColor),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.access_time_outlined,
-                      size: 18, color: AppTheme.subtitleColor),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      timeFormatted,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
-                        color: _selectedTime == null
-                            ? const Color(0xFF94A3B8)
-                            : AppTheme.textColor,
-                        fontSize: 13.5,
-                        fontWeight: _selectedTime == null
-                            ? FontWeight.w400
-                            : FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          flex: 3,
+          child: TextFormField(
+            controller: priceCtrl,
+            keyboardType: TextInputType.number,
+            style: GoogleFonts.poppins(fontSize: 12),
+            decoration: InputDecoration(
+              labelText: label,
+              labelStyle: GoogleFonts.poppins(fontSize: 11),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 2,
+          child: TextFormField(
+            controller: qtyCtrl,
+            keyboardType: TextInputType.number,
+            style: GoogleFonts.poppins(fontSize: 12),
+            decoration: InputDecoration(
+              labelText: 'Qty',
+              labelStyle: GoogleFonts.poppins(fontSize: 11),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
         ),
@@ -803,35 +1384,19 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
       ),
     );
   }
-
-  String _monthName(int month) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    return months[month - 1];
-  }
 }
 
 class _CategoryBottomSheet extends StatefulWidget {
   final String selectedCategory;
   final List<String> categories;
   final ValueChanged<String> onSelect;
+  final VoidCallback onAddNew;
 
   const _CategoryBottomSheet({
     required this.selectedCategory,
     required this.categories,
     required this.onSelect,
+    required this.onAddNew,
   });
 
   @override
@@ -839,36 +1404,17 @@ class _CategoryBottomSheet extends StatefulWidget {
 }
 
 class _CategoryBottomSheetState extends State<_CategoryBottomSheet> {
-  final _searchCtrl = TextEditingController();
   String _query = '';
-
-  static const Map<String, IconData> _categoryIcons = {
-    'Music': Icons.music_note_rounded,
-    'Sports': Icons.sports_soccer_rounded,
-    'Food & Drink': Icons.restaurant_rounded,
-    'Arts & Culture': Icons.palette_rounded,
-    'Business': Icons.business_center_rounded,
-    'Technology': Icons.computer_rounded,
-    'Health & Wellness': Icons.favorite_rounded,
-    'Education': Icons.school_rounded,
-    'Other': Icons.category_rounded,
-  };
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final filtered = widget.categories
-        .where((c) => c.toLowerCase().contains(_query.toLowerCase()))
+        .where((c) => c.toLowerCase().contains(_query.toLowerCase().trim()))
         .toList();
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.72,
+        maxHeight: MediaQuery.of(context).size.height * 0.75,
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -877,61 +1423,52 @@ class _CategoryBottomSheetState extends State<_CategoryBottomSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Container(
-            width: 38,
-            height: 4.5,
+            width: 36,
+            height: 4,
             decoration: BoxDecoration(
               color: const Color(0xFFCBD5E1),
-              borderRadius: BorderRadius.circular(2.25),
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Select Category',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textColor,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 20),
-                      onPressed: () => Navigator.pop(context),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
                 Text(
-                  'Choose a category for your event',
+                  'Select Category',
                   style: GoogleFonts.poppins(
-                    fontSize: 12.5,
-                    color: AppTheme.subtitleColor,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textColor,
                   ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    widget.onAddNew();
+                  },
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('New Category', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 14),
+
+          const SizedBox(height: 12),
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: TextField(
-              controller: _searchCtrl,
-              onChanged: (val) => setState(() => _query = val.trim()),
-              style: GoogleFonts.poppins(fontSize: 13.5, color: AppTheme.textColor),
+              onChanged: (val) => setState(() => _query = val),
               decoration: InputDecoration(
-                hintText: 'Search categories...',
+                hintText: 'Search category...',
                 hintStyle: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFF94A3B8)),
-                prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.subtitleColor),
+                prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.subtitleColor, size: 20),
                 filled: true,
                 fillColor: AppTheme.inputFillColor,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -939,19 +1476,13 @@ class _CategoryBottomSheetState extends State<_CategoryBottomSheet> {
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppTheme.borderColor),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppTheme.borderColor),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
-                ),
               ),
             ),
           ),
+
           const SizedBox(height: 10),
           const Divider(height: 1, color: AppTheme.borderColor),
+
           Flexible(
             child: filtered.isEmpty
                 ? Padding(
@@ -969,7 +1500,6 @@ class _CategoryBottomSheetState extends State<_CategoryBottomSheet> {
                     itemBuilder: (context, index) {
                       final cat = filtered[index];
                       final isSelected = cat == widget.selectedCategory;
-                      final icon = _categoryIcons[cat] ?? Icons.category_rounded;
 
                       return Material(
                         color: isSelected ? AppTheme.tintVioletBg : Colors.transparent,
@@ -994,7 +1524,7 @@ class _CategoryBottomSheetState extends State<_CategoryBottomSheet> {
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(
-                                    icon,
+                                    Icons.category_rounded,
                                     size: 18,
                                     color: isSelected
                                         ? AppTheme.primaryColor

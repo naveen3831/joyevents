@@ -182,7 +182,7 @@ class _BookingCard extends StatelessWidget {
         booking['serviceTitle']?.toString() ??
         'Booking';
     final status = booking['status']?.toString() ?? 'pending';
-    final total = (booking['totalAmount'] as num?)?.toDouble() ?? 0.0;
+    final total = (booking['price'] as num?)?.toDouble() ?? 0.0;
     final bookingDate = booking['createdAt']?.toString() ?? '';
     final bookingId = id.length > 8 ? '#${id.substring(id.length - 8).toUpperCase()}' : '#$id';
 

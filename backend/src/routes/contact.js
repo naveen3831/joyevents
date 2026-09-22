@@ -123,6 +123,25 @@ router.get("/customer-inbox", verifyToken, async (req, res) => {
   }
 });
 
+// GET /api/contact/:id — fetch single message thread for merchant or customer (MUST be after /inbox and /customer-inbox)
+router.get("/:id", verifyToken, async (req, res) => {
+  try {
+    const msg = await Message.findOne({
+      _id: req.params.id,
+      $or: [
+        { merchant: req.user._id },
+        { customerId: req.user._id },
+        { senderEmail: req.user.email }
+      ]
+    }).populate("merchant", "name email");
+
+    if (!msg) return res.status(404).json({ error: "Message not found" });
+    res.json({ message: msg });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to fetch message" });
+  }
+});
+
 // PATCH /api/contact/:id/read
 router.patch("/:id/read", verifyToken, async (req, res) => {
   try {

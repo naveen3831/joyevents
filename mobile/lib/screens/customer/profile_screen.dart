@@ -1,47 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../config/app_theme.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/customer_app_bar.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _isLoggingOut = false;
+
+  Future<void> _handleLogout() async {
+    if (_isLoggingOut) return;
+
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Logout?'),
         content: const Text(
           'Are you sure you want to log out of your JoyEvents account?',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(dialogCtx, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.errorColor,
             ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await AuthService().logout();
-              if (ctx.mounted) {
-                ctx.go('/login');
-              }
-            },
+            onPressed: () => Navigator.pop(dialogCtx, true),
             child: const Text('Logout'),
           ),
         ],
       ),
     );
+
+    if (confirm == true && mounted) {
+      setState(() => _isLoggingOut = true);
+      try {
+        await context.read<AuthService>().logout();
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoggingOut = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Logout failed: $e')),
+          );
+        }
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = AuthService().currentUser;
+    final user = context.watch<AuthService>().currentUser;
 
     return Scaffold(
       appBar: const CustomerAppBar(title: 'My Account'),
@@ -170,18 +188,27 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // Logout Action
             Card(
               child: ListTile(
-                leading: const Icon(Icons.logout_rounded, color: AppTheme.errorColor),
-                title: const Text(
-                  'Logout',
-                  style: TextStyle(
+                leading: _isLoggingOut
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.errorColor,
+                        ),
+                      )
+                    : const Icon(Icons.logout_rounded, color: AppTheme.errorColor),
+                title: Text(
+                  _isLoggingOut ? 'Logging out...' : 'Logout',
+                  style: const TextStyle(
                     color: AppTheme.errorColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                onTap: () => _showLogoutDialog(context),
+                enabled: !_isLoggingOut,
+                onTap: _isLoggingOut ? null : _handleLogout,
               ),
             ),
 

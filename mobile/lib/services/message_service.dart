@@ -70,4 +70,16 @@ class MessageService {
       throw ApiService.parseError(e);
     }
   }
+
+  // Fetch single message thread (/api/contact/:id)
+  Future<MessageModel> getMessageThread(String messageId) async {
+    try {
+      final response = await _apiService.dio.get('/contact/$messageId');
+      final data = response.data;
+      final msgData = (data is Map && data.containsKey('message')) ? data['message'] : data;
+      return MessageModel.fromJson(msgData as Map<String, dynamic>);
+    } catch (e) {
+      throw ApiService.parseError(e);
+    }
+  }
 }

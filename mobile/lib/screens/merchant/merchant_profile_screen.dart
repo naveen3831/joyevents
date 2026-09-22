@@ -4,8 +4,56 @@ import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../services/auth_service.dart';
 
-class MerchantProfileScreen extends StatelessWidget {
+class MerchantProfileScreen extends StatefulWidget {
   const MerchantProfileScreen({super.key});
+
+  @override
+  State<MerchantProfileScreen> createState() => _MerchantProfileScreenState();
+}
+
+class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
+  bool _isLoggingOut = false;
+
+  Future<void> _handleLogout() async {
+    if (_isLoggingOut) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorColor,
+            ),
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      setState(() => _isLoggingOut = true);
+      try {
+        await context.read<AuthService>().logout();
+        // GoRouter's refreshListenable will automatically redirect to /login
+        // and clear the authenticated route stack.
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoggingOut = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Logout failed: $e')),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,36 +210,25 @@ class MerchantProfileScreen extends StatelessWidget {
                       border: Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
                     ),
                     child: ListTile(
-                      leading: const Icon(Icons.logout_rounded, color: AppTheme.errorColor),
-                      title: const Text('Logout',
-                          style: TextStyle(
-                              color: AppTheme.errorColor, fontWeight: FontWeight.w600)),
-                      onTap: () async {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            title: const Text('Logout'),
-                            content: const Text('Are you sure you want to logout?'),
-                            actions: [
-                              TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
-                                  child: const Text('Cancel')),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.errorColor),
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text('Logout'),
+                      leading: _isLoggingOut
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppTheme.errorColor,
                               ),
-                            ],
-                          ),
-                        );
-                        if (confirm == true && context.mounted) {
-                          await context.read<AuthService>().logout();
-                          if (context.mounted) {
-                            context.go('/login');
-                          }
-                        }
-                      },
+                            )
+                          : const Icon(Icons.logout_rounded, color: AppTheme.errorColor),
+                      title: Text(
+                        _isLoggingOut ? 'Logging out...' : 'Logout',
+                        style: const TextStyle(
+                          color: AppTheme.errorColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      enabled: !_isLoggingOut,
+                      onTap: _isLoggingOut ? null : _handleLogout,
                     ),
                   ),
                   const SizedBox(height: 32),

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../config/api_config.dart';
 import '../../config/app_theme.dart';
 import '../../models/cart_model.dart';
 import '../../models/service_model.dart';
+import '../../services/auth_service.dart';
 import '../../services/cart_service.dart';
 import '../../services/message_service.dart';
 
@@ -92,6 +94,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   void _showEnquiryDialog() async {
+    final user = Provider.of<AuthService>(context, listen: false).currentUser;
     final result = await ContactBottomSheet.show(
       context: context,
       title: 'Contact Provider',
@@ -100,11 +103,12 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
       hintText: 'Type your message or custom requirements...',
       onSend: (message) async {
         await _messageService.sendEnquiry(
-          senderName: 'Customer',
-          senderEmail: 'customer@example.com',
+          senderName: user?.name ?? 'Customer',
+          senderEmail: user?.email ?? '',
           message: message,
           merchantId: _service?.createdById,
           serviceId: _service?.id,
+          customerId: user?.id,
         );
       },
     );

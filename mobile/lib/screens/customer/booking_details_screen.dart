@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../../config/api_config.dart';
 import '../../config/app_theme.dart';
 import '../../models/booking_model.dart';
+import '../../services/auth_service.dart';
 import '../../services/booking_service.dart';
 import '../../services/message_service.dart';
 import '../../widgets/app_button.dart';
@@ -282,6 +284,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
         ? 'Send a direct message regarding this event booking to the organiser.'
         : 'Send a direct message regarding this service booking to the provider.';
 
+    final user = Provider.of<AuthService>(context, listen: false).currentUser;
     final result = await ContactBottomSheet.show(
       context: context,
       title: title,
@@ -290,10 +293,11 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       hintText: 'Type your message or enquiry here...',
       onSend: (message) async {
         await _messageService.sendEnquiry(
-          senderName: 'Customer',
-          senderEmail: 'customer@example.com',
+          senderName: user?.name ?? 'Customer',
+          senderEmail: user?.email ?? '',
           message: message,
           bookingId: _booking.id,
+          customerId: user?.id,
         );
       },
     );

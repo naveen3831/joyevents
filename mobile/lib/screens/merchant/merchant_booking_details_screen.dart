@@ -188,7 +188,7 @@ class _MerchantBookingDetailsScreenState extends State<MerchantBookingDetailsScr
     final itemTitle = _booking['eventTitle']?.toString() ??
         _booking['serviceTitle']?.toString() ??
         'Item';
-    final total = (_booking['totalAmount'] as num?)?.toDouble() ?? 0.0;
+    final total = (_booking['price'] as num?)?.toDouble() ?? 0.0;
     final paymentMethod = _booking['paymentMethod']?.toString() ?? '';
     final paymentStatus = _booking['paymentStatus']?.toString() ?? '';
     final bookingId = widget.bookingId.length > 8

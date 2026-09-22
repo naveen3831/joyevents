@@ -56,6 +56,38 @@ class MerchantService {
     }
   }
 
+  // ─── Categories & AI ─────────────────────────────────────────────────────────
+
+  Future<List<dynamic>> getCategories({String type = 'event'}) async {
+    try {
+      final res = await _api.dio.get('/categories', queryParameters: {'type': type});
+      final data = res.data;
+      if (data is Map && data['categories'] is List) return data['categories'] as List;
+      if (data is List) return data;
+      return [];
+    } catch (e) {
+      throw ApiService.parseError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> createCategory(String name, {String type = 'event'}) async {
+    try {
+      final res = await _api.dio.post('/categories', data: {'name': name, 'type': type});
+      return res.data as Map<String, dynamic>;
+    } catch (e) {
+      throw ApiService.parseError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> generateAISuggestions(Map<String, dynamic> body) async {
+    try {
+      final res = await _api.dio.post('/ai/suggest', data: body);
+      return res.data as Map<String, dynamic>;
+    } catch (e) {
+      throw ApiService.parseError(e);
+    }
+  }
+
   // ─── Services ────────────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getMyServices() async {
@@ -218,7 +250,7 @@ class MerchantService {
 
   Future<void> replyToMessage(String id, String text) async {
     try {
-      await _api.dio.post('/contact/$id/reply', data: {'message': text});
+      await _api.dio.post('/contact/$id/reply', data: {'text': text});
     } catch (e) {
       throw ApiService.parseError(e);
     }

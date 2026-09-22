@@ -190,22 +190,37 @@ class AuthService extends ChangeNotifier {
   // Logout
   Future<void> logout() async {
     if (kDebugMode) {
-      debugPrint('[LOGOUT] Logout started. Setting currentUser = null & notifying listeners.');
+      debugPrint('[LOGOUT] Starting logout teardown...');
     }
-    _currentUser = null;
-    notifyListeners();
 
+    // 1. Attempt backend device token unregistration (fail-safe)
     try {
       await FirebaseNotificationService().unregisterTokenFromBackend();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[LOGOUT WARNING] Unregistering token failed: $e');
+      }
+    }
+
+    // 2. Clear locally stored secure credentials
+    try {
       await _storage.delete(key: 'auth_token');
       await _storage.delete(key: 'user_data');
       if (kDebugMode) {
-        debugPrint('[LOGOUT] Tokens and cached user data cleared from storage successfully.');
+        debugPrint('[LOGOUT] Tokens and user data cleared from secure storage.');
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('[LOGOUT WARNING] Error during token removal: $e');
+        debugPrint('[LOGOUT WARNING] Error deleting storage keys: $e');
       }
+    }
+
+    // 3. Reset authenticated user state and notify router listeners
+    _currentUser = null;
+    notifyListeners();
+
+    if (kDebugMode) {
+      debugPrint('[LOGOUT] User state cleared & listeners notified. Router redirecting to /login.');
     }
   }
 }

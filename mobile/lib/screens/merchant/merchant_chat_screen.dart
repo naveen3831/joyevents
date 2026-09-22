@@ -21,15 +21,16 @@ class _MerchantChatScreenState extends State<MerchantChatScreen> {
   final _replyCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
 
-  late Map<String, dynamic> _thread;
+  Map<String, dynamic> _thread = {};
   bool _sending = false;
+  String? _validationError;
 
   @override
   void initState() {
     super.initState();
-    _thread = (widget.initialData is Map<String, dynamic>)
-        ? widget.initialData as Map<String, dynamic>
-        : {};
+    if (widget.initialData is Map<String, dynamic>) {
+      _thread = widget.initialData as Map<String, dynamic>;
+    }
     _refreshThread();
   }
 
@@ -43,44 +44,76 @@ class _MerchantChatScreenState extends State<MerchantChatScreen> {
   Future<void> _refreshThread() async {
     try {
       final data = await _merchantService.getMessageThread(widget.messageId);
-      if (mounted) setState(() => _thread = data['message'] ?? data);
+      if (mounted) {
+        setState(() {
+          _thread = (data['message'] is Map<String, dynamic>)
+              ? data['message'] as Map<String, dynamic>
+              : data;
+        });
+        _scrollToBottom();
+      }
     } catch (_) {}
   }
 
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollCtrl.hasClients) {
+        _scrollCtrl.animateTo(
+          _scrollCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   Future<void> _sendReply() async {
+    if (_sending) return;
+
     final text = _replyCtrl.text.trim();
-    if (text.isEmpty) return;
-    setState(() => _sending = true);
+    if (text.isEmpty) {
+      setState(() {
+        _validationError = 'Reply text required';
+      });
+      return;
+    }
+
+    setState(() {
+      _sending = true;
+      _validationError = null;
+    });
+
     try {
       await _merchantService.replyToMessage(widget.messageId, text);
+      // ONLY clear input after backend confirms successful send
       _replyCtrl.clear();
       await _refreshThread();
-      // Scroll to bottom
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollCtrl.hasClients) {
-          _scrollCtrl.animateTo(
-            _scrollCtrl.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
-      });
     } catch (e) {
       if (mounted) {
+        // Preserve typed message in input field on failure
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: AppTheme.errorColor),
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: AppTheme.errorColor,
+          ),
         );
       }
     } finally {
-      if (mounted) setState(() => _sending = false);
+      if (mounted) {
+        setState(() => _sending = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final sender = _thread['sender'] as Map<String, dynamic>? ?? {};
-    final senderName = sender['name']?.toString() ?? 'Customer';
-    final subject = _thread['subject']?.toString() ?? 'Message';
+    final senderName = _thread['senderName']?.toString() ??
+        sender['name']?.toString() ??
+        'Customer';
+    final subject = _thread['itemTitle']?.toString() ??
+        _thread['subject']?.toString() ??
+        'Enquiry';
     final originalMessage = _thread['message']?.toString() ?? '';
     final replies = _thread['replies'] as List? ?? [];
 
@@ -90,43 +123,62 @@ class _MerchantChatScreenState extends State<MerchantChatScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(senderName,
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textColor)),
+            Text(
+              senderName,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textColor,
+              ),
+            ),
             if (subject.isNotEmpty)
-              Text(subject,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.subtitleColor)),
+              Text(
+                subject,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.subtitleColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
           ],
         ),
         backgroundColor: Colors.white,
       ),
       body: Column(
         children: [
+          // Scrollable message thread history
           Expanded(
             child: ListView(
               controller: _scrollCtrl,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               children: [
-                // Original message
-                _ChatBubble(
-                  senderName: senderName,
-                  message: originalMessage,
-                  isMe: false,
-                  dateStr: _thread['createdAt']?.toString() ?? '',
-                ),
+                // Original customer enquiry
+                if (originalMessage.isNotEmpty)
+                  _ChatBubble(
+                    senderName: senderName,
+                    message: originalMessage,
+                    isMe: false,
+                    dateStr: _thread['createdAt']?.toString() ?? '',
+                  ),
                 const SizedBox(height: 12),
-                // Replies
+                // Thread replies
                 ...replies.map((r) {
-                  final isMerchantReply =
+                  final from = r['from']?.toString() ?? '';
+                  final isMerchantReply = from == 'merchant' ||
                       (r['senderRole']?.toString() ?? '') == 'merchant' ||
-                          r['isReply'] == true;
+                      r['isReply'] == true;
                   final replySender = r['sender'] as Map<String, dynamic>? ?? {};
-                  final replyName = replySender['name']?.toString() ?? 'You';
+                  final replyName = replySender['name']?.toString() ??
+                      (isMerchantReply ? 'You' : senderName);
+                  final replyText = r['text']?.toString() ??
+                      r['message']?.toString() ??
+                      '';
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _ChatBubble(
                       senderName: isMerchantReply ? 'You' : replyName,
-                      message: r['message']?.toString() ?? '',
+                      message: replyText,
                       isMe: isMerchantReply,
                       dateStr: r['createdAt']?.toString() ?? '',
                     ),
@@ -135,70 +187,111 @@ class _MerchantChatScreenState extends State<MerchantChatScreen> {
               ],
             ),
           ),
-          // Reply input
-          Container(
-            padding: EdgeInsets.fromLTRB(
-                16, 12, 16, 12 + MediaQuery.of(context).viewInsets.bottom),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, -2),
-                )
-              ],
+          // Validation error banner if send was tapped with empty input
+          if (_validationError != null)
+            Container(
+              width: double.infinity,
+              color: AppTheme.errorColor.withOpacity(0.1),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 15, color: AppTheme.errorColor),
+                  const SizedBox(width: 8),
+                  Text(
+                    _validationError!,
+                    style: const TextStyle(
+                      color: AppTheme.errorColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _replyCtrl,
-                    decoration: InputDecoration(
-                      hintText: 'Type a reply...',
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: const BorderSide(color: AppTheme.borderColor),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: const BorderSide(color: AppTheme.borderColor),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide:
-                            const BorderSide(color: AppTheme.primaryColor, width: 1.5),
-                      ),
-                      filled: true,
-                      fillColor: AppTheme.inputFillColor,
-                    ),
-                    maxLines: 3,
-                    minLines: 1,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _sendReply(),
+          // Persistent Bottom Message Composer
+          SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
                   ),
-                ),
-                const SizedBox(width: 10),
-                GestureDetector(
-                  onTap: _sending ? null : _sendReply,
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.gradientPrimary,
-                      shape: BoxShape.circle,
+                ],
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _replyCtrl,
+                      onChanged: (val) {
+                        if (_validationError != null && val.trim().isNotEmpty) {
+                          setState(() => _validationError = null);
+                        }
+                      },
+                      maxLines: 4,
+                      minLines: 1,
+                      textInputAction: TextInputAction.newline,
+                      style: const TextStyle(fontSize: 14, color: AppTheme.textColor),
+                      decoration: InputDecoration(
+                        hintText: 'Type a reply...',
+                        hintStyle: const TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 14,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: const BorderSide(color: AppTheme.borderColor),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: const BorderSide(color: AppTheme.borderColor),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: const BorderSide(
+                            color: AppTheme.primaryColor,
+                            width: 1.5,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: AppTheme.inputFillColor,
+                      ),
                     ),
-                    child: _sending
-                        ? const Padding(
-                            padding: EdgeInsets.all(10),
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.send_rounded, color: Colors.white, size: 20),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _sending ? null : _sendReply,
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        gradient: AppTheme.gradientPrimary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: _sending
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.send_rounded,
+                              color: Colors.white, size: 19),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -237,7 +330,10 @@ class _ChatBubble extends StatelessWidget {
         Text(
           senderName,
           style: const TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.subtitleColor),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.subtitleColor,
+          ),
         ),
         const SizedBox(height: 4),
         Container(
@@ -267,9 +363,13 @@ class _ChatBubble extends StatelessWidget {
         ),
         if (date.isNotEmpty) ...[
           const SizedBox(height: 2),
-          Text(date,
-              style:
-                  const TextStyle(fontSize: 10, color: AppTheme.subtitleColor)),
+          Text(
+            date,
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppTheme.subtitleColor,
+            ),
+          ),
         ],
       ],
     );
