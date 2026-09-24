@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
+import '../../services/auth_service.dart';
 
 class MerchantShell extends StatelessWidget {
   final Widget child;
@@ -21,6 +23,8 @@ class MerchantShell extends StatelessWidget {
   }
 
   void _onItemTapped(int index, BuildContext context) {
+    // Refresh merchant profile & slot limits on tab navigation
+    context.read<AuthService>().getMe();
     switch (index) {
       case 0:
         context.go('/merchant/dashboard');

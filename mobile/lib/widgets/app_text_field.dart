@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_theme.dart';
 
@@ -24,6 +25,7 @@ class AppTextField extends StatelessWidget {
   final void Function(String)? onChanged;
   final TextInputAction? textInputAction;
   final FocusNode? focusNode;
+  final List<TextInputFormatter>? inputFormatters;
 
   const AppTextField({
     super.key,
@@ -42,6 +44,7 @@ class AppTextField extends StatelessWidget {
     this.onChanged,
     this.textInputAction,
     this.focusNode,
+    this.inputFormatters,
   });
 
   @override
@@ -71,6 +74,7 @@ class AppTextField extends StatelessWidget {
           onChanged: onChanged,
           textInputAction: textInputAction,
           focusNode: focusNode,
+          inputFormatters: inputFormatters,
           style: GoogleFonts.poppins(
             fontSize: 14,
             color: AppTheme.textColor,

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../config/app_routes.dart';
 import 'api_service.dart';
+import 'auth_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -56,6 +57,9 @@ class FirebaseNotificationService {
         if (kDebugMode && _fcmToken != null) {
           debugPrint('[FCM TOKEN] Retrieved FCM Token: $_fcmToken');
         }
+        if (_fcmToken != null && _fcmToken!.isNotEmpty) {
+          await registerTokenWithBackend();
+        }
       } catch (tokenErr) {
         if (kDebugMode) {
           debugPrint('[FCM TOKEN WARNING] Could not retrieve token immediately: $tokenErr');
@@ -74,7 +78,7 @@ class FirebaseNotificationService {
       // 4. Foreground Message Listener
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         if (kDebugMode) {
-          debugPrint('[FCM FOREGROUND] Received message: ${message.notification?.title}');
+          debugPrint('[FCM FOREGROUND] Received message: ${message.notification?.title ?? message.data['title']}');
         }
         _showInAppForegroundNotification(message);
       });
@@ -149,12 +153,13 @@ class FirebaseNotificationService {
 
   /// Displays a clean in-app banner for foreground notifications
   void _showInAppForegroundNotification(RemoteMessage message) {
-    final title = message.notification?.title ?? 'Notification';
-    final body = message.notification?.body ?? '';
+    final title = message.notification?.title ?? message.data['title']?.toString() ?? 'JoyEvents Notification';
+    final body = message.notification?.body ?? message.data['body']?.toString() ?? message.data['message']?.toString() ?? '';
 
     final context = AppRoutes.rootNavigatorKey.currentContext;
     if (context == null || !context.mounted) return;
 
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Column(
@@ -163,16 +168,21 @@ class FirebaseNotificationService {
           children: [
             Text(
               title,
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
             ),
             if (body.isNotEmpty)
-              Text(
-                body,
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
+              Padding(
+                padding: const EdgeInsets.only(top: 2.0),
+                child: Text(
+                  body,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12.5),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
           ],
         ),
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 5),
         behavior: SnackBarBehavior.floating,
         backgroundColor: const Color(0xFF1E293B),
         action: SnackBarAction(
@@ -191,18 +201,33 @@ class FirebaseNotificationService {
     final context = AppRoutes.rootNavigatorKey.currentContext;
     if (context == null || !context.mounted) return;
 
-    final data = message.data;
-    final type = data['type']?.toString();
-    final relatedId = data['relatedId']?.toString();
+    final user = AuthService().currentUser;
+    final isMerchant = user?.isMerchant == true;
 
-    if (type == 'booking' && relatedId != null && relatedId.isNotEmpty) {
-      context.push('/customer/booking-details/$relatedId');
-    } else if (type == 'booking') {
-      context.go('/customer/bookings');
-    } else if (type == 'wallet') {
-      context.push('/customer/wallet');
+    final data = message.data;
+    final type = data['type']?.toString() ?? data['notificationType']?.toString();
+    final relatedId = data['relatedId']?.toString() ?? data['id']?.toString();
+
+    if (isMerchant) {
+      if (type == 'booking' && relatedId != null && relatedId.isNotEmpty) {
+        context.push('/merchant/booking-details/$relatedId');
+      } else if (type == 'booking') {
+        context.go('/merchant/bookings');
+      } else if (type == 'wallet') {
+        context.push('/merchant/wallet');
+      } else {
+        context.push('/merchant/notifications');
+      }
     } else {
-      context.push('/customer/notifications');
+      if (type == 'booking' && relatedId != null && relatedId.isNotEmpty) {
+        context.push('/customer/booking-details/$relatedId');
+      } else if (type == 'booking') {
+        context.go('/customer/bookings');
+      } else if (type == 'wallet') {
+        context.push('/customer/wallet');
+      } else {
+        context.push('/customer/notifications');
+      }
     }
   }
 }

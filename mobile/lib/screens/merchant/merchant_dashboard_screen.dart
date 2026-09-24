@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../config/api_config.dart';
+import '../../services/app_lifecycle_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/merchant_service.dart';
 import '../../utils/currency_formatter.dart';
@@ -25,12 +27,28 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
   // Dashboard data
   Map<String, dynamic> _earnings = {};
   List<dynamic> _recentBookings = [];
-  List<dynamic> _myEvents = [];
+  List<dynamic> _myEvents = [];     // truncated to 4 for the horizontal scroll
+  int _totalEventsCount = 0;         // full count for slot usage display
+  List<dynamic> _myServices = [];
+  List<dynamic> _tickets = [];
 
   @override
   void initState() {
     super.initState();
     _loadDashboard();
+    AppLifecycleService().addResumeCallback(_onAppResumed);
+  }
+
+  void _onAppResumed() {
+    if (mounted) {
+      _loadDashboard();
+    }
+  }
+
+  @override
+  void dispose() {
+    AppLifecycleService().removeResumeCallback(_onAppResumed);
+    super.dispose();
   }
 
   Future<void> _loadDashboard() async {
@@ -43,18 +61,24 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
         _merchantService.getEarningsDashboard(),
         _merchantService.getAssignedBookings(),
         _merchantService.getMyEvents(),
+        _merchantService.getMyServices(),
+        _merchantService.getTickets(),
+        AuthService().getMe(), // Refresh latest user profile & slot limits automatically
       ]);
       setState(() {
         _earnings = results[0] as Map<String, dynamic>;
         final allBookings = results[1] as List;
         _recentBookings = allBookings.take(3).toList();
         final allEvents = results[2] as List;
-        _myEvents = allEvents.take(4).toList();
+        _totalEventsCount = allEvents.length;   // store full count for slot display
+        _myEvents = allEvents.take(4).toList(); // truncated for horizontal scroll
+        _myServices = results[3] as List;
+        _tickets = List<dynamic>.from(results[4] as List);
       });
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -103,13 +127,40 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
   }
 
   Widget _buildContent(String name) {
+    final pendingQuotationTickets = _tickets
+        .where((t) => (t as Map<String, dynamic>)['status'] == 'quotation_sent')
+        .toList();
+
     return CustomScrollView(
       slivers: [
+        // 1. Welcome header
         SliverToBoxAdapter(child: _buildHeader(name)),
+
+        // Quotation-pending alert banners (action-required — kept near top)
+        if (pendingQuotationTickets.isNotEmpty)
+          SliverToBoxAdapter(
+            child: Column(
+              children: pendingQuotationTickets
+                  .map((t) => _buildQuotationAlertBanner(t as Map<String, dynamic>))
+                  .toList(),
+            ),
+          ),
+
+        // 2. Recent Bookings — primary daily-activity section
         SliverToBoxAdapter(child: _buildRecentBookings()),
+
+        // 3. Quick Actions
         SliverToBoxAdapter(child: _buildQuickActions()),
+
+        // 4. Business Overview
         SliverToBoxAdapter(child: _buildMetricCards()),
+
+        // 5. Slots & Limits — compact secondary section
+        SliverToBoxAdapter(child: _buildSlotsAndLimitsSection()),
+
+        // 6. My Events (optional, only shown when events exist)
         if (_myEvents.isNotEmpty) SliverToBoxAdapter(child: _buildUpcomingEvents()),
+
         // Extra bottom padding so last item is not covered by bottom nav
         const SliverToBoxAdapter(child: SizedBox(height: 100)),
       ],
@@ -228,51 +279,158 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // SHARED LAYOUT CONSTANTS — single source of truth for all sections
+  // ─────────────────────────────────────────────────────────────────────────
+  static const double _kH = 20;       // horizontal page padding
+  static const double _kSec = 24;     // vertical gap between major sections
+  static const double _kCardGap = 12; // vertical gap between cards in a group
+  static const double _kCardPad = 16; // internal card padding
+  static const double _kRadius = 12;  // card corner radius
+
+  // Shared card decoration (white bg, standard border, no shadow)
+  static BoxDecoration _cardDecoration() => BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(_kRadius),
+        border: Border.all(color: AppTheme.borderColor),
+      );
+
+  // Shared section heading style
+  static const TextStyle _sectionHeadingStyle = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+    color: AppTheme.textColor,
+    letterSpacing: 0.1,
+  );
+
+  // "See all" / action link style
+  static const TextStyle _linkStyle = TextStyle(
+    fontSize: 12.5,
+    fontWeight: FontWeight.w600,
+    color: AppTheme.primaryColor,
+  );
+
   // ──────────────────────────────────────────────────────────────────────────
-  // 2. RECENT BOOKINGS — primary section, image-led horizontal cards
+  // 5. SLOTS & LIMITS — single compact horizontal card
+  // Left: title + inline usage  |  Right: action button + chevron
+  // ──────────────────────────────────────────────────────────────────────────
+  Widget _buildSlotsAndLimitsSection() {
+    final user = context.watch<AuthService>().currentUser;
+    final maxEv = user?.maxEvents ?? 5;
+    final maxSe = user?.maxServices ?? 5;
+    final evCount = _totalEventsCount;
+    final seCount = _myServices.length;
+    final evFull = evCount >= maxEv;
+    final seFull = seCount >= maxSe;
+    final anyFull = evFull || seFull;
+
+    const activeStatuses = ['pending', 'quotation_sent', 'paid'];
+    final hasActiveRequest = _tickets.any(
+      (t) => activeStatuses.contains((t as Map<String, dynamic>)['status']?.toString()),
+    );
+
+    // Inline usage text with optional red colour when a slot is full
+    final usageColor = anyFull ? AppTheme.errorColor : AppTheme.subtitleColor;
+    final usageText = 'Events $evCount/$maxEv  ·  Services $seCount/$maxSe';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(_kH, _kSec, _kH, 0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: _kCardPad, vertical: 14),
+        decoration: _cardDecoration(),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // LEFT: title + usage line
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Slots & Limits', style: _sectionHeadingStyle),
+                  const SizedBox(height: 3),
+                  Text(
+                    usageText,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: usageColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            // RIGHT: compact action button
+            GestureDetector(
+              onTap: () => context.push('/merchant/upgrade-slots'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: AppTheme.tintVioletBg,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      hasActiveRequest ? 'View request' : 'Manage',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 15,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 2. RECENT BOOKINGS
   // ──────────────────────────────────────────────────────────────────────────
   Widget _buildRecentBookings() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      padding: const EdgeInsets.fromLTRB(_kH, _kSec, _kH, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Recent Bookings',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textColor,
-                ),
-              ),
+              const Text('Recent Bookings', style: _sectionHeadingStyle),
               GestureDetector(
                 onTap: () => context.go('/merchant/bookings'),
                 child: const Padding(
                   padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                  child: Text(
-                    'See all',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryColor,
-                    ),
-                  ),
+                  child: Text('See all', style: _linkStyle),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: _kCardGap),
+          // Compact horizontal empty state (~88–96px tall)
           if (_recentBookings.isEmpty)
             Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppTheme.borderColor),
+              padding: const EdgeInsets.symmetric(
+                horizontal: _kCardPad,
+                vertical: 22,
               ),
+              decoration: _cardDecoration(),
               child: Row(
                 children: [
                   Container(
@@ -291,16 +449,17 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'No recent bookings',
+                          'No bookings yet',
                           style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
                             color: AppTheme.textColor,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        SizedBox(height: 3),
                         Text(
                           'New customer bookings will appear here.',
                           style: TextStyle(
@@ -328,23 +487,16 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 3. QUICK ACTIONS — compact 2×2 grid
+  // 3. QUICK ACTIONS — 2×2 grid of icon-left tiles
   // ──────────────────────────────────────────────────────────────────────────
   Widget _buildQuickActions() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 22, 16, 0),
+      padding: const EdgeInsets.fromLTRB(_kH, _kSec, _kH, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Quick Actions',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textColor,
-            ),
-          ),
-          const SizedBox(height: 12),
+          const Text('Quick Actions', style: _sectionHeadingStyle),
+          const SizedBox(height: _kCardGap),
           Row(
             children: [
               Expanded(
@@ -355,7 +507,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                   onTap: () => context.push('/merchant/create-event'),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: _kCardGap),
               Expanded(
                 child: _QuickActionTile(
                   icon: Icons.add_business_rounded,
@@ -366,7 +518,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: _kCardGap),
           Row(
             children: [
               Expanded(
@@ -377,7 +529,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                   onTap: () => context.go('/merchant/bookings'),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: _kCardGap),
               Expanded(
                 child: _QuickActionTile(
                   icon: Icons.account_balance_wallet_outlined,
@@ -394,75 +546,67 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 4. BUSINESS OVERVIEW — compact 2×2 metric cards
+  // 4. BUSINESS OVERVIEW — 2×2 uniform-height metric tiles
   // ──────────────────────────────────────────────────────────────────────────
   Widget _buildMetricCards() {
     final grossRevenue = (_earnings['grossRevenue'] as num?)?.toDouble() ?? 0.0;
     final totalEarnings = (_earnings['totalEarnings'] as num?)?.toDouble() ?? 0.0;
     final availableBalance = (_earnings['availableBalance'] as num?)?.toDouble() ?? 0.0;
-    final totalEvents = _myEvents.length;
+    final totalEvents = _totalEventsCount;
+
+    // IntrinsicHeight makes both tiles in each row the same height even if
+    // one currency string is longer than the other.
+    Widget row(Widget a, Widget b) => IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: a),
+              const SizedBox(width: _kCardGap),
+              Expanded(child: b),
+            ],
+          ),
+        );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 22, 16, 0),
+      padding: const EdgeInsets.fromLTRB(_kH, _kSec, _kH, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Business Overview',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textColor,
+          const Text('Business Overview', style: _sectionHeadingStyle),
+          const SizedBox(height: _kCardGap),
+          row(
+            _MetricCard(
+              label: 'Available Balance',
+              value: formatINR(availableBalance),
+              icon: Icons.account_balance_wallet_rounded,
+              iconBg: AppTheme.tintVioletBg,
+              iconFg: AppTheme.primaryColor,
+            ),
+            _MetricCard(
+              label: 'Total Earnings',
+              value: formatINR(totalEarnings),
+              icon: Icons.trending_up_rounded,
+              iconBg: const Color(0xFFECFDF5),
+              iconFg: AppTheme.successColor,
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _MetricCard(
-                  label: 'Available Balance',
-                  value: formatINR(availableBalance),
-                  icon: Icons.account_balance_wallet_rounded,
-                  iconBg: AppTheme.tintVioletBg,
-                  iconFg: AppTheme.tintVioletFg,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _MetricCard(
-                  label: 'Total Earnings',
-                  value: formatINR(totalEarnings),
-                  icon: Icons.trending_up_rounded,
-                  iconBg: const Color(0xFFECFDF5),
-                  iconFg: AppTheme.successColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _MetricCard(
-                  label: 'Gross Revenue',
-                  value: formatINR(grossRevenue),
-                  icon: Icons.payments_rounded,
-                  iconBg: AppTheme.tintOrangeBg,
-                  iconFg: AppTheme.tintOrangeFg,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _MetricCard(
-                  label: 'My Events',
-                  value: '$totalEvents',
-                  icon: Icons.event_rounded,
-                  iconBg: AppTheme.tintBlueBg,
-                  iconFg: AppTheme.tintBlueFg,
-                  isCurrency: false,
-                ),
-              ),
-            ],
+          const SizedBox(height: _kCardGap),
+          row(
+            _MetricCard(
+              label: 'Gross Revenue',
+              value: formatINR(grossRevenue),
+              icon: Icons.payments_rounded,
+              iconBg: AppTheme.tintOrangeBg,
+              iconFg: AppTheme.tintOrangeFg,
+            ),
+            _MetricCard(
+              label: 'My Events',
+              value: '$totalEvents',
+              icon: Icons.event_rounded,
+              iconBg: AppTheme.tintBlueBg,
+              iconFg: AppTheme.tintBlueFg,
+              isCurrency: false,
+            ),
           ),
         ],
       ),
@@ -470,42 +614,28 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 5. MY EVENTS — horizontal scroll cards
+  // 6. MY EVENTS — horizontal scroll cards
   // ──────────────────────────────────────────────────────────────────────────
   Widget _buildUpcomingEvents() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 22, 16, 0),
+      padding: const EdgeInsets.fromLTRB(_kH, _kSec, _kH, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'My Events',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textColor,
-                ),
-              ),
+              const Text('My Events', style: _sectionHeadingStyle),
               GestureDetector(
                 onTap: () => context.go('/merchant/events'),
                 child: const Padding(
                   padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                  child: Text(
-                    'See all',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryColor,
-                    ),
-                  ),
+                  child: Text('See all', style: _linkStyle),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: _kCardGap),
           SizedBox(
             height: 155,
             child: ListView.separated(
@@ -516,6 +646,273 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // PENDING QUOTATION ALERT BANNER & TICKETS LIST
+  // ──────────────────────────────────────────────────────────────────────────
+  Widget _buildQuotationAlertBanner(Map<String, dynamic> ticket) {
+    final reqEv = ticket['requestedEvents'] ?? 0;
+    final reqSe = ticket['requestedServices'] ?? 0;
+    final quoteAmt = (ticket['quotationAmount'] as num?)?.toDouble() ?? 0.0;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF3C7),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Action Required: Slot Upgrade Quotation Received',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF92400E),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Admin quoted ${formatINR(quoteAmt)} to add +$reqEv Events and +$reqSe Services.',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: const Color(0xFF78350F),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: () => _openPaymentModal(ticket),
+                icon: const Icon(Icons.payment_rounded, size: 18),
+                label: Text(
+                  'Pay ${formatINR(quoteAmt)} Now',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                  minimumSize: const Size(0, 48),
+                  alignment: Alignment.center,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTicketsListSection() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 22, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Slots Upgrade Request Tickets',
+                style: GoogleFonts.poppins(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textColor,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => context.push('/merchant/upgrade-slots'),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                  child: Text(
+                    'View All',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_tickets.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppTheme.borderColor),
+              ),
+              child: Center(
+                child: Text(
+                  'No upgrade request tickets raised yet.',
+                  style: GoogleFonts.poppins(fontSize: 12.5, color: AppTheme.subtitleColor),
+                ),
+              ),
+            )
+          else
+            Column(
+              children: _tickets.take(3).map((t) {
+                final ticket = t as Map<String, dynamic>;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _buildDashboardTicketCard(ticket),
+                );
+              }).toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboardTicketCard(Map<String, dynamic> ticket) {
+    final status = ticket['status']?.toString() ?? 'pending';
+    final reqEv = ticket['requestedEvents'] ?? 0;
+    final reqSe = ticket['requestedServices'] ?? 0;
+    final quoteAmt = (ticket['quotationAmount'] as num?)?.toDouble() ?? 0.0;
+    final msg = ticket['message']?.toString() ?? '';
+
+    Color badgeBg;
+    Color badgeFg;
+    String statusLabel;
+
+    switch (status) {
+      case 'quotation_sent':
+        badgeBg = AppTheme.tintVioletBg;
+        badgeFg = AppTheme.primaryColor;
+        statusLabel = 'Quotation Sent';
+        break;
+      case 'paid':
+        badgeBg = const Color(0xFFDBEAFE);
+        badgeFg = const Color(0xFF1D4ED8);
+        statusLabel = 'Paid - Awaiting Approval';
+        break;
+      case 'approved':
+        badgeBg = const Color(0xFFDCFCE7);
+        badgeFg = const Color(0xFF15803D);
+        statusLabel = 'Approved & Upgraded';
+        break;
+      default:
+        badgeBg = const Color(0xFFFEF3C7);
+        badgeFg = const Color(0xFFB45309);
+        statusLabel = 'Pending Review';
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: status == 'quotation_sent' ? AppTheme.primaryColor.withValues(alpha: 0.4) : AppTheme.borderColor,
+        ),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'Request: +$reqEv Events, +$reqSe Services',
+                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textColor),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(6)),
+                child: Text(
+                  statusLabel,
+                  style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w700, color: badgeFg),
+                ),
+              ),
+            ],
+          ),
+          if (msg.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Message: "$msg"',
+              style: GoogleFonts.poppins(fontSize: 11.5, color: AppTheme.subtitleColor),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (quoteAmt > 0)
+                Text(
+                  'Quote: ${formatINR(quoteAmt)}',
+                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w800, color: AppTheme.primaryColor),
+                )
+              else
+                const SizedBox(),
+              if (status == 'quotation_sent')
+                ElevatedButton(
+                  onPressed: () => _openPaymentModal(ticket),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Text('Pay Now', style: GoogleFonts.poppins(fontSize: 11.5, fontWeight: FontWeight.w700)),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openPaymentModal(Map<String, dynamic> ticket) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _DashboardPayTicketModal(
+        ticket: ticket,
+        onSuccess: () {
+          Navigator.of(ctx).pop();
+          _loadDashboard();
+          context.read<AuthService>().getMe();
+        },
       ),
     );
   }
@@ -556,7 +953,66 @@ class _HeaderIconButton extends StatelessWidget {
   }
 }
 
-/// Compact metric card for the 2×2 overview grid
+/// Compact slot usage chip: "Events 2/10" — goes red when full
+class _SlotChip extends StatelessWidget {
+  final String label;
+  final int used;
+  final int max;
+  final bool isFull;
+
+  const _SlotChip({
+    required this.label,
+    required this.used,
+    required this.max,
+    required this.isFull,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = isFull
+        ? AppTheme.errorColor.withValues(alpha: 0.10)
+        : AppTheme.inputFillColor;
+    final fg = isFull ? AppTheme.errorColor : AppTheme.subtitleColor;
+    final valueFg = isFull ? AppTheme.errorColor : AppTheme.textColor;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: isFull
+              ? AppTheme.errorColor.withValues(alpha: 0.25)
+              : AppTheme.borderColor,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label ',
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: fg,
+            ),
+          ),
+          Text(
+            '$used/$max',
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: valueFg,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Metric tile — uniform internal padding; value-first hierarchy.
+/// IntrinsicHeight is applied by the caller so both tiles in a row are equal.
 class _MetricCard extends StatelessWidget {
   final String label;
   final String value;
@@ -577,36 +1033,27 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(
+          _MerchantDashboardScreenState._kCardPad),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(
+            _MerchantDashboardScreenState._kRadius),
         border: Border.all(color: AppTheme.borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF060B28).withOpacity(0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                child: Icon(icon, color: iconFg, size: 15),
-              ),
-              const Spacer(),
-            ],
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: iconFg, size: 15),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
@@ -614,20 +1061,23 @@ class _MetricCard extends StatelessWidget {
               value,
               maxLines: 1,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w800,
                 color: AppTheme.textColor,
-                height: 1.2,
+                height: 1.15,
               ),
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 11,
               color: AppTheme.subtitleColor,
               fontWeight: FontWeight.w500,
+              height: 1.3,
             ),
           ),
         ],
@@ -636,7 +1086,8 @@ class _MetricCard extends StatelessWidget {
   }
 }
 
-/// Compact horizontal quick action tile for the 2×2 actions grid
+/// Quick action tile — icon on left, label on right.
+/// Consistent height ensured by identical internal padding across all four tiles.
 class _QuickActionTile extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -652,57 +1103,49 @@ class _QuickActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF060B28).withOpacity(0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(
+          _MerchantDashboardScreenState._kRadius),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(
+            _MerchantDashboardScreenState._kRadius),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: _MerchantDashboardScreenState._kCardPad,
+            vertical: 14,
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, color: color, size: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(
+                _MerchantDashboardScreenState._kRadius),
+            border: Border.all(color: AppTheme.borderColor),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textColor,
-                    ),
+                child: Icon(icon, color: color, size: 16),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textColor,
+                    height: 1.3,
                   ),
                 ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppTheme.subtitleColor.withOpacity(0.4),
-                  size: 16,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -796,36 +1239,29 @@ class _DashboardBookingTile extends StatelessWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF060B28).withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Image ~84x84
+                // Image — 64×64
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   child: SizedBox(
-                    width: 84,
-                    height: 84,
+                    width: 64,
+                    height: 64,
                     child: imageUrl.isNotEmpty
                         ? Image.network(
                             imageUrl,
@@ -835,7 +1271,7 @@ class _DashboardBookingTile extends StatelessWidget {
                         : _imagePlaceholder(),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 // Details column
                 Expanded(
                   child: Column(
@@ -843,53 +1279,53 @@ class _DashboardBookingTile extends StatelessWidget {
                     children: [
                       Text(
                         itemTitle,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 13.5,
                           fontWeight: FontWeight.w700,
                           color: AppTheme.textColor,
-                          height: 1.25,
+                          height: 1.2,
                         ),
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 2),
                       Text(
                         customerName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 12,
+                          fontSize: 11.5,
                           color: AppTheme.subtitleColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       if (formattedDate.isNotEmpty) ...[
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 2),
                         Row(
                           children: [
                             Icon(
                               Icons.calendar_today_outlined,
-                              size: 11,
-                              color: AppTheme.subtitleColor.withOpacity(0.7),
+                              size: 10,
+                              color: AppTheme.subtitleColor.withValues(alpha: 0.7),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 3),
                             Text(
                               formattedDate,
                               style: TextStyle(
-                                fontSize: 11,
-                                color: AppTheme.subtitleColor.withOpacity(0.85),
+                                fontSize: 10.5,
+                                color: AppTheme.subtitleColor.withValues(alpha: 0.85),
                               ),
                             ),
                           ],
                         ),
                       ],
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Row(
                         children: [
                           Text(
                             formatINR(total),
                             style: const TextStyle(
-                              fontSize: 14,
+                              fontSize: 13,
                               fontWeight: FontWeight.w800,
                               color: AppTheme.textColor,
                             ),
@@ -897,27 +1333,21 @@ class _DashboardBookingTile extends StatelessWidget {
                           const Spacer(),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
+                              horizontal: 7,
+                              vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: _statusColor(status).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
+                              color: _statusColor(status).withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
                               _formatStatus(status),
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 9.5,
                                 fontWeight: FontWeight.w700,
                                 color: _statusColor(status),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            size: 18,
-                            color: AppTheme.subtitleColor.withOpacity(0.6),
                           ),
                         ],
                       ),
@@ -976,7 +1406,7 @@ class _DashboardEventCard extends StatelessWidget {
           border: Border.all(color: AppTheme.borderColor),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF060B28).withOpacity(0.03),
+              color: const Color(0xFF060B28).withValues(alpha: 0.03),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -1040,6 +1470,293 @@ class _DashboardEventCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ─── Modal Sheet for Paying Ticket Quotation ─────────────────────────────────
+class _DashboardPayTicketModal extends StatefulWidget {
+  final Map<String, dynamic> ticket;
+  final VoidCallback onSuccess;
+
+  const _DashboardPayTicketModal({required this.ticket, required this.onSuccess});
+
+  @override
+  State<_DashboardPayTicketModal> createState() => _DashboardPayTicketModalState();
+}
+
+class _DashboardPayTicketModalState extends State<_DashboardPayTicketModal> {
+  final _merchantService = MerchantService();
+  final _formKey = GlobalKey<FormState>();
+
+  final _cardNumCtrl = TextEditingController();
+  final _expiryCtrl = TextEditingController();
+  final _cvvCtrl = TextEditingController();
+  final _cardholderCtrl = TextEditingController();
+
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _cardNumCtrl.dispose();
+    _expiryCtrl.dispose();
+    _cvvCtrl.dispose();
+    _cardholderCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _payQuotation() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _submitting = true);
+
+    try {
+      final ticketId = widget.ticket['_id']?.toString() ?? '';
+      await _merchantService.payTicket(ticketId, {
+        'cardNumber': _cardNumCtrl.text.trim(),
+        'cardholderName': _cardholderCtrl.text.trim(),
+        'expiryDate': _expiryCtrl.text.trim(),
+        'cvv': _cvvCtrl.text.trim(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Payment processed successfully! Awaiting admin approval.'),
+          backgroundColor: AppTheme.successColor,
+        ));
+        widget.onSuccess();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: AppTheme.errorColor,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final quoteAmt = (widget.ticket['quotationAmount'] as num?)?.toDouble() ?? 0.0;
+    final reqEv = widget.ticket['requestedEvents'] ?? 0;
+    final reqSe = widget.ticket['requestedServices'] ?? 0;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(color: const Color(0xFFCBD5E1), borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                Row(
+                  children: [
+                    const Icon(Icons.credit_card_rounded, color: AppTheme.primaryColor),
+                    const SizedBox(width: 8),
+                    Text('Pay Ticket Quotation', style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w700, color: AppTheme.textColor)),
+                  ],
+                ),
+                Text(
+                  'Upgrade: +$reqEv Events, +$reqSe Services · Amount: ${formatINR(quoteAmt)}',
+                  style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.subtitleColor),
+                ),
+                const SizedBox(height: 16),
+
+                _buildFieldLabel('CARD NUMBER'),
+                TextFormField(
+                  controller: _cardNumCtrl,
+                  keyboardType: TextInputType.number,
+                  style: _inputTextStyle(),
+                  maxLength: 19,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(16),
+                    _DashboardCardNumberFormatter(),
+                  ],
+                  decoration: _inputDecoration(hintText: '4111 2222 3333 4444', prefixIcon: const Icon(Icons.credit_card)),
+                  validator: (v) {
+                    if (v == null || v.replaceAll(' ', '').length != 16) return 'Please enter 16-digit card number';
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 12),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildFieldLabel('EXPIRY DATE'),
+                          TextFormField(
+                            controller: _expiryCtrl,
+                            keyboardType: TextInputType.number,
+                            style: _inputTextStyle(),
+                            maxLength: 5,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(4),
+                              _DashboardCardExpiryFormatter(),
+                            ],
+                            decoration: _inputDecoration(hintText: 'MM/YY'),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) return 'Required';
+                              if (!RegExp(r'^(0[1-9]|1[0-2])\/\d{2}$').hasMatch(v.trim())) {
+                                return 'MM/YY required';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildFieldLabel('CVV'),
+                          TextFormField(
+                            controller: _cvvCtrl,
+                            keyboardType: TextInputType.number,
+                            obscureText: true,
+                            style: _inputTextStyle(),
+                            maxLength: 3,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(3),
+                            ],
+                            decoration: _inputDecoration(hintText: '123'),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) return 'Required';
+                              if (v.trim().length < 3) return '3 digits required';
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                _buildFieldLabel('CARDHOLDER NAME'),
+                TextFormField(
+                  controller: _cardholderCtrl,
+                  style: _inputTextStyle(),
+                  maxLength: 50,
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(50),
+                  ],
+                  decoration: _inputDecoration(hintText: 'John Doe', prefixIcon: const Icon(Icons.person_outline)),
+                  validator: (v) => v == null || v.trim().isEmpty ? 'Cardholder name is required' : null,
+                ),
+
+                const SizedBox(height: 18),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _submitting ? null : _payQuotation,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    child: _submitting
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Text(
+                            'Pay ${formatINR(quoteAmt)} & Submit',
+                            style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFieldLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: Text(
+        label,
+        style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.subtitleColor, letterSpacing: 0.5),
+      ),
+    );
+  }
+
+  TextStyle _inputTextStyle() => GoogleFonts.poppins(fontSize: 13, color: AppTheme.textColor);
+
+  InputDecoration _inputDecoration({required String hintText, Widget? prefixIcon}) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF94A3B8)),
+      filled: true,
+      fillColor: AppTheme.inputFillColor,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      prefixIcon: prefixIcon != null ? IconTheme(data: const IconThemeData(color: AppTheme.subtitleColor, size: 18), child: prefixIcon) : null,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.borderColor)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.borderColor)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5)),
+      counterText: '',
+    );
+  }
+}
+
+class _DashboardCardNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) return newValue;
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final limitedDigits = digitsOnly.length > 16 ? digitsOnly.substring(0, 16) : digitsOnly;
+    final buffer = StringBuffer();
+    for (int i = 0; i < limitedDigits.length; i++) {
+      if (i > 0 && i % 4 == 0) buffer.write(' ');
+      buffer.write(limitedDigits[i]);
+    }
+    final formatted = buffer.toString();
+    return TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
+  }
+}
+
+class _DashboardCardExpiryFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) return newValue;
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final limitedDigits = digitsOnly.length > 4 ? digitsOnly.substring(0, 4) : digitsOnly;
+    final buffer = StringBuffer();
+    for (int i = 0; i < limitedDigits.length; i++) {
+      if (i == 2) buffer.write('/');
+      buffer.write(limitedDigits[i]);
+    }
+    final formatted = buffer.toString();
+    return TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
   }
 }
 

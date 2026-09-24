@@ -43,13 +43,35 @@ class _LocationAutocompleteState extends State<LocationAutocomplete> {
   bool _loading = false;
   bool _searchError = false;
   bool _isOpen = false;
-  bool _isSelection = false;
+  
+  // Track confirmed selection state
+  bool _isConfirmedSelection = false;
+  String? _confirmedText;
 
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChange);
     widget.controller.addListener(_onControllerChange);
+    
+    // If field starts with an existing address, mark it as confirmed selection
+    if (widget.controller.text.trim().isNotEmpty) {
+      _isConfirmedSelection = true;
+      _confirmedText = widget.controller.text;
+    }
+  }
+
+  @override
+  void didUpdateWidget(LocationAutocomplete oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onControllerChange);
+      widget.controller.addListener(_onControllerChange);
+      if (widget.controller.text.trim().isNotEmpty) {
+        _isConfirmedSelection = true;
+        _confirmedText = widget.controller.text;
+      }
+    }
   }
 
   @override
@@ -65,7 +87,8 @@ class _LocationAutocompleteState extends State<LocationAutocomplete> {
 
   void _onFocusChange() {
     if (_focusNode.hasFocus) {
-      if (widget.controller.text.trim().length >= 3) {
+      // Do not trigger autocomplete search on focus if text is already confirmed
+      if (!_isConfirmedSelection && widget.controller.text.trim().length >= 3) {
         _performSearch(widget.controller.text);
       }
     } else {
@@ -79,11 +102,19 @@ class _LocationAutocompleteState extends State<LocationAutocomplete> {
   }
 
   void _onControllerChange() {
-    if (_isSelection) {
-      _isSelection = false;
+    final text = widget.controller.text;
+
+    // If the text matches confirmed selection, ignore programmatic update
+    if (_isConfirmedSelection && text == _confirmedText) {
       return;
     }
-    final text = widget.controller.text;
+
+    // If user modified text away from confirmed selection, clear confirmation state
+    if (_isConfirmedSelection && text != _confirmedText) {
+      _isConfirmedSelection = false;
+      _confirmedText = null;
+    }
+
     if (widget.onChanged != null) {
       widget.onChanged!(text);
     }
@@ -109,6 +140,17 @@ class _LocationAutocompleteState extends State<LocationAutocomplete> {
   }
 
   Future<void> _performSearch(String query) async {
+    // If text has already been confirmed, abort search
+    if (_isConfirmedSelection) {
+      setState(() {
+        _suggestions = [];
+        _loading = false;
+        _searchError = false;
+      });
+      _hideOverlay();
+      return;
+    }
+
     final trimmed = query.trim();
     if (trimmed.length < 3) {
       setState(() {
@@ -135,32 +177,49 @@ class _LocationAutocompleteState extends State<LocationAutocomplete> {
         trimmed,
         cancelToken: _cancelToken,
       );
-      if (mounted) {
-        setState(() {
-          _suggestions = results;
-          _loading = false;
-          _searchError = false;
-        });
-        _showOverlay();
-      }
+      // Guard against component unmount or selection occurring while request was in-flight
+      if (!mounted || _isConfirmedSelection) return;
+      
+      setState(() {
+        _suggestions = results;
+        _loading = false;
+        _searchError = false;
+      });
+      _showOverlay();
     } catch (e) {
       if (e is DioException && CancelToken.isCancel(e)) return;
-      if (mounted) {
-        setState(() {
-          _suggestions = [];
-          _loading = false;
-          _searchError = true;
-        });
-        _showOverlay();
-      }
+      if (!mounted || _isConfirmedSelection) return;
+
+      setState(() {
+        _suggestions = [];
+        _loading = false;
+        _searchError = true;
+      });
+      _showOverlay();
     }
   }
 
   void _selectSuggestion(LocationSuggestion suggestion) {
-    _isSelection = true;
     final selectedText = suggestion.fullAddress.isNotEmpty ? suggestion.fullAddress : suggestion.name;
 
+    // 1. Cancel pending timer and in-flight API calls immediately
+    _debounceTimer?.cancel();
+    _cancelToken?.cancel();
+
+    // 2. Mark address as confirmed selection BEFORE modifying text controller
+    _isConfirmedSelection = true;
+    _confirmedText = selectedText;
+
+    // 3. Clear suggestions and state
+    setState(() {
+      _suggestions = [];
+      _loading = false;
+      _searchError = false;
+    });
+
+    // 4. Update controller text
     widget.controller.text = selectedText;
+
     if (widget.onChanged != null) {
       widget.onChanged!(selectedText);
     }
@@ -168,12 +227,13 @@ class _LocationAutocompleteState extends State<LocationAutocomplete> {
       widget.onSuggestionSelected!(suggestion);
     }
 
+    // 5. Hide overlay and dismiss keyboard
     _hideOverlay();
     _focusNode.unfocus();
+    FocusScope.of(context).unfocus();
   }
 
   void _selectManual() {
-    _isSelection = true;
     final manualText = widget.controller.text.trim();
     final suggestion = LocationSuggestion(
       name: manualText,
@@ -184,7 +244,24 @@ class _LocationAutocompleteState extends State<LocationAutocomplete> {
       isManual: true,
     );
 
+    // 1. Cancel pending timer and in-flight API calls immediately
+    _debounceTimer?.cancel();
+    _cancelToken?.cancel();
+
+    // 2. Mark address as confirmed selection BEFORE modifying text controller
+    _isConfirmedSelection = true;
+    _confirmedText = manualText;
+
+    // 3. Clear suggestions and state
+    setState(() {
+      _suggestions = [];
+      _loading = false;
+      _searchError = false;
+    });
+
+    // 4. Update controller text
     widget.controller.text = manualText;
+
     if (widget.onChanged != null) {
       widget.onChanged!(manualText);
     }
@@ -192,11 +269,15 @@ class _LocationAutocompleteState extends State<LocationAutocomplete> {
       widget.onSuggestionSelected!(suggestion);
     }
 
+    // 5. Hide overlay and dismiss keyboard
     _hideOverlay();
     _focusNode.unfocus();
+    FocusScope.of(context).unfocus();
   }
 
   void _showOverlay() {
+    if (_isConfirmedSelection) return;
+
     if (_overlayEntry != null) {
       _overlayEntry!.markNeedsBuild();
       return;
@@ -455,6 +536,8 @@ class _LocationAutocompleteState extends State<LocationAutocomplete> {
                 IconButton(
                   icon: const Icon(Icons.close_rounded, size: 18, color: AppTheme.subtitleColor),
                   onPressed: () {
+                    _isConfirmedSelection = false;
+                    _confirmedText = null;
                     widget.controller.clear();
                     if (widget.onChanged != null) widget.onChanged!('');
                     setState(() {

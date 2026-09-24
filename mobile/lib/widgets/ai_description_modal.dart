@@ -48,7 +48,15 @@ class _AIDescriptionModalState extends State<AIDescriptionModal> {
   }
 
   Future<void> _generateDescription(String tone) async {
-    if (widget.title.trim().isEmpty) return;
+    if (_loading) return;
+
+    if (widget.title.trim().isEmpty) {
+      setState(() {
+        _loading = false;
+        _error = "Please enter an event title or topic first.";
+      });
+      return;
+    }
 
     setState(() {
       _selectedTone = tone;
@@ -76,15 +84,21 @@ class _AIDescriptionModalState extends State<AIDescriptionModal> {
           });
         } else {
           setState(() {
-            _error = "Could not generate description. Please try again.";
+            _error = "Could not generate description right now. Please try again.";
             _loading = false;
           });
         }
       }
     } catch (e) {
       if (mounted) {
+        String errStr = e.toString();
+        if (errStr.contains('404')) {
+          errStr = "AI description service unavailable (404). Please try again later.";
+        } else if (errStr.contains('401') || errStr.contains('403')) {
+          errStr = "Session expired. Please log in again.";
+        }
         setState(() {
-          _error = e.toString();
+          _error = errStr;
           _loading = false;
         });
       }
@@ -191,7 +205,22 @@ class _AIDescriptionModalState extends State<AIDescriptionModal> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Center(
-                  child: Text(_error!, style: const TextStyle(color: AppTheme.errorColor, fontSize: 13)),
+                  child: Column(
+                    children: [
+                      Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.errorColor, fontSize: 13)),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: _loading ? null : () => _generateDescription(_selectedTone),
+                        icon: const Icon(Icons.refresh, size: 16),
+                        label: const Text('Retry'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.indigo,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               )
             else ...[

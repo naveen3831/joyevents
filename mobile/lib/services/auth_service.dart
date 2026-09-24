@@ -113,6 +113,13 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  // Update stored user model
+  Future<void> updateUser(UserModel user) async {
+    _currentUser = user;
+    await _storage.write(key: 'user_data', value: jsonEncode(user.toJson()));
+    notifyListeners();
+  }
+
   // Fetch current user details (/api/auth/me)
   Future<UserModel?> getMe() async {
     try {
@@ -121,6 +128,7 @@ class AuthService extends ChangeNotifier {
       final userData = data['user'] ?? data;
       final user = UserModel.fromJson(userData);
       _currentUser = user;
+      await _storage.write(key: 'user_data', value: jsonEncode(user.toJson()));
       notifyListeners();
       return user;
     } catch (_) {

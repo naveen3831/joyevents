@@ -41,6 +41,8 @@ import '../screens/merchant/merchant_wallet_screen.dart';
 import '../screens/merchant/merchant_messages_screen.dart';
 import '../screens/merchant/merchant_chat_screen.dart';
 import '../screens/merchant/merchant_profile_screen.dart';
+import '../screens/merchant/merchant_onboarding_screen.dart';
+import '../screens/merchant/merchant_upgrade_slots_screen.dart';
 
 class AppRoutes {
   static final GlobalKey<NavigatorState> rootNavigatorKey =
@@ -58,14 +60,17 @@ class AppRoutes {
       redirect: (BuildContext context, GoRouterState state) {
         final isLoading = authService.isLoading;
         final isLoggedIn = authService.isAuthenticated;
-        final isMerchant = authService.currentUser?.isMerchant ?? false;
-        final isCustomer = authService.currentUser?.isCustomer ?? false;
+        final user = authService.currentUser;
+        final isMerchant = user?.isMerchant ?? false;
+        final isCustomer = user?.isCustomer ?? false;
+        final isMerchantActive = user?.isMerchantActive ?? false;
 
         final location = state.matchedLocation;
         final isSplash = location == '/splash';
         final isAuthRoute = location == '/login' ||
             location == '/register' ||
             location == '/forgot-password';
+        final isOnboardingRoute = location == '/merchant/onboarding';
 
         if (isLoading) {
           return isSplash ? null : '/splash';
@@ -73,6 +78,16 @@ class AppRoutes {
 
         if (!isLoggedIn) {
           return isAuthRoute ? null : '/login';
+        }
+
+        // Merchant onboarding enforcement
+        if (isMerchant) {
+          if (!isMerchantActive) {
+            return isOnboardingRoute ? null : '/merchant/onboarding';
+          }
+          if (isOnboardingRoute) {
+            return '/merchant/dashboard';
+          }
         }
 
         // Role-based redirect from splash / auth screens
@@ -113,6 +128,10 @@ class AppRoutes {
         GoRoute(
           path: '/forgot-password',
           builder: (context, state) => const ForgotPasswordScreen(),
+        ),
+        GoRoute(
+          path: '/merchant/onboarding',
+          builder: (context, state) => const MerchantOnboardingScreen(),
         ),
 
         // ── Customer Bottom Navigation Shell ─────────────────────────────────
@@ -291,6 +310,10 @@ class AppRoutes {
         GoRoute(
           path: '/merchant/wallet',
           builder: (context, state) => const MerchantWalletScreen(),
+        ),
+        GoRoute(
+          path: '/merchant/upgrade-slots',
+          builder: (context, state) => const MerchantUpgradeSlotsScreen(),
         ),
         GoRoute(
           path: '/merchant/messages',

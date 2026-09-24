@@ -36,7 +36,15 @@ class _AITitleSuggestionsBottomSheetState extends State<AITitleSuggestionsBottom
   }
 
   Future<void> _fetchSuggestions([bool isGenerateMore = false]) async {
-    if (widget.topic.trim().isEmpty) return;
+    if (_loading) return;
+
+    if (widget.topic.trim().isEmpty) {
+      setState(() {
+        _loading = false;
+        _error = "Please enter an event title or topic first.";
+      });
+      return;
+    }
 
     setState(() {
       _loading = true;
@@ -62,15 +70,21 @@ class _AITitleSuggestionsBottomSheetState extends State<AITitleSuggestionsBottom
           });
         } else {
           setState(() {
-            _error = "Could not generate title suggestions. Please try again.";
+            _error = "Could not generate title suggestions right now. Please try again.";
             _loading = false;
           });
         }
       }
     } catch (e) {
       if (mounted) {
+        String errStr = e.toString();
+        if (errStr.contains('404')) {
+          errStr = "AI suggestion service unavailable (404). Please try again later.";
+        } else if (errStr.contains('401') || errStr.contains('403')) {
+          errStr = "Session expired. Please log in again.";
+        }
         setState(() {
-          _error = e.toString();
+          _error = errStr;
           _loading = false;
         });
       }
@@ -149,7 +163,22 @@ class _AITitleSuggestionsBottomSheetState extends State<AITitleSuggestionsBottom
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Center(
-                child: Text(_error!, style: const TextStyle(color: AppTheme.errorColor, fontSize: 13)),
+                child: Column(
+                  children: [
+                    Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.errorColor, fontSize: 13)),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: _loading ? null : () => _fetchSuggestions(),
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('Retry'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             )
           else ...[

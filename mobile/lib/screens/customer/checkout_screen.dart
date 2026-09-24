@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/app_theme.dart';
@@ -347,6 +348,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         label: 'Card Number',
                         hint: '4111 2222 3333 4444',
                         keyboardType: TextInputType.number,
+                        maxLength: 19,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(16),
+                        ],
                         validator: (val) {
                           if (_paymentMethod == 'card' && (val == null || val.length < 12)) {
                             return 'Enter valid card number';
@@ -361,6 +367,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         hint: '123',
                         obscureText: true,
                         keyboardType: TextInputType.number,
+                        maxLength: 3,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(3),
+                        ],
                         validator: (val) {
                           if (_paymentMethod == 'card' && (val == null || val.length < 3)) {
                             return 'Enter CVV';

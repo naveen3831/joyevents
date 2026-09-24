@@ -14,6 +14,16 @@ class MerchantProfileScreen extends StatefulWidget {
 class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
   bool _isLoggingOut = false;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AuthService>().getMe();
+      }
+    });
+  }
+
   Future<void> _handleLogout() async {
     if (_isLoggingOut) return;
 
@@ -168,6 +178,11 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
                   _SectionCard(
                     title: 'Quick Links',
                     items: [
+                      _ActionTile(
+                        icon: Icons.confirmation_number_outlined,
+                        label: 'Upgrade Listing Slots',
+                        onTap: () => context.push('/merchant/upgrade-slots'),
+                      ),
                       _ActionTile(
                         icon: Icons.account_balance_wallet_outlined,
                         label: 'Earnings & Wallet',

@@ -614,6 +614,7 @@ Return ONLY raw valid JSON (no markdown headers, no explanations):
 };
 
 // Endpoints
+router.post("/suggest", handleAIRequest);
 router.post("/suggest-event-content", handleAIRequest);
 router.post("/service-content", handleAIRequest);
 

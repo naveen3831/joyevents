@@ -81,7 +81,23 @@ class MerchantService {
 
   Future<Map<String, dynamic>> generateAISuggestions(Map<String, dynamic> body) async {
     try {
-      final res = await _api.dio.post('/ai/suggest', data: body);
+      // Primary endpoint matching React Web frontend and live backend API
+      final res = await _api.dio.post('/ai/suggest-event-content', data: body);
+      return res.data as Map<String, dynamic>;
+    } catch (e) {
+      // Fallback endpoint in case backend uses /ai/suggest
+      try {
+        final fallbackRes = await _api.dio.post('/ai/suggest', data: body);
+        return fallbackRes.data as Map<String, dynamic>;
+      } catch (_) {
+        throw ApiService.parseError(e);
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>> generateServiceAISuggestions(Map<String, dynamic> body) async {
+    try {
+      final res = await _api.dio.post('/ai/service-content', data: body);
       return res.data as Map<String, dynamic>;
     } catch (e) {
       throw ApiService.parseError(e);
@@ -256,6 +272,58 @@ class MerchantService {
     }
   }
 
+  // ─── Merchant Onboarding ──────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> submitOnboardingDetails(Map<String, dynamic> body) async {
+    try {
+      final res = await _api.dio.patch('/merchant/details', data: body);
+      return res.data as Map<String, dynamic>;
+    } catch (e) {
+      throw ApiService.parseError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> payOnboardingQuotation(Map<String, dynamic> body) async {
+    try {
+      final res = await _api.dio.post('/merchant/pay-quotation', data: body);
+      return res.data as Map<String, dynamic>;
+    } catch (e) {
+      throw ApiService.parseError(e);
+    }
+  }
+
+  // ─── Upgrade Tickets ────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> raiseTicket(Map<String, dynamic> body) async {
+    try {
+      final res = await _api.dio.post('/merchant/tickets', data: body);
+      return res.data as Map<String, dynamic>;
+    } catch (e) {
+      throw ApiService.parseError(e);
+    }
+  }
+
+  Future<List<dynamic>> getTickets() async {
+    try {
+      final res = await _api.dio.get('/merchant/tickets');
+      final data = res.data;
+      if (data is Map && data['tickets'] is List) return data['tickets'] as List;
+      if (data is List) return data;
+      return [];
+    } catch (e) {
+      throw ApiService.parseError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> payTicket(String ticketId, Map<String, dynamic> body) async {
+    try {
+      final res = await _api.dio.post('/merchant/tickets/$ticketId/pay', data: body);
+      return res.data as Map<String, dynamic>;
+    } catch (e) {
+      throw ApiService.parseError(e);
+    }
+  }
+
   // ─── Merchant Profile ────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getMerchantProfile() async {
@@ -267,3 +335,4 @@ class MerchantService {
     }
   }
 }
+

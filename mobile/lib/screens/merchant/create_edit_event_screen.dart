@@ -179,8 +179,69 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
       _endTime = _parseTimeOfDay(endT);
     }
 
-    // Prefill tickets if present
-    if (d['tickets'] is List && (d['tickets'] as List).isNotEmpty) {
+    // Prefill sessions & tickets if present
+    final hasMulti = d['hasMultipleSessions'] == true || d['hasMultipleSessions']?.toString() == 'true';
+    if (hasMulti) {
+      _hasMultipleSessions = true;
+      dynamic sess = d['sessions'];
+      if (sess is String) {
+        try {
+          sess = jsonDecode(sess);
+        } catch (_) {}
+      }
+      if (sess is Map) {
+        if (sess['day'] is Map) {
+          final dayMap = sess['day'] as Map;
+          if (dayMap['time'] != null && dayMap['time'].toString().isNotEmpty) {
+            _dayTimeCtrl.text = dayMap['time'].toString();
+          }
+          if (dayMap['tickets'] is List) {
+            for (final t in (dayMap['tickets'] as List)) {
+              if (t is Map) {
+                final type = t['type']?.toString().toLowerCase();
+                final p = t['price']?.toString() ?? '';
+                final a = t['available']?.toString() ?? '100';
+                if (type == 'silver') {
+                  _daySilverPriceCtrl.text = p;
+                  _daySilverQtyCtrl.text = a;
+                } else if (type == 'gold') {
+                  _dayGoldPriceCtrl.text = p;
+                  _dayGoldQtyCtrl.text = a;
+                } else if (type == 'diamond') {
+                  _dayDiamondPriceCtrl.text = p;
+                  _dayDiamondQtyCtrl.text = a;
+                }
+              }
+            }
+          }
+        }
+        if (sess['night'] is Map) {
+          final nightMap = sess['night'] as Map;
+          if (nightMap['time'] != null && nightMap['time'].toString().isNotEmpty) {
+            _nightTimeCtrl.text = nightMap['time'].toString();
+          }
+          if (nightMap['tickets'] is List) {
+            for (final t in (nightMap['tickets'] as List)) {
+              if (t is Map) {
+                final type = t['type']?.toString().toLowerCase();
+                final p = t['price']?.toString() ?? '';
+                final a = t['available']?.toString() ?? '100';
+                if (type == 'silver') {
+                  _nightSilverPriceCtrl.text = p;
+                  _nightSilverQtyCtrl.text = a;
+                } else if (type == 'gold') {
+                  _nightGoldPriceCtrl.text = p;
+                  _nightGoldQtyCtrl.text = a;
+                } else if (type == 'diamond') {
+                  _nightDiamondPriceCtrl.text = p;
+                  _nightDiamondQtyCtrl.text = a;
+                }
+              }
+            }
+          }
+        }
+      }
+    } else if (d['tickets'] is List && (d['tickets'] as List).isNotEmpty) {
       final tList = d['tickets'] as List;
       for (final t in tList) {
         if (t is Map) {
@@ -322,6 +383,18 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
   }
 
   Future<void> _fetchCategoryAndTagsAI() async {
+    if (_loadingCatAI) return;
+
+    if (_titleCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter an event title first.'),
+          backgroundColor: AppTheme.warningColor,
+        ),
+      );
+      return;
+    }
+
     setState(() => _loadingCatAI = true);
     try {
       final res = await _merchantService.generateAISuggestions({
@@ -344,8 +417,12 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _loadingCatAI = false);
+        String errStr = e.toString();
+        if (errStr.contains('404')) {
+          errStr = "AI category & tags service unavailable (404). Please try again later.";
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to generate suggestions: ${e.toString()}'), backgroundColor: AppTheme.errorColor),
+          SnackBar(content: Text(errStr), backgroundColor: AppTheme.errorColor),
         );
       }
     }
@@ -778,174 +855,104 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
                   ),
                   validator: (v) => (_eventType == 'fullService' && (v == null || v.trim().isEmpty)) ? 'Required' : null,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
               ],
 
               // Ticketed Event Tiers & Sessions Section
               if (_eventType == 'ticketed') ...[
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.withOpacity(0.06),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.purple.withOpacity(0.2)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildFieldLabel('SESSION TYPE'),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildSessionTypeButton(
-                              label: 'Single Session',
-                              isSelected: !_hasMultipleSessions,
-                              onTap: () => setState(() => _hasMultipleSessions = false),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildSessionTypeButton(
-                              label: 'Day & Night Sessions',
-                              isSelected: _hasMultipleSessions,
-                              onTap: () => setState(() => _hasMultipleSessions = true),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
+                _buildFieldLabel('SESSION TYPE'),
+                _buildSegmentedSessionTypeSelector(),
+                const SizedBox(height: 16),
 
-                      if (!_hasMultipleSessions) ...[
-                        Text('Ticket Tiers & Pricing', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 10),
-                        _buildTicketTierRow('🥈 Silver (₹)', _silverPriceCtrl, _silverQtyCtrl),
-                        const SizedBox(height: 10),
-                        _buildTicketTierRow('🥇 Gold (₹)', _goldPriceCtrl, _goldQtyCtrl),
-                        const SizedBox(height: 10),
-                        _buildTicketTierRow('💎 Diamond (₹)', _diamondPriceCtrl, _diamondQtyCtrl),
-                      ] else ...[
-                        // Day Session Box
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.amber.withOpacity(0.3)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Text('☀️ ', style: TextStyle(fontSize: 16)),
-                                  Text('Day Session', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 13)),
-                                  const Spacer(),
-                                  SizedBox(
-                                    width: 100,
-                                    height: 36,
-                                    child: TextFormField(
-                                      controller: _dayTimeCtrl,
-                                      style: GoogleFonts.poppins(fontSize: 11),
-                                      decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 8), filled: true, fillColor: Colors.white),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              _buildTicketTierRow('🥈 Silver (₹)', _daySilverPriceCtrl, _daySilverQtyCtrl),
-                              const SizedBox(height: 8),
-                              _buildTicketTierRow('🥇 Gold (₹)', _dayGoldPriceCtrl, _dayGoldQtyCtrl),
-                              const SizedBox(height: 8),
-                              _buildTicketTierRow('💎 Diamond (₹)', _dayDiamondPriceCtrl, _dayDiamondQtyCtrl),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Night Session Box
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Text('🌙 ', style: TextStyle(fontSize: 16)),
-                                  Text('Night Session', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 13)),
-                                  const Spacer(),
-                                  SizedBox(
-                                    width: 100,
-                                    height: 36,
-                                    child: TextFormField(
-                                      controller: _nightTimeCtrl,
-                                      style: GoogleFonts.poppins(fontSize: 11),
-                                      decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 8), filled: true, fillColor: Colors.white),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              _buildTicketTierRow('🥈 Silver (₹)', _nightSilverPriceCtrl, _nightSilverQtyCtrl),
-                              const SizedBox(height: 8),
-                              _buildTicketTierRow('🥇 Gold (₹)', _nightGoldPriceCtrl, _nightGoldQtyCtrl),
-                              const SizedBox(height: 8),
-                              _buildTicketTierRow('💎 Diamond (₹)', _nightDiamondPriceCtrl, _nightDiamondQtyCtrl),
-                            ],
-                          ),
+                if (!_hasMultipleSessions) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.borderColor),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF060B28).withOpacity(0.04),
+                          blurRadius: 12,
+                          offset: const Offset(0, 2),
                         ),
                       ],
-                    ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.tintVioletBg,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.confirmation_number_outlined, size: 18, color: AppTheme.primaryColor),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Single Session Pricing',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.textColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        const Divider(height: 1, color: AppTheme.borderColor),
+                        const SizedBox(height: 12),
+                        _buildFieldLabel('TICKET PRICING'),
+                        const SizedBox(height: 8),
+                        _buildTicketTierRow('🥈 Silver', _silverPriceCtrl, _silverQtyCtrl),
+                        const SizedBox(height: 12),
+                        _buildTicketTierRow('🥇 Gold', _goldPriceCtrl, _goldQtyCtrl),
+                        const SizedBox(height: 12),
+                        _buildTicketTierRow('💎 Diamond', _diamondPriceCtrl, _diamondQtyCtrl),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
+                ] else ...[
+                  // Day Session Box
+                  _buildSessionCard(
+                    title: 'Day Session',
+                    icon: Icons.wb_sunny_rounded,
+                    accentColor: const Color(0xFFD97706),
+                    iconBgColor: const Color(0xFFFFFBEB),
+                    timeCtrl: _dayTimeCtrl,
+                    silverPriceCtrl: _daySilverPriceCtrl,
+                    silverQtyCtrl: _daySilverQtyCtrl,
+                    goldPriceCtrl: _dayGoldPriceCtrl,
+                    goldQtyCtrl: _dayGoldQtyCtrl,
+                    diamondPriceCtrl: _dayDiamondPriceCtrl,
+                    diamondQtyCtrl: _dayDiamondQtyCtrl,
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Night Session Box
+                  _buildSessionCard(
+                    title: 'Night Session',
+                    icon: Icons.nightlight_round,
+                    accentColor: const Color(0xFF4F46E5),
+                    iconBgColor: const Color(0xFFEEF2FF),
+                    timeCtrl: _nightTimeCtrl,
+                    silverPriceCtrl: _nightSilverPriceCtrl,
+                    silverQtyCtrl: _nightSilverQtyCtrl,
+                    goldPriceCtrl: _nightGoldPriceCtrl,
+                    goldQtyCtrl: _nightGoldQtyCtrl,
+                    diamondPriceCtrl: _nightDiamondPriceCtrl,
+                    diamondQtyCtrl: _nightDiamondQtyCtrl,
+                  ),
+                ],
+                const SizedBox(height: 20),
               ],
 
-              // Max Attendees Section
-              _buildFieldLabel('MAX ATTENDEES / CAPACITY'),
-              TextFormField(
-                controller: _maxAttendeesCtrl,
-                keyboardType: TextInputType.number,
-                style: _inputTextStyle(),
-                decoration: _inputDecoration(
-                  hintText: 'e.g. 500 or leave blank for unlimited',
-                  prefixIcon: const Icon(Icons.people_outline_rounded),
-                ),
-              ),
-
-              // Capacity quick preset pills
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  {'label': 'Unlimited', 'value': '0'},
-                  {'label': '50', 'value': '50'},
-                  {'label': '100', 'value': '100'},
-                  {'label': '250', 'value': '250'},
-                  {'label': '500', 'value': '500'},
-                  {'label': '1,000', 'value': '1000'},
-                  {'label': '5,000', 'value': '5000'},
-                ].map((preset) {
-                  final val = preset['value']!;
-                  final isSelected = (_maxAttendeesCtrl.text.isEmpty && val == '0') || (_maxAttendeesCtrl.text == val);
-                  return ChoiceChip(
-                    label: Text(preset['label']!, style: TextStyle(fontSize: 11, color: isSelected ? Colors.white : AppTheme.textColor)),
-                    selected: isSelected,
-                    selectedColor: AppTheme.primaryColor,
-                    backgroundColor: AppTheme.inputFillColor,
-                    onSelected: (_) {
-                      setState(() {
-                        _maxAttendeesCtrl.text = val == '0' ? '' : val;
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
+              // Capacity Section
+              _buildCapacitySection(),
 
               const SizedBox(height: 32),
 
@@ -1201,74 +1208,515 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
     );
   }
 
-  Widget _buildSessionTypeButton({
-    required String label,
+  int _calculateTotalTicketCapacity() {
+    if (_eventType != 'ticketed') return 0;
+    if (!_hasMultipleSessions) {
+      final s = int.tryParse(_silverQtyCtrl.text.trim()) ?? 0;
+      final g = int.tryParse(_goldQtyCtrl.text.trim()) ?? 0;
+      final d = int.tryParse(_diamondQtyCtrl.text.trim()) ?? 0;
+      return s + g + d;
+    } else {
+      final ds = int.tryParse(_daySilverQtyCtrl.text.trim()) ?? 0;
+      final dg = int.tryParse(_dayGoldQtyCtrl.text.trim()) ?? 0;
+      final dd = int.tryParse(_dayDiamondQtyCtrl.text.trim()) ?? 0;
+      final ns = int.tryParse(_nightSilverQtyCtrl.text.trim()) ?? 0;
+      final ng = int.tryParse(_nightGoldQtyCtrl.text.trim()) ?? 0;
+      final nd = int.tryParse(_nightDiamondQtyCtrl.text.trim()) ?? 0;
+      return ds + dg + dd + ns + ng + nd;
+    }
+  }
+
+  Widget _buildSegmentedSessionTypeSelector() {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppTheme.inputFillColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderColor),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildSegmentItem(
+              title: 'Single Session',
+              isSelected: !_hasMultipleSessions,
+              onTap: () => setState(() => _hasMultipleSessions = false),
+            ),
+          ),
+          Expanded(
+            child: _buildSegmentItem(
+              title: 'Day & Night',
+              isSelected: _hasMultipleSessions,
+              onTap: () => setState(() => _hasMultipleSessions = true),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSegmentItem({
+    required String title,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
     return Material(
-      color: isSelected ? Colors.purple.withOpacity(0.12) : Colors.white,
-      borderRadius: BorderRadius.circular(10),
+      color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+      borderRadius: BorderRadius.circular(9),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          height: 40,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected ? Colors.purple : AppTheme.borderColor,
-              width: isSelected ? 1.5 : 1,
-            ),
-          ),
-          child: Text(
-            label,
+        borderRadius: BorderRadius.circular(9),
+        child: Center(
+          child: AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 150),
             style: GoogleFonts.poppins(
-              fontSize: 12,
+              fontSize: 12.5,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected ? Colors.purple : AppTheme.textColor,
+              color: isSelected ? Colors.white : AppTheme.subtitleColor,
             ),
+            child: Text(title, textAlign: TextAlign.center),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTicketTierRow(String label, TextEditingController priceCtrl, TextEditingController qtyCtrl) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 3,
-          child: TextFormField(
-            controller: priceCtrl,
-            keyboardType: TextInputType.number,
-            style: GoogleFonts.poppins(fontSize: 12),
-            decoration: InputDecoration(
-              labelText: label,
-              labelStyle: GoogleFonts.poppins(fontSize: 11),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            ),
+  Widget _buildSessionCard({
+    required String title,
+    required IconData icon,
+    required Color accentColor,
+    required Color iconBgColor,
+    required TextEditingController timeCtrl,
+    required TextEditingController silverPriceCtrl,
+    required TextEditingController silverQtyCtrl,
+    required TextEditingController goldPriceCtrl,
+    required TextEditingController goldQtyCtrl,
+    required TextEditingController diamondPriceCtrl,
+    required TextEditingController diamondQtyCtrl,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF060B28).withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 18, color: accentColor),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textColor,
+                ),
+              ),
+              const Spacer(),
+              _buildSessionTimePicker(timeCtrl),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: AppTheme.borderColor),
+          const SizedBox(height: 12),
+          _buildFieldLabel('TICKET PRICING'),
+          const SizedBox(height: 8),
+          _buildTicketTierRow('🥈 Silver', silverPriceCtrl, silverQtyCtrl),
+          const SizedBox(height: 12),
+          _buildTicketTierRow('🥇 Gold', goldPriceCtrl, goldQtyCtrl),
+          const SizedBox(height: 12),
+          _buildTicketTierRow('💎 Diamond', diamondPriceCtrl, diamondQtyCtrl),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSessionTimePicker(TextEditingController timeCtrl) {
+    return SizedBox(
+      width: 115,
+      height: 38,
+      child: TextFormField(
+        controller: timeCtrl,
+        readOnly: true,
+        onTap: () async {
+          final parsed = _parseTimeOfDay(timeCtrl.text);
+          final picked = await showTimePicker(
+            context: context,
+            initialTime: parsed ?? TimeOfDay.now(),
+          );
+          if (picked != null) {
+            final h = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+            final m = picked.minute.toString().padLeft(2, '0');
+            final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
+            timeCtrl.text = '${h.toString().padLeft(2, '0')}:$m $period';
+            setState(() {});
+          }
+        },
+        style: GoogleFonts.poppins(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.textColor,
+        ),
+        textAlign: TextAlign.center,
+        decoration: InputDecoration(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          filled: true,
+          fillColor: AppTheme.inputFillColor,
+          prefixIcon: const Icon(Icons.access_time_rounded, size: 14, color: AppTheme.subtitleColor),
+          prefixIconConstraints: const BoxConstraints(minWidth: 24, minHeight: 0),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: AppTheme.borderColor),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: AppTheme.borderColor),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          flex: 2,
-          child: TextFormField(
-            controller: qtyCtrl,
-            keyboardType: TextInputType.number,
-            style: GoogleFonts.poppins(fontSize: 12),
-            decoration: InputDecoration(
-              labelText: 'Qty',
-              labelStyle: GoogleFonts.poppins(fontSize: 11),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  Widget _buildTicketTierRow(
+    String label,
+    TextEditingController priceCtrl,
+    TextEditingController qtyCtrl,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 340;
+
+        if (isNarrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textColor,
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTierInputField(
+                      label: 'Price (₹)',
+                      controller: priceCtrl,
+                      hintText: '0',
+                      keyboardType: TextInputType.number,
+                      prefixText: '₹ ',
+                      validator: (v) {
+                        if (_eventType == 'ticketed' && (v == null || v.trim().isEmpty)) {
+                          return 'Required';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTierInputField(
+                      label: 'Quantity',
+                      controller: qtyCtrl,
+                      hintText: '100',
+                      keyboardType: TextInputType.number,
+                      validator: (v) {
+                        if (_eventType == 'ticketed' && (v == null || v.trim().isEmpty)) {
+                          return 'Required';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 90,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 18),
+                child: Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textColor,
+                  ),
+                ),
+              ),
             ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 3,
+              child: _buildTierInputField(
+                label: 'Price (₹)',
+                controller: priceCtrl,
+                hintText: '0',
+                keyboardType: TextInputType.number,
+                prefixText: '₹ ',
+                validator: (v) {
+                  if (_eventType == 'ticketed' && (v == null || v.trim().isEmpty)) {
+                    return 'Required';
+                  }
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 2,
+              child: _buildTierInputField(
+                label: 'Quantity',
+                controller: qtyCtrl,
+                hintText: '100',
+                keyboardType: TextInputType.number,
+                validator: (v) {
+                  if (_eventType == 'ticketed' && (v == null || v.trim().isEmpty)) {
+                    return 'Required';
+                  }
+                  return null;
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTierInputField({
+    required String label,
+    required TextEditingController controller,
+    required String hintText,
+    required TextInputType keyboardType,
+    String? prefixText,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.subtitleColor,
+          ),
+        ),
+        const SizedBox(height: 4),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          onChanged: (_) => setState(() {}),
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            color: AppTheme.textColor,
+            fontWeight: FontWeight.w500,
+          ),
+          decoration: InputDecoration(
+            hintText: hintText,
+            prefixText: prefixText,
+            prefixStyle: GoogleFonts.poppins(
+              fontSize: 13,
+              color: AppTheme.subtitleColor,
+              fontWeight: FontWeight.w600,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            filled: true,
+            fillColor: AppTheme.inputFillColor,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppTheme.borderColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppTheme.borderColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppTheme.errorColor),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppTheme.errorColor, width: 1.5),
+            ),
+          ),
+          validator: validator,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCapacitySection() {
+    final totalTicketCap = _calculateTotalTicketCapacity();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeading('Capacity & Attendance'),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF060B28).withOpacity(0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_eventType == 'ticketed') ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.tintVioletBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.primaryColor.withOpacity(0.15)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.confirmation_number_outlined, size: 18, color: AppTheme.primaryColor),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Total Calculated Ticket Capacity',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.textColor,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '$totalTicketCap tickets',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              _buildFieldLabel(
+                _eventType == 'ticketed' ? 'OVERRIDE MAX ATTENDEES (OPTIONAL)' : 'MAX ATTENDEES / CAPACITY',
+                isRequired: _eventType == 'fullService',
+              ),
+              TextFormField(
+                controller: _maxAttendeesCtrl,
+                keyboardType: TextInputType.number,
+                style: _inputTextStyle(),
+                decoration: _inputDecoration(
+                  hintText: _eventType == 'ticketed'
+                      ? 'Leave blank to use ticket quantity sum ($totalTicketCap)'
+                      : 'e.g. 500 or leave blank for unlimited',
+                  prefixIcon: const Icon(Icons.people_outline_rounded),
+                ),
+                validator: (v) {
+                  if (_eventType == 'fullService' && v != null && v.trim().isNotEmpty) {
+                    final parsed = int.tryParse(v.trim());
+                    if (parsed == null || parsed < 0) {
+                      return 'Please enter a valid capacity number';
+                    }
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 10),
+              _buildFieldLabel('QUICK PRESETS'),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  {'label': 'Unlimited', 'value': '0'},
+                  {'label': '50', 'value': '50'},
+                  {'label': '100', 'value': '100'},
+                  {'label': '250', 'value': '250'},
+                  {'label': '500', 'value': '500'},
+                  {'label': '1,000', 'value': '1000'},
+                  {'label': '5,000', 'value': '5000'},
+                ].map((preset) {
+                  final val = preset['value']!;
+                  final isSelected = (_maxAttendeesCtrl.text.isEmpty && val == '0') || (_maxAttendeesCtrl.text == val);
+                  return ChoiceChip(
+                    label: Text(
+                      preset['label']!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected ? Colors.white : AppTheme.textColor,
+                      ),
+                    ),
+                    selected: isSelected,
+                    selectedColor: AppTheme.primaryColor,
+                    backgroundColor: AppTheme.inputFillColor,
+                    side: BorderSide(
+                      color: isSelected ? AppTheme.primaryColor : AppTheme.borderColor,
+                    ),
+                    onSelected: (_) {
+                      setState(() {
+                        _maxAttendeesCtrl.text = val == '0' ? '' : val;
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
           ),
         ),
       ],

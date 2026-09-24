@@ -259,6 +259,25 @@ export const raiseTicket = async (req, res) => {
       return res.status(400).json({ error: "Explanation message cannot exceed 300 characters" });
     }
 
+    // ── Duplicate prevention ────────────────────────────────────────────────
+    // Active statuses: pending (under review), quotation_sent (awaiting merchant
+    // payment), paid (awaiting admin approval). Only 'approved' and 'rejected'
+    // are terminal states that permit a new request.
+    const activeStatuses = ["pending", "quotation_sent", "paid"];
+    const existingActive = await Ticket.findOne({
+      merchant: req.user._id,       // Always use server-side auth identity
+      status: { $in: activeStatuses }
+    }).lean();
+
+    if (existingActive) {
+      return res.status(409).json({
+        error: "You already have an upgrade request in progress. Please wait until it is completed before submitting another.",
+        activeTicketId: existingActive._id,
+        activeTicketStatus: existingActive.status
+      });
+    }
+    // ── End duplicate prevention ────────────────────────────────────────────
+
     const ticket = await Ticket.create({
       merchant: req.user._id,
       requestedEvents: reqEv,
@@ -280,6 +299,7 @@ export const raiseTicket = async (req, res) => {
     return res.status(500).json({ error: "Failed to raise ticket" });
   }
 };
+
 
 // 6. Merchant / Admin: Get tickets
 export const getTickets = async (req, res) => {

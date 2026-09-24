@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../../config/app_theme.dart';
 import '../../models/notification_model.dart';
+import '../../services/auth_service.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/customer_app_bar.dart';
 import '../../widgets/empty_state.dart';
@@ -63,18 +67,54 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CustomerAppBar(
-        title: 'Notifications',
-        showBack: true,
-        actions: [
-          if (_unreadCount > 0)
-            TextButton(
-              onPressed: _markAllRead,
-              child: const Text('Mark all read'),
+    final user = context.watch<AuthService>().currentUser;
+    final isMerchant = user?.isMerchant == true;
+
+    final PreferredSizeWidget appBar = isMerchant
+        ? AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0.5,
+            centerTitle: false,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textColor),
+              onPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                } else {
+                  context.go('/merchant/dashboard');
+                }
+              },
             ),
-        ],
-      ),
+            title: Text(
+              'Notifications',
+              style: GoogleFonts.poppins(
+                color: AppTheme.textColor,
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+              ),
+            ),
+            actions: [
+              if (_unreadCount > 0)
+                TextButton(
+                  onPressed: _markAllRead,
+                  child: const Text('Mark all read'),
+                ),
+            ],
+          )
+        : CustomerAppBar(
+            title: 'Notifications',
+            showBack: true,
+            actions: [
+              if (_unreadCount > 0)
+                TextButton(
+                  onPressed: _markAllRead,
+                  child: const Text('Mark all read'),
+                ),
+            ],
+          );
+
+    return Scaffold(
+      appBar: appBar,
       body: RefreshIndicator(
         onRefresh: _fetchNotifications,
         child: _isLoading
@@ -133,6 +173,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 if (notif.isUnread) {
                                   await _notificationService.markAsRead(notif.id);
                                   _fetchNotifications();
+                                }
+                                if (!mounted) return;
+                                if (notif.relatedId != null && notif.relatedId!.isNotEmpty) {
+                                  if (isMerchant) {
+                                    if (notif.type == 'booking') {
+                                      context.push('/merchant/booking-details/${notif.relatedId}');
+                                    }
+                                  } else {
+                                    if (notif.type == 'booking') {
+                                      context.push('/customer/booking-details/${notif.relatedId}');
+                                    }
+                                  }
                                 }
                               },
                             ),
