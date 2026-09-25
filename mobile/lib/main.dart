@@ -65,7 +65,7 @@ class _JoyEventsAppState extends State<JoyEventsApp> {
     return ChangeNotifierProvider<AuthService>.value(
       value: widget.authService,
       child: MaterialApp.router(
-        title: 'JoyEvents',
+        title: 'Joy Events',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         routerConfig: _router,
