@@ -17,7 +17,7 @@ class CartScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: const CustomerAppBar(
-        title: 'Shopping Cart',
+        title: 'Cart',
         showBack: true,
       ),
       body: ListenableBuilder(

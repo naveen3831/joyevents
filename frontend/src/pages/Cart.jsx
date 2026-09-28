@@ -143,7 +143,7 @@ const Cart = () => {
                 {/* ── Page Header ─────────────────────────────── */}
                 <div className="flex items-center justify-between pb-2.5 border-b border-border/60">
                     <div className="flex items-center gap-3">
-                        <PageHeader title="Shopping Cart" onBack={goBack} className="mb-0" />
+                        <PageHeader title="Cart" onBack={goBack} className="mb-0" />
                         {cartItems.length > 0 && (
                             <span className="text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-3 py-0.5 rounded-full">
                                 {cartItems.length} {cartItems.length === 1 ? "item" : "items"}

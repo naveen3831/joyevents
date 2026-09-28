@@ -46,7 +46,7 @@ const detailRoutesMap = [
   { pattern: "/customer-dashboard/contact-organiser", title: "Contact Organiser", fallback: "/customer-dashboard" },
   { pattern: "/customer-dashboard/request-custom-service", title: "Custom Service Request", fallback: "/customer-dashboard/browse-services" },
   { pattern: "/request-custom-service", title: "Custom Service Request", fallback: "/customer-dashboard/browse-services" },
-  { pattern: "/customer-dashboard/cart", title: "Shopping Cart", fallback: "/customer-dashboard" },
+  { pattern: "/customer-dashboard/cart", title: "Cart", fallback: "/customer-dashboard" },
   { pattern: "/customer-dashboard/favorites", title: "Favorites", fallback: "/customer-dashboard" },
   { pattern: "/favorites", title: "Favorites", fallback: "/customer-dashboard" },
   { pattern: "/customer-dashboard/history", title: "Booking History", fallback: "/customer-dashboard/bookings" },
