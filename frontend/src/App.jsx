@@ -47,6 +47,9 @@ import Contact from "./pages/Contact";
 import Reviews from "./pages/Reviews";
 import Blog from "./pages/Blog";
 
+const Terms = lazy(() => import("./pages/Terms"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const AccountDeletion = lazy(() => import("./pages/AccountDeletion"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
@@ -199,6 +202,9 @@ const AppRoutes = () => {
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>}/>
         <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>}/>
         <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>}/>
+        <Route path="/terms" element={<PublicRoute><Terms /></PublicRoute>}/>
+        <Route path="/privacy" element={<PublicRoute><Privacy /></PublicRoute>}/>
+        <Route path="/account-deletion" element={<PublicRoute><AccountDeletion /></PublicRoute>}/>
         
         {/* Dashboard root redirects */}
         <Route path="/customer-dashboard" element={<ProtectedRoute allowedRoles={["customer"]}><UserDashboard /></ProtectedRoute>}/>

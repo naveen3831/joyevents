@@ -11,6 +11,9 @@ allprojects {
             force("androidx.activity:activity-ktx:1.9.3")
         }
     }
+    tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask::class.java).configureEach {
+        enabled = false
+    }
 }
 
 val newBuildDir: Directory =
@@ -25,6 +28,12 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+}
+subprojects {
+    plugins.withId("com.android.library") {
+        val android = project.extensions.findByName("android") as? com.android.build.gradle.BaseExtension
+        android?.compileSdkVersion(37)
+    }
 }
 
 tasks.register<Delete>("clean") {

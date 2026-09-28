@@ -186,7 +186,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // Legal & Governance Section
+            Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.gavel_rounded, color: AppTheme.primaryColor),
+                    title: const Text('Terms & Conditions'),
+                    subtitle: const Text('Platform governance & marketplace rules'),
+                    trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                    onTap: () => context.push('/terms'),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.shield_outlined, color: AppTheme.primaryColor),
+                    title: const Text('Privacy Policy'),
+                    subtitle: const Text('Data collection & protection guidelines'),
+                    trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                    onTap: () => context.push('/privacy'),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.delete_forever_rounded, color: AppTheme.errorColor),
+                    title: const Text(
+                      'Delete Account',
+                      style: TextStyle(color: AppTheme.errorColor, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: const Text('Permanently purge account & data'),
+                    trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppTheme.errorColor),
+                    onTap: () => context.push('/account-deletion'),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
 
             Card(
               child: ListTile(

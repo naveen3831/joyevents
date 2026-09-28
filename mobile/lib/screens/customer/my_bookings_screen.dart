@@ -65,17 +65,65 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
   }
 
   List<BookingModel> _filterBookings(int tabIndex) {
+    final upcomingList =
+        _allBookings.where((b) => b.isUpcomingOrActive).toList();
+    final completedList = _allBookings.where((b) => b.isCompleted).toList();
+    final cancelledList = _allBookings.where((b) => b.isCancelled).toList();
+
+    // Group 1 (Upcoming/Active): Nearest scheduled date first (ascending)
+    upcomingList.sort((a, b) {
+      final dateA = a.scheduledDateTime;
+      final dateB = b.scheduledDateTime;
+      if (dateA != null && dateB != null) {
+        return dateA.compareTo(dateB);
+      } else if (dateA != null) {
+        return -1;
+      } else if (dateB != null) {
+        return 1;
+      }
+      return 0;
+    });
+
+    // Group 2 (Completed): Most recent scheduled/created date first (descending)
+    completedList.sort((a, b) {
+      final dateA = a.scheduledDateTime ?? a.createdAtDateTime;
+      final dateB = b.scheduledDateTime ?? b.createdAtDateTime;
+      if (dateA != null && dateB != null) {
+        return dateB.compareTo(dateA);
+      } else if (dateA != null) {
+        return -1;
+      } else if (dateB != null) {
+        return 1;
+      }
+      return 0;
+    });
+
+    // Group 3 (Cancelled): Most recent scheduled/created date first (descending)
+    cancelledList.sort((a, b) {
+      final dateA = a.scheduledDateTime ?? a.createdAtDateTime;
+      final dateB = b.scheduledDateTime ?? b.createdAtDateTime;
+      if (dateA != null && dateB != null) {
+        return dateB.compareTo(dateA);
+      } else if (dateA != null) {
+        return -1;
+      } else if (dateB != null) {
+        return 1;
+      }
+      return 0;
+    });
+
     switch (tabIndex) {
       case 0:
-        return _allBookings;
+        // "All" tab: Priority 1 (Upcoming) -> Priority 2 (Completed) -> Priority 3 (Cancelled)
+        return [...upcomingList, ...completedList, ...cancelledList];
       case 1:
-        return _allBookings.where((b) => b.isConfirmed || b.isPending).toList();
+        return upcomingList;
       case 2:
-        return _allBookings.where((b) => b.isCompleted).toList();
+        return completedList;
       case 3:
-        return _allBookings.where((b) => b.isCancelled).toList();
+        return cancelledList;
       default:
-        return _allBookings;
+        return [...upcomingList, ...completedList, ...cancelledList];
     }
   }
 

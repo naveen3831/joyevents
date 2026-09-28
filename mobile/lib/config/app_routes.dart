@@ -6,6 +6,11 @@ import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/auth/forgot_password_screen.dart';
 
+// Legal & Governance
+import '../screens/legal/terms_screen.dart';
+import '../screens/legal/privacy_policy_screen.dart';
+import '../screens/legal/delete_account_screen.dart';
+
 // Customer
 import '../screens/customer/customer_shell.dart';
 import '../screens/customer/home_screen.dart';
@@ -72,8 +77,17 @@ class AppRoutes {
             location == '/forgot-password';
         final isOnboardingRoute = location == '/merchant/onboarding';
 
+        final isPublicLegalRoute = location == '/terms' ||
+            location == '/privacy' ||
+            location == '/account-deletion' ||
+            location == '/delete-account';
+
         if (isLoading) {
           return isSplash ? null : '/splash';
+        }
+
+        if (isPublicLegalRoute) {
+          return null;
         }
 
         if (!isLoggedIn) {
@@ -132,6 +146,24 @@ class AppRoutes {
         GoRoute(
           path: '/merchant/onboarding',
           builder: (context, state) => const MerchantOnboardingScreen(),
+        ),
+
+        // ── Legal & Governance Routes ─────────────────────────────────────────
+        GoRoute(
+          path: '/terms',
+          builder: (context, state) => const TermsScreen(),
+        ),
+        GoRoute(
+          path: '/privacy',
+          builder: (context, state) => const PrivacyPolicyScreen(),
+        ),
+        GoRoute(
+          path: '/account-deletion',
+          builder: (context, state) => const DeleteAccountScreen(),
+        ),
+        GoRoute(
+          path: '/delete-account',
+          builder: (context, state) => const DeleteAccountScreen(),
         ),
 
         // ── Customer Bottom Navigation Shell ─────────────────────────────────

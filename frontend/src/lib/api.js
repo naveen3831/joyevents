@@ -1580,5 +1580,22 @@ export async function apiGenerateServiceAISuggestions(payload, token) {
     return res.json();
 }
 
+export async function apiDeleteSelfAccount(password, token) {
+    const res = await fetch(`${API_URL}/api/auth/delete-account`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ password })
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to delete account");
+    }
+    return res.json();
+}
+
+
 
 

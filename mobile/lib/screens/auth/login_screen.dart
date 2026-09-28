@@ -6,11 +6,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../config/app_theme.dart';
 import '../../services/auth_service.dart';
 
-/// Login screen — compact, mobile-responsive layout matching Eventoza React branding.
+/// Login screen — clean, minimal native mobile login screen for Eventoza.
 ///
 /// Section flow (top → bottom):
-///   Logo → Badge → Gradient Headline → Short Description →
-///   White Card: [Welcome Back, Compact Error Banner, Email, Password + Forgot, Sign In →, Create Account]
+///   Centered Brand Area: [Eventoza Logo, EVENTOZA] →
+///   Login Card: [Welcome Back, Compact Error Banner, Email, Password + Forgot, Sign In, Create Account, Legal Links]
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -31,6 +31,53 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _showSupportModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (bCtx) => Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.help_outline_rounded, color: AppTheme.primaryColor, size: 22),
+                const SizedBox(width: 8),
+                Text(
+                  'Help & Support',
+                  style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Need assistance with your account, event bookings, or merchant onboarding?',
+              style: GoogleFonts.poppins(fontSize: 13, color: AppTheme.subtitleColor),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.email_outlined, color: AppTheme.primaryColor),
+              title: const Text('Email Support'),
+              subtitle: const Text('info@eventoza.com'),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.headset_mic_outlined, color: AppTheme.primaryColor),
+              title: const Text('Support Hours'),
+              subtitle: const Text('Mon - Sat: 9:00 AM - 8:00 PM IST'),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _handleLogin() async {
@@ -113,90 +160,24 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // LOGO
+                      // LOGO & BRAND NAME
                       SvgPicture.asset(
                         'assets/images/eventoza_logo.svg',
-                        width: 52,
-                        height: 52,
+                        width: 68,
+                        height: 68,
                         fit: BoxFit.contain,
                       ),
-                      const SizedBox(height: 12),
-
-                      // BADGE
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.tintVioletBg,
-                          borderRadius: BorderRadius.circular(100),
-                          border: Border.all(
-                            color: AppTheme.primaryColor.withOpacity(0.25),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.auto_awesome_rounded,
-                              size: 12,
-                              color: AppTheme.primaryColor,
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              'The Premier Event Platform',
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.primaryColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // HEADLINE
+                      const SizedBox(height: 10),
                       Text(
-                        'Unlock Joy in',
-                        textAlign: TextAlign.center,
+                        'EVENTOZA',
                         style: GoogleFonts.poppins(
-                          fontSize: 26,
+                          fontSize: 22,
                           fontWeight: FontWeight.w800,
+                          letterSpacing: 1.5,
                           color: AppTheme.textColor,
-                          height: 1.15,
                         ),
                       ),
-                      ShaderMask(
-                        shaderCallback: (bounds) =>
-                            AppTheme.gradientPrimary.createShader(bounds),
-                        child: Text(
-                          'Every Celebration',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            height: 1.15,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // PROMO DESCRIPTION (Compact)
-                      Text(
-                        'Connect with professional merchants, discover trending ticketed events, and coordinate full-service entertainment packages flawlessly.',
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
-                          fontSize: 12.5,
-                          color: AppTheme.subtitleColor,
-                          height: 1.45,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 20),
 
                       // LOGIN CARD
                       Container(
@@ -383,6 +364,49 @@ class _LoginScreenState extends State<LoginScreen> {
                                         fontSize: 12.5,
                                         fontWeight: FontWeight.w700,
                                         color: AppTheme.primaryColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Center(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => context.push('/terms'),
+                                    child: Text(
+                                      'Terms',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11,
+                                        color: AppTheme.subtitleColor,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ),
+                                  const Text('  •  ', style: TextStyle(color: AppTheme.subtitleColor, fontSize: 11)),
+                                  GestureDetector(
+                                    onTap: () => context.push('/privacy'),
+                                    child: Text(
+                                      'Privacy',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11,
+                                        color: AppTheme.subtitleColor,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ),
+                                  const Text('  •  ', style: TextStyle(color: AppTheme.subtitleColor, fontSize: 11)),
+                                  GestureDetector(
+                                    onTap: () => _showSupportModal(context),
+                                    child: Text(
+                                      'Help / Support',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11,
+                                        color: AppTheme.subtitleColor,
+                                        decoration: TextDecoration.underline,
                                       ),
                                     ),
                                   ),

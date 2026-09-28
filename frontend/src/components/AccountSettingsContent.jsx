@@ -11,7 +11,9 @@ import {
   UploadCloud,
   Camera,
   CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
+import DeleteAccountModal from "@/components/DeleteAccountModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +35,7 @@ const AccountSettingsContent = ({ backLink }) => {
   const navigate = useNavigate();
   const { token, user, setUser } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Profile Form States
   const [displayName, setDisplayName] = useState(user?.name || "");
@@ -481,6 +484,36 @@ const AccountSettingsContent = ({ backLink }) => {
                 </Button>
               </div>
             </form>
+
+            {/* Danger Zone Section */}
+            <div className="pt-6 border-t border-destructive/20 mt-8">
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-destructive flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" /> Danger Zone
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+                      Deleting your account will permanently remove your account and associated personal data, subject to any records we are required to retain.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    className="shrink-0 border-destructive/40 text-destructive hover:bg-destructive hover:text-destructive-foreground text-xs font-semibold h-9 px-4 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Delete Account
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <DeleteAccountModal
+              isOpen={isDeleteModalOpen}
+              onClose={() => setIsDeleteModalOpen(false)}
+              userRole="customer"
+            />
           </motion.div>
         )}
 

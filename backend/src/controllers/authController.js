@@ -2,6 +2,9 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User from "../models/User.js";
+import Booking from "../models/Booking.js";
+import Favorite from "../models/Favorite.js";
+import Notification from "../models/Notification.js";
 import { sendMerchantCredentials, sendPasswordResetEmail } from "../utils/sendEmail.js";
 import {
   validateEmail,
@@ -273,6 +276,36 @@ export const deleteUser = async (req, res) => {
     res.json({ message: "User deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete user" });
+  }
+};
+
+export const deleteSelfAccount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { password } = req.body || {};
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    if (user.role === "admin") {
+      return res.status(403).json({ error: "System Admin accounts cannot be deleted through self-service." });
+    }
+
+    if (!password) {
+      return badRequest(res, "Please enter your password to confirm account deletion.");
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: "Incorrect password. Account deletion cancelled." });
+    }
+
+    await User.findByIdAndDelete(userId);
+
+    res.json({ success: true, message: "Your account has been deleted successfully." });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete account. Please try again later." });
   }
 };
 

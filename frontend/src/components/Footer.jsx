@@ -23,8 +23,8 @@ const Footer = () => {
               </p>
             </StaggerItem>
 
-            {/* Links — 3 columns on mobile, 4 on md+ */}
-            <div className="grid grid-cols-3 gap-3 sm:gap-8 md:grid-cols-3 lg:grid-cols-3">
+            {/* Links — 4 columns */}
+            <div className="grid grid-cols-2 gap-4 sm:gap-8 md:grid-cols-4 lg:grid-cols-4">
               <StaggerItem>
                 <h4 className="mb-2 sm:mb-3 font-display text-xs sm:text-sm font-semibold">Quick Links</h4>
                 <div className="flex flex-col gap-1 sm:gap-2">
@@ -44,6 +44,14 @@ const Footer = () => {
                 </div>
               </StaggerItem>
               <StaggerItem>
+                <h4 className="mb-2 sm:mb-3 font-display text-xs sm:text-sm font-semibold">Legal & Policy</h4>
+                <div className="flex flex-col gap-1 sm:gap-2">
+                  <Link to="/terms" className="text-[11px] sm:text-sm text-muted-foreground transition-all duration-200 hover:text-primary hover:translate-x-1 inline-block">Terms & Conditions</Link>
+                  <Link to="/privacy" className="text-[11px] sm:text-sm text-muted-foreground transition-all duration-200 hover:text-primary hover:translate-x-1 inline-block">Privacy Policy</Link>
+                  <Link to="/account-deletion" className="text-[11px] sm:text-sm text-muted-foreground transition-all duration-200 hover:text-primary hover:translate-x-1 inline-block">Account Deletion</Link>
+                </div>
+              </StaggerItem>
+              <StaggerItem>
                 <h4 className="mb-2 sm:mb-3 font-display text-xs sm:text-sm font-semibold">Contact</h4>
                 <div className="flex flex-col gap-1 sm:gap-2 text-[11px] sm:text-sm text-muted-foreground">
                   <span className="flex items-center gap-1.5 hover:text-foreground transition-colors"><Mail className="h-3 w-3 shrink-0 text-primary"/> <span className="truncate">{settings.contactEmail}</span></span>
@@ -55,8 +63,13 @@ const Footer = () => {
           </StaggerGroup>
 
           <Reveal delay={0.2}>
-            <div className="mt-4 sm:mt-8 border-t border-border pt-4 sm:pt-6 text-center text-xs sm:text-sm text-muted-foreground">
-              © 2026 {platformName}. All rights reserved.
+            <div className="mt-4 sm:mt-8 border-t border-border pt-4 sm:pt-6 flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-muted-foreground">
+              <span>© 2026 {platformName}. All rights reserved.</span>
+              <div className="flex gap-4">
+                <Link to="/terms" className="hover:text-primary transition-colors">Terms</Link>
+                <Link to="/privacy" className="hover:text-primary transition-colors">Privacy</Link>
+                <Link to="/account-deletion" className="hover:text-primary transition-colors">Account Deletion</Link>
+              </div>
             </div>
           </Reveal>
         </div>

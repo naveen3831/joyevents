@@ -167,6 +167,19 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  // Delete Account
+  Future<void> deleteAccount(String password) async {
+    try {
+      await _apiService.dio.post(
+        ApiConfig.deleteAccount,
+        data: {'password': password},
+      );
+      await logout();
+    } catch (e) {
+      throw ApiService.parseError(e);
+    }
+  }
+
   // Forgot Password
   Future<void> forgotPassword(String email) async {
     try {

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,6 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _agreeToTerms = false;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -33,8 +35,61 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  void _showSupportModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (bCtx) => Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.help_outline_rounded, color: AppTheme.primaryColor, size: 22),
+                const SizedBox(width: 8),
+                Text(
+                  'Help & Support',
+                  style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Need assistance with your account, event bookings, or merchant onboarding?',
+              style: GoogleFonts.poppins(fontSize: 13, color: AppTheme.subtitleColor),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.email_outlined, color: AppTheme.primaryColor),
+              title: const Text('Email Support'),
+              subtitle: const Text('info@eventoza.com'),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.headset_mic_outlined, color: AppTheme.primaryColor),
+              title: const Text('Support Hours'),
+              subtitle: const Text('Mon - Sat: 9:00 AM - 8:00 PM IST'),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_agreeToTerms) {
+      setState(() {
+        _errorMessage = 'Please accept the Terms & Conditions and Privacy Policy to create an account.';
+      });
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -200,13 +255,75 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 18),
+
+                // Consent Checkbox with Tappable Terms & Privacy Policy
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Checkbox(
+                        value: _agreeToTerms,
+                        onChanged: (val) {
+                          setState(() {
+                            _agreeToTerms = val ?? false;
+                          });
+                        },
+                        activeColor: AppTheme.primaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: AppTheme.textColor,
+                            height: 1.45,
+                          ),
+                          children: [
+                            const TextSpan(text: 'By creating an account, you agree to our '),
+                            TextSpan(
+                              text: 'Terms & Conditions',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryColor,
+                                decoration: TextDecoration.underline,
+                              ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () => context.push('/terms'),
+                            ),
+                            const TextSpan(text: ' and acknowledge our '),
+                            TextSpan(
+                              text: 'Privacy Policy',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryColor,
+                                decoration: TextDecoration.underline,
+                              ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () => context.push('/privacy'),
+                            ),
+                            const TextSpan(text: '.'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
                 AppButton(
                   text: 'Create Account',
                   isLoading: _isLoading,
                   onPressed: _handleRegister,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -230,6 +347,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.push('/terms'),
+                      child: Text(
+                        'Terms',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: AppTheme.subtitleColor,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    const Text('  •  ', style: TextStyle(color: AppTheme.subtitleColor, fontSize: 11)),
+                    GestureDetector(
+                      onTap: () => context.push('/privacy'),
+                      child: Text(
+                        'Privacy',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: AppTheme.subtitleColor,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    const Text('  •  ', style: TextStyle(color: AppTheme.subtitleColor, fontSize: 11)),
+                    GestureDetector(
+                      onTap: () => _showSupportModal(context),
+                      child: Text(
+                        'Help / Support',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: AppTheme.subtitleColor,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),

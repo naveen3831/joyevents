@@ -20,6 +20,8 @@ router.get("/users", verifyToken, requireRole("admin"), authController.listUsers
 router.patch("/users/:id", verifyToken, requireRole("admin"), authController.updateUser);
 router.patch("/profile", verifyToken, authController.updateProfile);
 router.delete("/users/:id", verifyToken, requireRole("admin"), authController.deleteUser);
+router.delete("/me", verifyToken, authController.deleteSelfAccount);
+router.post("/delete-account", verifyToken, authController.deleteSelfAccount);
 router.post("/change-password", verifyToken, authController.changePassword);
 router.patch("/admin/reset-password/:userId", verifyToken, requireRole("admin"), authController.adminResetPassword);
 router.get("/test", authController.test);

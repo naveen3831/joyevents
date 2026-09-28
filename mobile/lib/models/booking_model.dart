@@ -123,7 +123,7 @@ class BookingModel {
       paymentStatus: json['paymentStatus']?.toString() ?? 'paid',
       paymentMethod: json['paymentMethod']?.toString() ?? 'card',
       ticketId: json['ticketId']?.toString(),
-      date: json['date']?.toString() ?? '',
+      date: json['date']?.toString() ?? json['datetime']?.toString() ?? '',
       time: json['time']?.toString() ?? '',
       ticketType: json['ticketType']?.toString(),
       quantity: (json['quantity'] is num)
@@ -136,8 +136,49 @@ class BookingModel {
     );
   }
 
-  bool get isConfirmed => status == 'confirmed';
-  bool get isPending => status == 'pending_approval' || status == 'awaiting_payment';
-  bool get isCompleted => status == 'completed';
-  bool get isCancelled => status == 'cancelled' || status == 'rejected';
+  bool get isConfirmed => status.toLowerCase() == 'confirmed';
+  bool get isPending =>
+      status.toLowerCase() == 'pending_approval' ||
+      status.toLowerCase() == 'awaiting_payment' ||
+      status.toLowerCase() == 'pending' ||
+      status.toLowerCase() == 'cancellation_requested';
+  bool get isCompleted => status.toLowerCase() == 'completed';
+  bool get isCancelled =>
+      status.toLowerCase() == 'cancelled' ||
+      status.toLowerCase() == 'rejected' ||
+      status.toLowerCase() == 'refunded' ||
+      status.toLowerCase() == 'refund_pending';
+  bool get isUpcomingOrActive => isConfirmed || isPending || (!isCompleted && !isCancelled);
+
+  DateTime? get scheduledDateTime {
+    final d = date.trim();
+    if (d.isNotEmpty && d.toLowerCase() != 'null' && d.toLowerCase() != 'n/a') {
+      try {
+        if (d.contains('T')) {
+          return DateTime.parse(d);
+        }
+        final parts = d.split('-');
+        if (parts.length == 3) {
+          final y = int.tryParse(parts[0]);
+          final m = int.tryParse(parts[1]);
+          final day = int.tryParse(parts[2]);
+          if (y != null && m != null && day != null) {
+            return DateTime(y, m, day);
+          }
+        }
+        final parsed = DateTime.tryParse(d);
+        if (parsed != null) return parsed;
+      } catch (_) {}
+    }
+    return createdAtDateTime;
+  }
+
+  DateTime? get createdAtDateTime {
+    if (createdAt != null && createdAt!.isNotEmpty) {
+      try {
+        return DateTime.tryParse(createdAt!);
+      } catch (_) {}
+    }
+    return null;
+  }
 }

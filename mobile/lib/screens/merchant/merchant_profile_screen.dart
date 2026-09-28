@@ -217,6 +217,27 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
+                  _SectionCard(
+                    title: 'Legal & Governance',
+                    items: [
+                      _ActionTile(
+                        icon: Icons.gavel_rounded,
+                        label: 'Terms & Conditions',
+                        onTap: () => context.push('/terms'),
+                      ),
+                      _ActionTile(
+                        icon: Icons.shield_outlined,
+                        label: 'Privacy Policy',
+                        onTap: () => context.push('/privacy'),
+                      ),
+                      _ActionTile(
+                        icon: Icons.delete_forever_rounded,
+                        label: 'Delete Account',
+                        onTap: () => context.push('/account-deletion'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   // Logout
                   Container(
                     decoration: BoxDecoration(

@@ -70,6 +70,7 @@ class ApiConfig {
   static const String me = '/auth/me';
   static const String updateProfile = '/auth/profile';
   static const String changePassword = '/auth/change-password';
+  static const String deleteAccount = '/auth/delete-account';
   static const String forgotPassword = '/auth/forgot-password';
   static const String addWalletFunds = '/auth/add-wallet-funds';
   static const String withdrawWallet = '/auth/withdraw';
