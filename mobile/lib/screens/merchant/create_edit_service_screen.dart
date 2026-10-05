@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../config/app_theme.dart';
 import '../../config/api_config.dart';
 import '../../services/merchant_service.dart';
+import '../../widgets/app_network_image.dart';
 
 class CreateEditServiceScreen extends StatefulWidget {
   final String? serviceId;
@@ -702,10 +703,10 @@ class _CreateEditServiceScreenState extends State<CreateEditServiceScreen> {
                     if (_imageFile != null)
                       Image.file(_imageFile!, fit: BoxFit.cover)
                     else
-                      Image.network(
-                        _existingImageUrl!,
+                      AppNetworkImage(
+                        url: _existingImageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (ctx, err, stack) => _buildImagePlaceholder(),
+                        errorWidget: _buildImagePlaceholder(),
                       ),
                     Positioned(
                       bottom: 10,

@@ -15,6 +15,7 @@ import '../../widgets/contact_bottom_sheet.dart';
 import '../../widgets/customer_app_bar.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/loading_view.dart';
+import '../../widgets/app_network_image.dart';
 
 class ServiceDetailsScreen extends StatefulWidget {
   final String serviceId;
@@ -148,25 +149,23 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Banner Image
-                      Container(
+                      SizedBox(
                         height: 220,
                         width: double.infinity,
-                        color: Colors.purple.shade50,
-                        child: ApiConfig.resolveImageUrl(_service!.mainImage).isNotEmpty
-                            ? Image.network(
-                                ApiConfig.resolveImageUrl(_service!.mainImage),
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.design_services_rounded,
-                                  size: 64,
-                                  color: AppTheme.accentColor,
-                                ),
-                              )
-                            : const Icon(
+                        child: AppNetworkImage(
+                          url: _service!.mainImage,
+                          fit: BoxFit.cover,
+                          errorWidget: Container(
+                            color: Colors.purple.shade50,
+                            child: const Center(
+                              child: Icon(
                                 Icons.design_services_rounded,
                                 size: 64,
                                 color: AppTheme.accentColor,
                               ),
+                            ),
+                          ),
+                        ),
                       ),
 
                       Padding(

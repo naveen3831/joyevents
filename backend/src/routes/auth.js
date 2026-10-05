@@ -6,6 +6,8 @@ import Withdrawal from "../models/Withdrawal.js";
 import Transaction from "../models/Transaction.js";
 import { emitWalletUpdated } from "../realtime.js";
 
+import { upload } from "../utils/upload.js";
+
 const router = Router();
 
 router.post("/register", authController.register);
@@ -18,7 +20,7 @@ router.get("/only-merchant", verifyToken, requireRole("merchant", "admin"), auth
 router.get("/only-admin", verifyToken, requireRole("admin"), authController.onlyAdmin);
 router.get("/users", verifyToken, requireRole("admin"), authController.listUsers);
 router.patch("/users/:id", verifyToken, requireRole("admin"), authController.updateUser);
-router.patch("/profile", verifyToken, authController.updateProfile);
+router.patch("/profile", verifyToken, upload.single("avatar"), authController.updateProfile);
 router.delete("/users/:id", verifyToken, requireRole("admin"), authController.deleteUser);
 router.delete("/me", verifyToken, authController.deleteSelfAccount);
 router.post("/delete-account", verifyToken, authController.deleteSelfAccount);

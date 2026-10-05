@@ -3,7 +3,9 @@ import mongoose from "mongoose";
 const categorySchema = new mongoose.Schema(
     {
         name: { type: String, required: true, trim: true },
-        type: { type: String, enum: ["event", "service"], required: true }
+        type: { type: String, enum: ["event", "service"], required: true },
+        imageUrl: { type: String, default: "" },
+        imagePublicId: { type: String, default: "" }
     },
     { timestamps: true }
 );

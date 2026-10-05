@@ -3,6 +3,7 @@ class UserModel {
   final String name;
   final String email;
   final String role;
+  final String? avatar;
   final String? phone;
   final double walletBalance;
   final String? createdAt;
@@ -17,6 +18,7 @@ class UserModel {
     required this.name,
     required this.email,
     required this.role,
+    this.avatar,
     this.phone,
     this.walletBalance = 0.0,
     this.createdAt,
@@ -33,11 +35,14 @@ class UserModel {
       mDetails = Map<String, dynamic>.from(json['merchantDetails'] as Map);
     }
 
+    final avatarUrl = json['avatar']?.toString() ?? json['merchantDetails']?['avatar']?.toString();
+
     return UserModel(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? 'User',
       email: json['email']?.toString() ?? '',
       role: json['role']?.toString() ?? 'user',
+      avatar: avatarUrl,
       phone: json['phone']?.toString() ?? json['mobile']?.toString(),
       walletBalance: (json['walletBalance'] is num)
           ? (json['walletBalance'] as num).toDouble()
@@ -59,6 +64,7 @@ class UserModel {
       'name': name,
       'email': email,
       'role': role,
+      'avatar': avatar,
       'phone': phone,
       'walletBalance': walletBalance,
       'createdAt': createdAt,

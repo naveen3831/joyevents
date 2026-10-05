@@ -12,6 +12,7 @@ import '../../widgets/location_autocomplete.dart';
 import '../../widgets/event_schedule_picker.dart';
 import '../../widgets/ai_title_suggestions_bottom_sheet.dart';
 import '../../widgets/ai_description_modal.dart';
+import '../../widgets/app_network_image.dart';
 
 class CreateEditEventScreen extends StatefulWidget {
   final String? eventId;
@@ -1030,10 +1031,10 @@ class _CreateEditEventScreenState extends State<CreateEditEventScreen> {
                     if (_imageFile != null)
                       Image.file(_imageFile!, fit: BoxFit.cover)
                     else
-                      Image.network(
-                        existingImageUrl,
+                      AppNetworkImage(
+                        url: widget.initialData?['image']?.toString(),
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+                        errorWidget: _buildImagePlaceholder(),
                       ),
                     Positioned(
                       bottom: 10,

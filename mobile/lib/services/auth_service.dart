@@ -137,7 +137,7 @@ class AuthService extends ChangeNotifier {
   }
 
   // Update profile
-  Future<void> updateProfile(Map<String, dynamic> payload) async {
+  Future<void> updateProfile(dynamic payload) async {
     try {
       final response = await _apiService.dio.patch(
         ApiConfig.updateProfile,

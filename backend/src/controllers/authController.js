@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User from "../models/User.js";
+import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import Booking from "../models/Booking.js";
 import Favorite from "../models/Favorite.js";
 import Notification from "../models/Notification.js";
@@ -240,9 +241,20 @@ export const updateProfile = async (req, res) => {
     
     const updates = {};
     if (name && name.trim()) updates.name = name.trim();
-    if (avatar !== undefined && avatar !== "") {
+
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer, 'joyevents/profiles');
+      updates.avatar = result.url;
+      updates.avatarPublicId = result.public_id;
+      updates["merchantDetails.avatar"] = result.url;
+    } else if (avatar !== undefined && avatar !== "") {
       updates.avatar = avatar;
       updates["merchantDetails.avatar"] = avatar;
+    }
+
+    const currentUser = await User.findById(req.user._id);
+    if (!currentUser) {
+      return res.status(404).json({ error: "User not found" });
     }
     
     const user = await User.findByIdAndUpdate(
@@ -250,9 +262,9 @@ export const updateProfile = async (req, res) => {
       updates, 
       { new: true }
     ).select("-passwordHash");
-    
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
+
+    if (currentUser.avatarPublicId && updates.avatarPublicId && currentUser.avatarPublicId !== updates.avatarPublicId) {
+      deleteFromCloudinary(currentUser.avatarPublicId).catch(() => {});
     }
     
     const safeUser = toSafeUser(user);

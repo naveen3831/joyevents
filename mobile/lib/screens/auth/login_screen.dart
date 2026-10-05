@@ -3,14 +3,16 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:dio/dio.dart';
+import '../../config/api_config.dart';
 import '../../config/app_theme.dart';
 import '../../services/auth_service.dart';
 
-/// Login screen — clean, minimal native mobile login screen for Eventoza.
+/// Clean, premium native mobile login screen for Eventoza.
 ///
-/// Section flow (top → bottom):
-///   Centered Brand Area: [Eventoza Logo, EVENTOZA] →
-///   Login Card: [Welcome Back, Compact Error Banner, Email, Password + Forgot, Sign In, Create Account, Legal Links]
+/// Section layout:
+///   1. BrandCard — Compact framed brand logo card (centered, soft shadow, no extra text)
+///   2. LoginFormCard — Main login card (Welcome Back, fields, CTA, links)
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -31,6 +33,171 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _showServerConfigModal(BuildContext context) {
+    final controller = TextEditingController(text: ApiConfig.baseUrl);
+    bool testing = false;
+    String? statusMessage;
+    bool statusSuccess = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (bCtx) => StatefulBuilder(
+        builder: (ctx, setMState) {
+          Future<void> testAndSave(String targetUrl) async {
+            setMState(() {
+              testing = true;
+              statusMessage = 'Testing connection to $targetUrl...';
+              statusSuccess = false;
+            });
+
+            final cleanUrl = ApiConfig.normalizeUrl(targetUrl);
+            final dio = Dio(BaseOptions(
+              connectTimeout: const Duration(seconds: 4),
+              receiveTimeout: const Duration(seconds: 4),
+            ));
+
+            try {
+              final res = await dio.get('$cleanUrl/events');
+              if (res.statusCode == 200) {
+                ApiConfig.baseUrl = cleanUrl;
+                setMState(() {
+                  testing = false;
+                  statusSuccess = true;
+                  statusMessage = 'Connected successfully to backend!';
+                  controller.text = cleanUrl;
+                });
+                return;
+              }
+            } catch (e) {
+              setMState(() {
+                testing = false;
+                statusSuccess = false;
+                statusMessage = 'Connection failed: $e';
+              });
+            }
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.dns_rounded, color: AppTheme.primaryColor, size: 22),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Server IP Configuration',
+                      style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Current Active URL: ${ApiConfig.baseUrl}',
+                  style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.subtitleColor),
+                ),
+                const SizedBox(height: 14),
+                const Text('Select Environment / IP Preset:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ActionChip(
+                      label: const Text('Auto-Detect', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      avatar: const Icon(Icons.auto_mode_rounded, size: 14),
+                      onPressed: () async {
+                        setMState(() {
+                          testing = true;
+                          statusMessage = 'Auto-detecting active server...';
+                        });
+                        final found = await ApiConfig.autoDetectWorkingServer();
+                        setMState(() {
+                          testing = false;
+                          if (found != null) {
+                            statusSuccess = true;
+                            statusMessage = 'Found active server: $found';
+                            controller.text = found;
+                          } else {
+                            statusSuccess = false;
+                            statusMessage = 'No active local server found.';
+                          }
+                        });
+                      },
+                    ),
+                    ActionChip(
+                      label: const Text('USB/ADB (127.0.0.1)', style: TextStyle(fontSize: 11)),
+                      onPressed: () => testAndSave(ApiConfig.adbUsbBaseUrl),
+                    ),
+                    ActionChip(
+                      label: const Text('Public Tunnel (HTTPS)', style: TextStyle(fontSize: 11)),
+                      onPressed: () => testAndSave(ApiConfig.publicTunnelBaseUrl),
+                    ),
+                    ActionChip(
+                      label: const Text('LAN (192.168.88.19)', style: TextStyle(fontSize: 11)),
+                      onPressed: () => testAndSave(ApiConfig.lanBaseUrl),
+                    ),
+                    ActionChip(
+                      label: const Text('Emulator (10.0.2.2)', style: TextStyle(fontSize: 11)),
+                      onPressed: () => testAndSave(ApiConfig.emulatorBaseUrl),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: controller,
+                  decoration: InputDecoration(
+                    labelText: 'Custom Server URL or IP',
+                    hintText: 'e.g. 192.168.1.50:5000',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (statusMessage != null) ...[
+                  Text(
+                    statusMessage!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: statusSuccess ? Colors.green.shade700 : AppTheme.errorColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: testing ? null : () => testAndSave(controller.text),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: testing
+                        ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('Test & Save Server URL'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _showSupportModal(BuildContext context) {
@@ -110,22 +277,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: Stack(
         children: [
-          // Background subtle ambient glow orbs
+          // Subtle ambient background glow orbs
           Positioned(
-            top: -60,
-            left: -60,
+            top: -100,
+            left: -80,
             child: Container(
-              width: 240,
-              height: 240,
+              width: 220,
+              height: 220,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppTheme.primaryColor.withOpacity(0.12),
+                    AppTheme.primaryColor.withValues(alpha: 0.06),
                     Colors.transparent,
                   ],
                 ),
@@ -133,16 +302,16 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           Positioned(
-            bottom: 20,
-            right: -50,
+            bottom: -60,
+            right: -80,
             child: Container(
-              width: 200,
-              height: 200,
+              width: 180,
+              height: 180,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppTheme.accentColor.withOpacity(0.10),
+                    AppTheme.accentColor.withValues(alpha: 0.04),
                     Colors.transparent,
                   ],
                 ),
@@ -150,272 +319,47 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-          // Main compact scrollable view
+          // Main 2-card layout
           SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // LOGO & BRAND NAME
-                      SvgPicture.asset(
-                        'assets/images/eventoza_logo.svg',
-                        width: 68,
-                        height: 68,
-                        fit: BoxFit.contain,
+                      const SizedBox(height: 28),
+
+                      // 1. BRAND CARD
+                      BrandCard(screenWidth: screenWidth),
+
+                      const SizedBox(height: 26),
+
+                      // 2. LOGIN FORM CARD
+                      LoginFormCard(
+                        emailController: _emailController,
+                        passwordController: _passwordController,
+                        obscurePassword: _obscurePassword,
+                        isLoading: _isLoading,
+                        errorMessage: _errorMessage,
+                        onTogglePasswordVisibility: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                        onLoginSubmitted: _handleLogin,
+                        onForgotPasswordPressed: () => context.push('/forgot-password'),
+                        onCreateAccountPressed: () => context.push('/register'),
+                        onTermsPressed: () => context.push('/terms'),
+                        onPrivacyPressed: () => context.push('/privacy'),
+                        onSupportPressed: () => _showSupportModal(context),
+                        onServerConfigPressed: () => _showServerConfigModal(context),
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'EVENTOZA',
-                        style: GoogleFonts.poppins(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.5,
-                          color: AppTheme.textColor,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
 
-                      // LOGIN CARD
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppTheme.borderColor),
-                          boxShadow: AppTheme.cardShadow,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Card Title & Subtitle
-                            Text(
-                              'Welcome Back',
-                              style: GoogleFonts.poppins(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                                color: AppTheme.textColor,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Sign in to access your account',
-                              style: GoogleFonts.poppins(
-                                fontSize: 12.5,
-                                color: AppTheme.subtitleColor,
-                                height: 1.3,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-
-                            // COMPACT ERROR BANNER
-                            if (_errorMessage != null) ...[
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.errorColor.withOpacity(0.08),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: AppTheme.errorColor.withOpacity(0.3),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.error_outline_rounded,
-                                      color: AppTheme.errorColor,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        _errorMessage!,
-                                        style: GoogleFonts.poppins(
-                                          color: AppTheme.errorColor,
-                                          fontSize: 12,
-                                          height: 1.3,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                            ],
-
-                            // EMAIL FIELD
-                            _buildLabel('EMAIL ADDRESS'),
-                            const SizedBox(height: 5),
-                            TextFormField(
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              textInputAction: TextInputAction.next,
-                              style: _inputTextStyle(),
-                              decoration: _inputDecoration(
-                                hint: 'name@gmail.com',
-                                prefix: const Icon(Icons.mail_outline_rounded),
-                              ),
-                              validator: (val) {
-                                if (val == null || val.trim().isEmpty) {
-                                  return 'Please enter your email';
-                                }
-                                if (!val.contains('@')) {
-                                  return 'Enter a valid email address';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 14),
-
-                            // PASSWORD ROW
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _buildLabel('PASSWORD'),
-                                TextButton(
-                                  onPressed: () =>
-                                      context.push('/forgot-password'),
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: Size.zero,
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: Text(
-                                    'Forgot password?',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppTheme.primaryColor,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 5),
-                            TextFormField(
-                              controller: _passwordController,
-                              obscureText: _obscurePassword,
-                              textInputAction: TextInputAction.done,
-                              onFieldSubmitted: (_) => _handleLogin(),
-                              style: _inputTextStyle(),
-                              decoration: _inputDecoration(
-                                hint: '••••••••',
-                                prefix: const Icon(Icons.lock_outline_rounded),
-                                suffix: GestureDetector(
-                                  onTap: () => setState(
-                                    () => _obscurePassword = !_obscurePassword,
-                                  ),
-                                  child: Icon(
-                                    _obscurePassword
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                    size: 18,
-                                    color: AppTheme.subtitleColor,
-                                  ),
-                                ),
-                              ),
-                              validator: (val) {
-                                if (val == null || val.isEmpty) {
-                                  return 'Please enter your password';
-                                }
-                                if (val.length < 6) {
-                                  return 'Password must be at least 6 characters';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 18),
-
-                            // SIGN IN BUTTON
-                            _GradientButton(
-                              text: 'Sign In',
-                              isLoading: _isLoading,
-                              onPressed: _handleLogin,
-                            ),
-                            const SizedBox(height: 16),
-
-                            // CREATE ACCOUNT LINK
-                            Center(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    "Don't have an account? ",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 12.5,
-                                      color: AppTheme.subtitleColor,
-                                    ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () => context.push('/register'),
-                                    child: Text(
-                                      'Create Account',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppTheme.primaryColor,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Center(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  GestureDetector(
-                                    onTap: () => context.push('/terms'),
-                                    child: Text(
-                                      'Terms',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 11,
-                                        color: AppTheme.subtitleColor,
-                                        decoration: TextDecoration.underline,
-                                      ),
-                                    ),
-                                  ),
-                                  const Text('  •  ', style: TextStyle(color: AppTheme.subtitleColor, fontSize: 11)),
-                                  GestureDetector(
-                                    onTap: () => context.push('/privacy'),
-                                    child: Text(
-                                      'Privacy',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 11,
-                                        color: AppTheme.subtitleColor,
-                                        decoration: TextDecoration.underline,
-                                      ),
-                                    ),
-                                  ),
-                                  const Text('  •  ', style: TextStyle(color: AppTheme.subtitleColor, fontSize: 11)),
-                                  GestureDetector(
-                                    onTap: () => _showSupportModal(context),
-                                    child: Text(
-                                      'Help / Support',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 11,
-                                        color: AppTheme.subtitleColor,
-                                        decoration: TextDecoration.underline,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      const SizedBox(height: 28),
                     ],
                   ),
                 ),
@@ -426,8 +370,355 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+}
 
-  Widget _buildLabel(String text) {
+/// 1. BRAND CARD
+/// Prominent, centered brand card framing ONLY the Eventoza logo.
+/// Width is ~75% of screen (clamped 260–320px), height 160px, logo 96px.
+class BrandCard extends StatelessWidget {
+  final double screenWidth;
+
+  const BrandCard({super.key, required this.screenWidth});
+
+  @override
+  Widget build(BuildContext context) {
+    // 75% of screen width, clamped between 260–320px
+    final cardWidth = (screenWidth * 0.75).clamp(260.0, 320.0);
+
+    return Container(
+      width: cardWidth,
+      height: 160,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: AppTheme.borderColor.withValues(alpha: 0.7),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF060B28).withValues(alpha: 0.07),
+            blurRadius: 28,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Center(
+        child: SvgPicture.asset(
+          'assets/images/eventoza_logo.svg',
+          width: 96,
+          height: 96,
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+}
+
+/// 2. LOGIN FORM CARD
+/// Clean, structured card containing header, form fields, action buttons & lightweight footer links.
+class LoginFormCard extends StatelessWidget {
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final bool obscurePassword;
+  final bool isLoading;
+  final String? errorMessage;
+  final VoidCallback onTogglePasswordVisibility;
+  final VoidCallback onLoginSubmitted;
+  final VoidCallback onForgotPasswordPressed;
+  final VoidCallback onCreateAccountPressed;
+  final VoidCallback onTermsPressed;
+  final VoidCallback onPrivacyPressed;
+  final VoidCallback onSupportPressed;
+  final VoidCallback? onServerConfigPressed;
+
+  const LoginFormCard({
+    super.key,
+    required this.emailController,
+    required this.passwordController,
+    required this.obscurePassword,
+    required this.isLoading,
+    this.errorMessage,
+    required this.onTogglePasswordVisibility,
+    required this.onLoginSubmitted,
+    required this.onForgotPasswordPressed,
+    required this.onCreateAccountPressed,
+    required this.onTermsPressed,
+    required this.onPrivacyPressed,
+    required this.onSupportPressed,
+    this.onServerConfigPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppTheme.borderColor),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title & Subtitle
+          Text(
+            'Welcome Back',
+            style: GoogleFonts.poppins(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Sign in to access your account',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: AppTheme.subtitleColor,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Compact Error Banner
+          if (errorMessage != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+              decoration: BoxDecoration(
+                color: AppTheme.errorColor.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppTheme.errorColor.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: AppTheme.errorColor,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      errorMessage!,
+                      style: GoogleFonts.poppins(
+                        color: AppTheme.errorColor,
+                        fontSize: 12,
+                        height: 1.3,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Email Field
+          _buildFieldLabel('EMAIL ADDRESS'),
+          const SizedBox(height: 6),
+          TextFormField(
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            style: _inputTextStyle(),
+            decoration: _inputDecoration(
+              hint: 'name@gmail.com',
+              prefix: const Icon(Icons.mail_outline_rounded),
+            ),
+            validator: (val) {
+              if (val == null || val.trim().isEmpty) {
+                return 'Please enter your email';
+              }
+              if (!val.contains('@')) {
+                return 'Enter a valid email address';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Password Row (Label + Forgot Password)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _buildFieldLabel('PASSWORD'),
+              GestureDetector(
+                onTap: onForgotPasswordPressed,
+                child: Text(
+                  'Forgot password?',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          // Password Field
+          TextFormField(
+            controller: passwordController,
+            obscureText: obscurePassword,
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) => onLoginSubmitted(),
+            style: _inputTextStyle(),
+            decoration: _inputDecoration(
+              hint: '••••••••',
+              prefix: const Icon(Icons.lock_outline_rounded),
+              suffix: GestureDetector(
+                onTap: onTogglePasswordVisibility,
+                child: Icon(
+                  obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  size: 18,
+                  color: AppTheme.subtitleColor,
+                ),
+              ),
+            ),
+            validator: (val) {
+              if (val == null || val.isEmpty) {
+                return 'Please enter your password';
+              }
+              if (val.length < 6) {
+                return 'Password must be at least 6 characters';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 22),
+
+          // Primary Gradient CTA Button
+          _GradientButton(
+            text: 'Sign In',
+            isLoading: isLoading,
+            onPressed: onLoginSubmitted,
+          ),
+          const SizedBox(height: 18),
+
+          // Create Account Text Link
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Don't have an account? ",
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: AppTheme.subtitleColor,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: onCreateAccountPressed,
+                  child: Text(
+                    'Create Account',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Secondary Lightweight Legal/Help Links
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: onTermsPressed,
+                  child: Text(
+                    'Terms',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: AppTheme.subtitleColor.withValues(alpha: 0.85),
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                Text(
+                  '  •  ',
+                  style: TextStyle(
+                    color: AppTheme.subtitleColor.withValues(alpha: 0.5),
+                    fontSize: 11,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: onPrivacyPressed,
+                  child: Text(
+                    'Privacy',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: AppTheme.subtitleColor.withValues(alpha: 0.85),
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                Text(
+                  '  •  ',
+                  style: TextStyle(
+                    color: AppTheme.subtitleColor.withValues(alpha: 0.5),
+                    fontSize: 11,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: onSupportPressed,
+                  child: Text(
+                    'Help / Support',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: AppTheme.subtitleColor.withValues(alpha: 0.85),
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                if (onServerConfigPressed != null) ...[
+                  Text(
+                    '  •  ',
+                    style: TextStyle(
+                      color: AppTheme.subtitleColor.withValues(alpha: 0.5),
+                      fontSize: 11,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: onServerConfigPressed,
+                    child: Text(
+                      'Server IP',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildFieldLabel(String text) {
     return Text(
       text,
       style: GoogleFonts.poppins(
@@ -439,13 +730,13 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  TextStyle _inputTextStyle() => GoogleFonts.poppins(
+  static TextStyle _inputTextStyle() => GoogleFonts.poppins(
         fontSize: 13.5,
         color: AppTheme.textColor,
         fontWeight: FontWeight.w400,
       );
 
-  InputDecoration _inputDecoration({
+  static InputDecoration _inputDecoration({
     required String hint,
     Widget? prefix,
     Widget? suffix,
@@ -458,7 +749,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       filled: true,
       fillColor: AppTheme.inputFillColor,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       prefixIcon: prefix != null
           ? Padding(
               padding: const EdgeInsets.only(left: 12, right: 8),
@@ -503,6 +794,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
+/// Primary Gradient Action Button
 class _GradientButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
@@ -518,17 +810,17 @@ class _GradientButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 50,
+      height: 56,
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Ink(
           decoration: BoxDecoration(
             gradient: AppTheme.gradientPrimary,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryColor.withOpacity(0.28),
+                color: AppTheme.primaryColor.withValues(alpha: 0.25),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
               ),
@@ -536,8 +828,8 @@ class _GradientButton extends StatelessWidget {
           ),
           child: InkWell(
             onTap: isLoading ? null : onPressed,
-            borderRadius: BorderRadius.circular(12),
-            splashColor: Colors.white.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(16),
+            splashColor: Colors.white.withValues(alpha: 0.12),
             child: Center(
               child: isLoading
                   ? const SizedBox(

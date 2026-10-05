@@ -10,6 +10,7 @@ const serviceSchema = new mongoose.Schema(
     qrCodeCustomUrl: { type: String, default: "" },
     qrCodeActive: { type: Boolean, default: true },
     image:       { type: String, default: "" },
+    imagePublicId: { type: String, default: "" },
     gallery:     [{ type: String }], // Array of image URLs from Cloudinary
     active:      { type: Boolean, default: true },
     addOns:      [{

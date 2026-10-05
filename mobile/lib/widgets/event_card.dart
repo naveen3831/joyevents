@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/api_config.dart';
 import '../config/app_theme.dart';
 import '../models/event_model.dart';
+import 'app_network_image.dart';
 
 class EventCard extends StatelessWidget {
   final EventModel event;
@@ -68,7 +69,6 @@ class EventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = ApiConfig.resolveImageUrl(event.mainImage);
     final displayDate = event.formattedDate.isNotEmpty ? event.formattedDate : _formatDate(event.date);
     final displayTime = event.formattedTime.isNotEmpty ? event.formattedTime : event.time;
     final organizerName = event.createdByName;
@@ -103,13 +103,11 @@ class EventCard extends StatelessWidget {
                 children: [
                   AspectRatio(
                     aspectRatio: 16 / 10,
-                    child: imageUrl.isNotEmpty
-                        ? Image.network(
-                            imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
-                          )
-                        : _buildImagePlaceholder(),
+                    child: AppNetworkImage(
+                      url: event.mainImage,
+                      fit: BoxFit.cover,
+                      errorWidget: _buildImagePlaceholder(),
+                    ),
                   ),
 
                   // Category Badge (Top-Left Overlay)

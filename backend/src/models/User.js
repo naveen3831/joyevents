@@ -34,6 +34,7 @@ const userSchema = new mongoose.Schema(
     },
     mobile: { type: String, trim: true },
     avatar: { type: String },
+    avatarPublicId: { type: String, default: "" },
     merchantStatus: {
       type: String,
       enum: ["details_pending", "details_submitted", "quotation_sent", "paid", "active"],

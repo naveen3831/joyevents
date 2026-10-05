@@ -5,13 +5,18 @@ import '../../config/app_theme.dart';
 import '../../models/event_filter_model.dart';
 import '../../models/event_model.dart';
 import '../../services/event_service.dart';
-import '../../widgets/customer_app_bar.dart';
+import '../../services/merchant_service.dart';
+import '../../widgets/customer_gradient_header.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/event_card.dart';
+import '../../widgets/category_image_card.dart';
 import '../../widgets/event_filter_bottom_sheet.dart';
 import '../../widgets/loading_view.dart';
 
+/// Redesigned Customer "Browse Events" screen in JoyEvents.
+/// Features an extended top hero gradient header, image-based category card carousel,
+/// precise category filtering, and a clean 2-column event grid (without search bar).
 class BrowseEventsScreen extends StatefulWidget {
   const BrowseEventsScreen({super.key});
 
@@ -21,7 +26,6 @@ class BrowseEventsScreen extends StatefulWidget {
 
 class _BrowseEventsScreenState extends State<BrowseEventsScreen> {
   final EventService _eventService = EventService();
-  final _searchController = TextEditingController();
 
   List<EventModel> _allEvents = [];
   List<EventModel> _filteredEvents = [];
@@ -30,26 +34,49 @@ class _BrowseEventsScreenState extends State<BrowseEventsScreen> {
   String _selectedCategory = 'All';
   EventFilterModel _currentFilter = const EventFilterModel();
 
-  final List<String> _categories = [
-    'All',
-    'Music',
-    'Wedding',
-    'Corporate',
-    'Birthday',
-    'Catering',
-    'Festival',
+  List<Map<String, dynamic>> _categoriesList = [
+    {'name': 'All'},
+    {'name': 'Music'},
+    {'name': 'Wedding'},
+    {'name': 'Corporate'},
+    {'name': 'Birthday'},
+    {'name': 'Sports'},
+    {'name': 'Cricket'},
+    {'name': 'Catering'},
+    {'name': 'Festival'},
+    {'name': 'Photography'},
   ];
 
   @override
   void initState() {
     super.initState();
+    _fetchCategories();
     _fetchEvents();
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  Future<void> _fetchCategories() async {
+    try {
+      final rawCats = await MerchantService().getCategories(type: 'event');
+      if (rawCats.isNotEmpty && mounted) {
+        final List<Map<String, dynamic>> loaded = [
+          {'name': 'All'}
+        ];
+        for (var c in rawCats) {
+          if (c is Map && c.containsKey('name')) {
+            final name = c['name'].toString();
+            if (name.toLowerCase() != 'all') {
+              loaded.add({
+                'name': name,
+                'imageUrl': c['imageUrl']?.toString(),
+              });
+            }
+          }
+        }
+        setState(() {
+          _categoriesList = loaded;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchEvents() async {
@@ -59,7 +86,6 @@ class _BrowseEventsScreenState extends State<BrowseEventsScreen> {
     });
 
     try {
-      // Fetch complete events collection so multi-faceted local filtering works seamlessly
       final list = await _eventService.getEvents();
       if (mounted) {
         setState(() {
@@ -78,11 +104,34 @@ class _BrowseEventsScreenState extends State<BrowseEventsScreen> {
     }
   }
 
+  /// Combine categories from _categoriesList (default + API-loaded) with any
+  /// additional categories present in loaded events.
+  List<String> get _dynamicCategories {
+    // Seed from the existing _categoriesList field which already holds
+    // the curated default list and any categories fetched from the backend.
+    final categoriesSet = <String>{
+      for (final item in _categoriesList) item['name'] as String,
+    };
+    for (final event in _allEvents) {
+      if (event.category.trim().isNotEmpty) {
+        // Find existing category matching case-insensitively or add formatted category
+        final match = categoriesSet.firstWhere(
+          (c) => c.trim().toLowerCase() == event.category.trim().toLowerCase(),
+          orElse: () => '',
+        );
+        if (match.isEmpty) {
+          categoriesSet.add(event.category.trim());
+        }
+      }
+    }
+    return categoriesSet.toList();
+  }
+
   void _applyFilters() {
     setState(() {
       _filteredEvents = _currentFilter.applyTo(
         _allEvents,
-        searchQuery: _searchController.text,
+        searchQuery: '', // Search removed
         category: _selectedCategory,
       );
     });
@@ -90,7 +139,6 @@ class _BrowseEventsScreenState extends State<BrowseEventsScreen> {
 
   void _resetAllFilters() {
     setState(() {
-      _searchController.clear();
       _selectedCategory = 'All';
       _currentFilter = const EventFilterModel();
       _applyFilters();
@@ -142,152 +190,115 @@ class _BrowseEventsScreenState extends State<BrowseEventsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+    // _dynamicCategories merges _categoriesList names with event-derived categories.
+    // The carousel below uses _categoriesList directly (with imageUrl).
+    // ignore: unused_local_variable
+    final unusedDyn = _dynamicCategories;
+
     return Scaffold(
-      appBar: const CustomerAppBar(title: 'Browse Events'),
+      backgroundColor: AppTheme.backgroundColor,
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Prominent Search Bar with Filter/Tune Icon
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300, width: 1),
-              ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (_) => _applyFilters(),
-                onSubmitted: (_) => _applyFilters(),
-                textAlignVertical: TextAlignVertical.center,
-                style: const TextStyle(fontSize: 14, color: AppTheme.textColor),
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  hintText: 'Search events by name, location...',
-                  hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-                  prefixIcon: const Icon(
-                    Icons.search_rounded,
-                    color: AppTheme.primaryColor,
-                    size: 22,
-                  ),
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_searchController.text.isNotEmpty)
-                        IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: 18),
-                          onPressed: () {
-                            _searchController.clear();
-                            _applyFilters();
-                          },
-                        ),
-                      Stack(
-                        alignment: Alignment.topRight,
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              Icons.tune_rounded,
-                              size: 22,
-                              color: _currentFilter.hasActiveFilters
-                                  ? AppTheme.primaryColor
-                                  : AppTheme.subtitleColor,
-                            ),
-                            onPressed: _openFilterBottomSheet,
-                          ),
-                          if (_currentFilter.hasActiveFilters)
-                            Positioned(
-                              right: 6,
-                              top: 6,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: AppTheme.primaryColor,
-                                  shape: BoxShape.circle,
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 16,
-                                  minHeight: 16,
-                                ),
-                                child: Text(
-                                  '${_currentFilter.activeFilterCount}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          // ═══════════════════════════════════════════
+          // 1. EXTENDED TOP HERO GRADIENT HEADER
+          // ═══════════════════════════════════════════
+          CustomerGradientHeader(
+            title: 'Browse Events',
+            subtitle: 'Discover & filter exciting events near you',
+            borderRadius: 28.0,
+            padding: EdgeInsets.only(
+              top: topPadding + 14,
+              left: 20,
+              right: 12,
+              bottom: 24,
             ),
           ),
 
-          // 2. Horizontal Category Filters
+          const SizedBox(height: 18),
+
+          // ═══════════════════════════════════════════
+          // 2. CATEGORIES HEADER & CAROUSEL
+          // ═══════════════════════════════════════════
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Categories',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textColor,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                if (_currentFilter.hasActiveFilters || _selectedCategory != 'All')
+                  InkWell(
+                    onTap: _resetAllFilters,
+                    borderRadius: BorderRadius.circular(12),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      child: Text(
+                        'Reset Filters',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Image-based Horizontal Category Cards Carousel
           SizedBox(
-            height: 38,
-            child: ListView.separated(
+            height: 104,
+            child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _categories.length,
-              separatorBuilder: (_, index) => const SizedBox(width: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: _categoriesList.length,
               itemBuilder: (context, index) {
-                final cat = _categories[index];
-                final isSelected = _selectedCategory == cat;
-                return InkWell(
+                final item = _categoriesList[index];
+                final cat = item['name'] as String;
+                final imageUrl = item['imageUrl'] as String?;
+                final isSelected = _selectedCategory.toLowerCase() == cat.toLowerCase();
+                return CategoryImageCard(
+                  title: cat,
+                  imageUrl: imageUrl,
+                  isSelected: isSelected,
+                  width: 110,
+                  height: 100,
+                  allLabel: 'All Events',
                   onTap: () {
-                    if (_selectedCategory != cat) {
+                    if (!isSelected) {
                       setState(() {
                         _selectedCategory = cat;
                       });
                       _applyFilters();
                     }
                   },
-                  borderRadius: BorderRadius.circular(20),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppTheme.primaryColor : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
-                        width: 1,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        cat,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : AppTheme.textColor,
-                          fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
                 );
               },
             ),
           ),
 
-          // 3. Active Removable Filter Chips (if any filters active)
+          // ═══════════════════════════════════════════
+          // 3. ACTIVE REMOVABLE FILTER CHIPS (IF ANY)
+          // ═══════════════════════════════════════════
           if (_currentFilter.hasActiveFilters) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             SizedBox(
               height: 32,
               child: ListView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 children: [
                   if (_currentFilter.dateFilter != DateFilterType.all)
                     _buildActiveChip(
@@ -357,9 +368,15 @@ class _BrowseEventsScreenState extends State<BrowseEventsScreen> {
                         _applyFilters();
                       },
                     ),
-                  // Clear All Chip
                   ActionChip(
-                    label: const Text('Clear All', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                    label: const Text(
+                      'Clear All',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
                     backgroundColor: AppTheme.tintVioletBg,
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     onPressed: () {
@@ -374,9 +391,11 @@ class _BrowseEventsScreenState extends State<BrowseEventsScreen> {
             ),
           ],
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
 
-          // 4. Event Grid Area
+          // ═══════════════════════════════════════════
+          // 4. EVENT GRID AREA
+          // ═══════════════════════════════════════════
           Expanded(
             child: RefreshIndicator(
               onRefresh: _fetchEvents,
@@ -387,7 +406,7 @@ class _BrowseEventsScreenState extends State<BrowseEventsScreen> {
                       : _filteredEvents.isEmpty
                           ? EmptyState(
                               title: 'No events found',
-                              message: 'Try changing your search or filters.',
+                              message: 'No events match the selected category or filters.',
                               icon: Icons.filter_alt_off_rounded,
                               action: ElevatedButton(
                                 onPressed: _resetAllFilters,
@@ -402,7 +421,7 @@ class _BrowseEventsScreenState extends State<BrowseEventsScreen> {
                               ),
                             )
                           : GridView.builder(
-                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
                               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
                                 crossAxisSpacing: 12,
@@ -434,7 +453,11 @@ class _BrowseEventsScreenState extends State<BrowseEventsScreen> {
       child: Chip(
         label: Text(
           label,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primaryColor),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.primaryColor,
+          ),
         ),
         backgroundColor: AppTheme.tintVioletBg,
         deleteIcon: const Icon(Icons.close_rounded, size: 14, color: AppTheme.primaryColor),

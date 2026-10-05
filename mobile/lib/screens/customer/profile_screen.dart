@@ -4,7 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../../config/app_theme.dart';
 import '../../services/auth_service.dart';
-import '../../widgets/customer_app_bar.dart';
+import '../../widgets/customer_gradient_header.dart';
+import '../../widgets/app_network_image.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -62,75 +63,99 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = context.watch<AuthService>().currentUser;
 
     return Scaffold(
-      appBar: const CustomerAppBar(title: 'My Account'),
+      backgroundColor: AppTheme.backgroundColor,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            // User Avatar & Info Card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 32,
-                      backgroundColor: AppTheme.primaryColor.withOpacity(0.12),
-                      child: Text(
-                        user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'U',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryColor,
+            CustomerGradientHeader(
+              title: 'My Profile',
+              child: Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: AppNetworkImage(
+                      url: user?.avatar,
+                      fit: BoxFit.cover,
+                      errorWidget: Container(
+                        color: Colors.white.withValues(alpha: 0.22),
+                        child: Center(
+                          child: Text(
+                            user?.name.isNotEmpty == true
+                                ? user!.name[0].toUpperCase()
+                                : 'U',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user?.name ?? 'Customer Name',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.textColor,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.name ?? 'Customer Name',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          user?.email ?? 'customer@example.com',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.22),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.35),
+                              width: 1,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            user?.email ?? 'customer@example.com',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppTheme.subtitleColor,
+                          child: const Text(
+                            'Customer Account',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: AppTheme.successColor.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'Customer Account',
-                              style: TextStyle(
-                                color: AppTheme.successColor,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
 
-            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+              child: Column(
+                children: [
 
             // Profile Actions List
             Card(
@@ -252,6 +277,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-    );
+    ],
+  ),
+),
+);
   }
 }
+
+

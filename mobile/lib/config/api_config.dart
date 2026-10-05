@@ -1,18 +1,55 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+/// Centralized API configuration for JoyEvents mobile application.
+/// Supports ADB USB reverse (127.0.0.1:5000), Localhost, Android Emulator (10.0.2.2),
+/// Local LAN IP (192.168.88.19), Public Tunnels, and Production endpoints.
 class ApiConfig {
-  // Development URLs (Configured for live backend testing)
-  static const String devBaseUrl = 'https://joyevents.speshway.site/api';
-  static const String lanBaseUrl = 'https://joyevents.speshway.site/api';
+  static const _storage = FlutterSecureStorage();
 
-  // Production Live URLs
+  // Development Candidate Base URLs
+  static const String adbUsbBaseUrl = 'http://127.0.0.1:5000/api';
+  static const String localhostBaseUrl = 'http://localhost:5000/api';
+  static const String emulatorBaseUrl = 'http://10.0.2.2:5000/api';
+  static const String lanBaseUrl = 'http://192.168.88.19:5000/api';
+  static const String publicTunnelBaseUrl = 'https://cold-tools-think.loca.lt/api';
+
+  // Production Live Base URL
   static const String prodBaseUrl = 'https://joyevents.speshway.site/api';
+
+  // WebSockets Base URLs
+  static const String devWsUrl = 'ws://127.0.0.1:5000/ws';
   static const String prodWsUrl = 'wss://joyevents.speshway.site/ws';
-  static const String devWsUrl = 'wss://joyevents.speshway.site/ws';
 
-  // Internal dynamic override for debug mode only
+  // Storage key for user-configured custom server IP
+  static const String keyCustomIp = 'custom_base_ip';
+
+  // Internal dynamic override for debug mode
   static String _overrideBaseUrl = '';
+  static bool _initialized = false;
 
+  /// Initializes ApiConfig from secure storage (restores custom IP if saved previously)
+  static Future<void> init() async {
+    if (_initialized) return;
+    try {
+      final savedIp = await _storage.read(key: keyCustomIp);
+      if (savedIp != null && savedIp.trim().isNotEmpty) {
+        _overrideBaseUrl = normalizeUrl(savedIp.trim());
+        if (kDebugMode) {
+          debugPrint('[ApiConfig] Restored custom server IP: $_overrideBaseUrl');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[ApiConfig] Error loading saved IP: $e');
+      }
+    } finally {
+      _initialized = true;
+    }
+  }
+
+  /// Active Base URL for API requests.
   static String get baseUrl {
     if (kReleaseMode) {
       return prodBaseUrl;
@@ -20,28 +57,43 @@ class ApiConfig {
     if (_overrideBaseUrl.isNotEmpty) {
       return _overrideBaseUrl;
     }
-    return prodBaseUrl;
+    // Default to ADB USB loopback (127.0.0.1:5000) for connected devices / emulators
+    return adbUsbBaseUrl;
   }
 
   static set baseUrl(String value) {
     if (!kReleaseMode) {
-      _overrideBaseUrl = value;
+      _overrideBaseUrl = normalizeUrl(value);
+      _storage.write(key: keyCustomIp, value: _overrideBaseUrl);
     }
+  }
+
+  /// Safely formats user-entered or default URL strings to have http(s):// and /api suffix
+  static String normalizeUrl(String input) {
+    var raw = input.trim();
+    if (raw.isEmpty) return adbUsbBaseUrl;
+    if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
+      raw = 'http://$raw';
+    }
+    if (raw.endsWith('/')) {
+      raw = raw.substring(0, raw.length - 1);
+    }
+    if (!raw.endsWith('/api')) {
+      raw = '$raw/api';
+    }
+    return raw;
   }
 
   static String get wsUrl {
     if (kReleaseMode) {
       return prodWsUrl;
     }
-    if (_overrideBaseUrl.contains('192.168.')) {
-      final uri = Uri.parse(_overrideBaseUrl);
-      return 'ws://${uri.host}:5000/ws';
-    }
-    return devWsUrl;
+    final current = baseUrl;
+    final uri = Uri.parse(current);
+    final scheme = uri.scheme == 'https' ? 'wss' : 'ws';
+    final port = uri.port > 0 ? uri.port : 5000;
+    return '$scheme://${uri.host}:$port/ws';
   }
-
-  // Storage key for user override IP if needed
-  static const String keyCustomIp = 'custom_base_ip';
 
   // Base domain for resolving image URLs (strips /api)
   static String get mediaBaseUrl {
@@ -64,7 +116,39 @@ class ApiConfig {
     return '$mediaBaseUrl$cleanPath';
   }
 
-  // Auth Endpoints (Matching real Node/Express backend /api/auth/*)
+  /// Probes candidate local dev servers & tunnels and auto-switches to the first responsive backend server
+  static Future<String?> autoDetectWorkingServer() async {
+    final candidates = [
+      adbUsbBaseUrl,
+      localhostBaseUrl,
+      emulatorBaseUrl,
+      lanBaseUrl,
+      publicTunnelBaseUrl,
+    ];
+
+    final dio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 3),
+      receiveTimeout: const Duration(seconds: 3),
+    ));
+
+    for (final candidate in candidates) {
+      try {
+        final res = await dio.get('$candidate/events');
+        if (res.statusCode == 200) {
+          baseUrl = candidate;
+          if (kDebugMode) {
+            debugPrint('[ApiConfig] Auto-detected working backend server: $candidate');
+          }
+          return candidate;
+        }
+      } catch (_) {
+        // Try next candidate
+      }
+    }
+    return null;
+  }
+
+  // Auth Endpoints
   static const String login = '/auth/login';
   static const String register = '/auth/register';
   static const String me = '/auth/me';

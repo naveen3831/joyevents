@@ -13,6 +13,7 @@ import '../../widgets/contact_bottom_sheet.dart';
 import '../../widgets/customer_app_bar.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/loading_view.dart';
+import '../../widgets/app_network_image.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   final String eventId;
@@ -168,25 +169,23 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Banner Image
-                      Container(
+                      SizedBox(
                         height: 220,
                         width: double.infinity,
-                        color: Colors.grey.shade200,
-                        child: ApiConfig.resolveImageUrl(_event!.mainImage).isNotEmpty
-                            ? Image.network(
-                                ApiConfig.resolveImageUrl(_event!.mainImage),
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.event_rounded,
-                                  size: 64,
-                                  color: Colors.grey,
-                                ),
-                              )
-                            : const Icon(
+                        child: AppNetworkImage(
+                          url: _event!.mainImage,
+                          fit: BoxFit.cover,
+                          errorWidget: Container(
+                            color: Colors.grey.shade200,
+                            child: const Center(
+                              child: Icon(
                                 Icons.event_rounded,
                                 size: 64,
                                 color: Colors.grey,
                               ),
+                            ),
+                          ),
+                        ),
                       ),
 
                       Padding(

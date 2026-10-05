@@ -3,7 +3,7 @@ import Service from "../models/Service.js";
 import Booking from "../models/Booking.js";
 import { verifyToken, requireRole } from "../middleware/auth.js";
 import { upload } from "../utils/upload.js";
-import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 
 const router = Router();
 
@@ -224,15 +224,17 @@ router.post("/", verifyToken, requireRole("merchant", "admin"), upload.fields([
 
     // Upload main image to Cloudinary
     let imageUrl = "";
+    let imagePublicId = "";
     if (req.files && req.files.image && req.files.image[0]) {
-      const cloudinaryResult = await uploadToCloudinary(req.files.image[0].buffer, 'services');
+      const cloudinaryResult = await uploadToCloudinary(req.files.image[0].buffer, 'joyevents/services');
       imageUrl = cloudinaryResult.url;
+      imagePublicId = cloudinaryResult.public_id;
     }
 
     // Upload gallery images to Cloudinary
     let galleryUrls = [];
     if (req.files && req.files.gallery && req.files.gallery.length > 0) {
-      const uploadPromises = req.files.gallery.map(file => uploadToCloudinary(file.buffer, 'services/gallery'));
+      const uploadPromises = req.files.gallery.map(file => uploadToCloudinary(file.buffer, 'joyevents/services/gallery'));
       const results = await Promise.all(uploadPromises);
       galleryUrls = results.map(r => r.url);
     }
@@ -267,6 +269,7 @@ router.post("/", verifyToken, requireRole("merchant", "admin"), upload.fields([
       category: category || "General",
       highlights: parsedHighlights,
       image: imageUrl,
+      imagePublicId: imagePublicId,
       gallery: galleryUrls,
       active: active !== "false",
       addOns: parsedAddOns,
@@ -344,13 +347,14 @@ router.patch("/:id", verifyToken, requireRole("merchant", "admin"), upload.field
 
     // Upload new main image to Cloudinary if provided
     if (req.files && req.files.image && req.files.image[0]) {
-      const cloudinaryResult = await uploadToCloudinary(req.files.image[0].buffer, 'services');
+      const cloudinaryResult = await uploadToCloudinary(req.files.image[0].buffer, 'joyevents/services');
       update.image = cloudinaryResult.url;
+      update.imagePublicId = cloudinaryResult.public_id;
     }
 
     // Upload new gallery images to Cloudinary if provided
     if (req.files && req.files.gallery && req.files.gallery.length > 0) {
-      const uploadPromises = req.files.gallery.map(file => uploadToCloudinary(file.buffer, 'services/gallery'));
+      const uploadPromises = req.files.gallery.map(file => uploadToCloudinary(file.buffer, 'joyevents/services/gallery'));
       const results = await Promise.all(uploadPromises);
       update.gallery = results.map(r => r.url);
     }
@@ -389,6 +393,9 @@ router.patch("/:id", verifyToken, requireRole("merchant", "admin"), upload.field
     }
 
     const updatedService = await Service.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (service.imagePublicId && update.imagePublicId && service.imagePublicId !== update.imagePublicId) {
+      deleteFromCloudinary(service.imagePublicId).catch(() => {});
+    }
     res.json({ service: updatedService });
   } catch (error) {
     res.status(500).json({ error: "Server error" });
@@ -406,6 +413,9 @@ router.delete("/:id", verifyToken, requireRole("merchant", "admin"), async (req,
       return res.status(403).json({ error: "Not authorized to delete this service" });
     }
 
+    if (service.imagePublicId) {
+      deleteFromCloudinary(service.imagePublicId).catch(() => {});
+    }
     await Service.findByIdAndDelete(req.params.id);
     res.json({ message: "Service deleted" });
   } catch {

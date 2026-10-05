@@ -6,7 +6,7 @@ import '../../config/app_theme.dart';
 import '../../models/booking_model.dart';
 import '../../services/booking_service.dart';
 import '../../widgets/booking_card.dart';
-import '../../widgets/customer_app_bar.dart';
+import '../../widgets/customer_gradient_header.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/loading_view.dart';
@@ -130,14 +130,16 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomerAppBar(title: 'My Bookings'),
+      backgroundColor: AppTheme.backgroundColor,
       body: Column(
         children: [
-          // Filter Tabs (Eventoza style - Pill Chips)
+          const CustomerGradientHeader(title: 'My Bookings'),
+          const SizedBox(height: 16),
+
+          // Filter Tabs (Pill Chips)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: TabBar(
               controller: _tabController,
               onTap: (_) => setState(() {}),
@@ -167,6 +169,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
               ],
             ),
           ),
+          const SizedBox(height: 8),
 
           // Bookings List Area
           Expanded(
@@ -195,7 +198,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
 
                             return ListView.builder(
                               padding:
-                                  const EdgeInsets.fromLTRB(16, 12, 16, 80),
+                                  const EdgeInsets.fromLTRB(20, 12, 20, 80),
                               itemCount: filteredList.length,
                               itemBuilder: (context, idx) {
                                 final booking = filteredList[idx];
