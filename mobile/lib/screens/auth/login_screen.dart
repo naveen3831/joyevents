@@ -117,6 +117,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   runSpacing: 8,
                   children: [
                     ActionChip(
+                      avatar: const Icon(Icons.cloud_done_rounded, size: 14, color: Colors.green),
+                      label: const Text('Live Server (Cloud)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green)),
+                      onPressed: () async {
+                        await ApiConfig.resetToProduction();
+                        testAndSave(ApiConfig.prodBaseUrl);
+                      },
+                    ),
+                    ActionChip(
                       label: const Text('Auto-Detect', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                       avatar: const Icon(Icons.auto_mode_rounded, size: 14),
                       onPressed: () async {
@@ -133,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             controller.text = found;
                           } else {
                             statusSuccess = false;
-                            statusMessage = 'No active local server found.';
+                            statusMessage = 'No active server found.';
                           }
                         });
                       },
@@ -141,10 +149,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ActionChip(
                       label: const Text('USB/ADB (127.0.0.1)', style: TextStyle(fontSize: 11)),
                       onPressed: () => testAndSave(ApiConfig.adbUsbBaseUrl),
-                    ),
-                    ActionChip(
-                      label: const Text('Public Tunnel (HTTPS)', style: TextStyle(fontSize: 11)),
-                      onPressed: () => testAndSave(ApiConfig.publicTunnelBaseUrl),
                     ),
                     ActionChip(
                       label: const Text('LAN (192.168.88.19)', style: TextStyle(fontSize: 11)),
@@ -611,8 +615,9 @@ class LoginFormCard extends StatelessWidget {
 
           // Create Account Text Link
           Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(
                   "Don't have an account? ",

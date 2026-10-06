@@ -35,9 +35,16 @@ class ApiConfig {
     try {
       final savedIp = await _storage.read(key: keyCustomIp);
       if (savedIp != null && savedIp.trim().isNotEmpty) {
-        _overrideBaseUrl = normalizeUrl(savedIp.trim());
+        final normalized = normalizeUrl(savedIp.trim());
+        // If the stored IP is an unreachable loopback from older debug runs, discard it
+        if (normalized.contains('127.0.0.1') || normalized.contains('localhost')) {
+          _overrideBaseUrl = '';
+          await _storage.delete(key: keyCustomIp);
+        } else {
+          _overrideBaseUrl = normalized;
+        }
         if (kDebugMode) {
-          debugPrint('[ApiConfig] Restored custom server IP: $_overrideBaseUrl');
+          debugPrint('[ApiConfig] Active server IP: ${_overrideBaseUrl.isNotEmpty ? _overrideBaseUrl : prodBaseUrl}');
         }
       }
     } catch (e) {
@@ -49,21 +56,27 @@ class ApiConfig {
     }
   }
 
-  /// Active Base URL for API requests.
+  /// Reset to live cloud server (clears custom override)
+  static Future<void> resetToProduction() async {
+    _overrideBaseUrl = '';
+    await _storage.delete(key: keyCustomIp);
+  }
+
+  /// Active Base URL for API requests. Defaults to Live Cloud Server so it works on any network.
   static String get baseUrl {
-    if (kReleaseMode) {
-      return prodBaseUrl;
-    }
     if (_overrideBaseUrl.isNotEmpty) {
       return _overrideBaseUrl;
     }
-    // Default to ADB USB loopback (127.0.0.1:5000) for connected devices / emulators
-    return adbUsbBaseUrl;
+    return prodBaseUrl;
   }
 
   static set baseUrl(String value) {
-    if (!kReleaseMode) {
-      _overrideBaseUrl = normalizeUrl(value);
+    final normalized = normalizeUrl(value);
+    if (normalized == prodBaseUrl) {
+      _overrideBaseUrl = '';
+      _storage.delete(key: keyCustomIp);
+    } else {
+      _overrideBaseUrl = normalized;
       _storage.write(key: keyCustomIp, value: _overrideBaseUrl);
     }
   }
@@ -71,7 +84,7 @@ class ApiConfig {
   /// Safely formats user-entered or default URL strings to have http(s):// and /api suffix
   static String normalizeUrl(String input) {
     var raw = input.trim();
-    if (raw.isEmpty) return adbUsbBaseUrl;
+    if (raw.isEmpty) return prodBaseUrl;
     if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
       raw = 'http://$raw';
     }
@@ -85,7 +98,7 @@ class ApiConfig {
   }
 
   static String get wsUrl {
-    if (kReleaseMode) {
+    if (kReleaseMode || _overrideBaseUrl.isEmpty) {
       return prodWsUrl;
     }
     final current = baseUrl;
@@ -116,9 +129,10 @@ class ApiConfig {
     return '$mediaBaseUrl$cleanPath';
   }
 
-  /// Probes candidate local dev servers & tunnels and auto-switches to the first responsive backend server
+  /// Probes candidate backend servers and auto-switches to the first responsive server
   static Future<String?> autoDetectWorkingServer() async {
     final candidates = [
+      prodBaseUrl,
       adbUsbBaseUrl,
       localhostBaseUrl,
       emulatorBaseUrl,
@@ -127,13 +141,13 @@ class ApiConfig {
     ];
 
     final dio = Dio(BaseOptions(
-      connectTimeout: const Duration(seconds: 3),
-      receiveTimeout: const Duration(seconds: 3),
+      connectTimeout: const Duration(seconds: 4),
+      receiveTimeout: const Duration(seconds: 4),
     ));
 
     for (final candidate in candidates) {
       try {
-        final res = await dio.get('$candidate/events');
+        final res = await dio.get('$candidate/categories');
         if (res.statusCode == 200) {
           baseUrl = candidate;
           if (kDebugMode) {

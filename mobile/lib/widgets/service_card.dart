@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../config/api_config.dart';
 import '../config/app_theme.dart';
 import '../models/service_model.dart';
 import 'app_network_image.dart';

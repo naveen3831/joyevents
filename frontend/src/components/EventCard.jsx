@@ -91,15 +91,23 @@ const EventCard = ({ event, index = 0, onBookNow, onViewDetails, isFavorited, on
         <div className="relative w-full h-[170px] sm:h-[180px] overflow-hidden bg-secondary shrink-0">
           {event.image ? (
             <img
-              src={event.image}
+              src={event.image.startsWith("http") ? event.image : event.image.startsWith("/") ? event.image : `/${event.image}`}
               alt={event.title}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                if (e.currentTarget.nextElementSibling) {
+                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                }
+              }}
             />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-muted-foreground bg-secondary/80">
-              <Calendar className="h-10 w-10 opacity-30" />
-            </div>
-          )}
+          ) : null}
+          <div 
+            style={{ display: event.image ? 'none' : 'flex' }}
+            className="h-full w-full items-center justify-center text-muted-foreground bg-secondary/80"
+          >
+            <Calendar className="h-10 w-10 opacity-30" />
+          </div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
           {/* Category Badge Top-Left */}

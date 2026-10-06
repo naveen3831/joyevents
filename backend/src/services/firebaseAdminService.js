@@ -1,5 +1,3 @@
-import { initializeApp, getApps, cert } from "firebase-admin/app";
-import { getMessaging } from "firebase-admin/messaging";
 import { readFileSync, existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -16,8 +14,34 @@ if (!process.env.MONGO_URI && !process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
 }
 
 let isFirebaseInitialized = false;
+let firebaseAppModule = null;
+let firebaseMessagingModule = null;
 
-function initFirebaseAdmin() {
+async function loadFirebaseModules() {
+  if (firebaseAppModule && firebaseMessagingModule) {
+    return { appModule: firebaseAppModule, messagingModule: firebaseMessagingModule };
+  }
+  try {
+    const [appMod, msgMod] = await Promise.all([
+      import("firebase-admin/app"),
+      import("firebase-admin/messaging")
+    ]);
+    firebaseAppModule = appMod;
+    firebaseMessagingModule = msgMod;
+    return { appModule: appMod, messagingModule: msgMod };
+  } catch (err) {
+    return null;
+  }
+}
+
+async function initFirebaseAdmin() {
+  const modules = await loadFirebaseModules();
+  if (!modules) {
+    console.warn("[FCM] firebase-admin package is not available. Mobile push notifications will run in mock mode.");
+    return false;
+  }
+
+  const { initializeApp, getApps, cert } = modules.appModule;
   const currentApps = getApps();
   if (currentApps.length > 0) {
     isFirebaseInitialized = true;
@@ -71,7 +95,7 @@ function initFirebaseAdmin() {
 }
 
 // Attempt initialization on file import
-initFirebaseAdmin();
+initFirebaseAdmin().catch(() => {});
 
 /**
  * Send push notification to all registered FCM tokens for a given user.
@@ -96,10 +120,10 @@ export async function sendPushNotificationToUser(userId, { title, body, data = {
 
     if (!isFirebaseInitialized) {
       // Re-check init in case env variables were dynamically updated
-      initFirebaseAdmin();
+      await initFirebaseAdmin();
     }
 
-    if (!isFirebaseInitialized) {
+    if (!isFirebaseInitialized || !firebaseMessagingModule) {
       console.log(`[FCM DEV MOCK] Would send push to user (${user.email}) tokens (${validTokens.length}): "${title}" - "${body}"`);
       return { success: true, mock: true, recipientCount: validTokens.length };
     }
@@ -121,6 +145,7 @@ export async function sendPushNotificationToUser(userId, { title, body, data = {
       tokens: validTokens,
     };
 
+    const { getMessaging } = firebaseMessagingModule;
     const messaging = getMessaging();
     const response = await messaging.sendEachForMulticast(multicastPayload);
 

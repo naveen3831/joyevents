@@ -733,6 +733,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildTicketsListSection() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 22, 16, 0),
@@ -954,6 +955,7 @@ class _HeaderIconButton extends StatelessWidget {
 }
 
 /// Compact slot usage chip: "Events 2/10" — goes red when full
+// ignore: unused_element
 class _SlotChip extends StatelessWidget {
   final String label;
   final int used;

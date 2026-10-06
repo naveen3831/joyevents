@@ -13,6 +13,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { apiListEvents, apiListCategories, apiGetFavorites, apiAddFavorite, apiRemoveFavorite, apiGetAllPromoCodes } from "@/lib/api";
 import { API_URL } from "@/lib/config";
+import { STATIC_IMAGES } from "@/lib/staticImages";
 import ManageCategoriesModal from "@/components/ManageCategoriesModal";
 import { useHomepageSettings } from "@/hooks/useHomepageSettings";
 import { Reveal, StaggerGroup, StaggerItem, FloatingBalloons } from "@/components/motion/MotionSystem";
@@ -204,9 +205,12 @@ const Events = () => {
         ]))];
 
     const filtered = events.filter(event => {
-        const matchesSearch = event.title.toLowerCase().includes(search.toLowerCase()) ||
-            event.location.toLowerCase().includes(search.toLowerCase());
-        const matchesCategory = activeCategory === "All" || event.category === activeCategory;
+        const titleStr = (event.title || "").toLowerCase();
+        const locStr = (typeof event.location === "string" ? event.location : "").toLowerCase();
+        const q = search.trim().toLowerCase();
+        const matchesSearch = !q || titleStr.includes(q) || locStr.includes(q);
+        const matchesCategory = activeCategory === "All" || 
+            (event.category || "").trim().toLowerCase() === activeCategory.trim().toLowerCase();
         return matchesSearch && matchesCategory;
     });
 
@@ -215,26 +219,38 @@ const Events = () => {
         {/* Hero Banner */}
         <section className="relative isolate overflow-hidden">
           <FloatingBalloons count={8} />
-          <img src={settings.eventsImage || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=1600&q=80"} alt="Browse Events" className="h-[50vh] min-h-[320px] w-full object-cover sm:h-[55vh] md:h-[60vh] lg:h-[65vh]" loading="eager"/>
-          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-transparent"/>
-          <div className="absolute inset-0 flex items-center pt-20">
+          <img 
+            src={settings.eventsImage || STATIC_IMAGES.heroEvent || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=1600&q=80"} 
+            alt="Browse Events" 
+            className="h-[55vh] min-h-[460px] sm:min-h-[480px] md:min-h-[520px] lg:min-h-[580px] w-full object-cover object-[center_35%]" 
+            loading="eager"
+            onError={(e) => {
+              if (STATIC_IMAGES.heroEvent && e.currentTarget.src !== STATIC_IMAGES.heroEvent) {
+                e.currentTarget.src = STATIC_IMAGES.heroEvent;
+              }
+            }}
+          />
+          {/* Balanced cinematic overlay: keeps the banner image vibrant & visible while ensuring crisp text readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-black/10"/>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20"/>
+          <div className="absolute inset-0 flex items-center py-8 sm:py-12">
             <div className="container mx-auto px-4 sm:px-6">
-              <motion.div initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} className="max-w-3xl">
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Browse Events</p>
-                <h1 className="mt-4 font-display text-2xl font-bold leading-tight text-white sm:text-4xl md:text-5xl lg:text-6xl">
-                  Discover events that <span className="text-primary">move</span> you
+              <motion.div initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} className="max-w-3xl drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
+                <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-violet-300">Browse Events</p>
+                <h1 className="mt-2 sm:mt-4 font-display text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-white drop-shadow-md">
+                  Discover events that <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-fuchsia-300 to-amber-200 font-extrabold">move</span> you
                 </h1>
-                <p className="mt-5 text-lg text-white/80">
+                <p className="mt-3 sm:mt-5 text-sm sm:text-base md:text-lg text-white/90 drop-shadow line-clamp-3 sm:line-clamp-none max-w-2xl">
                   From live concerts and sports to cultural festivals and workshops — find, book, and experience extraordinary events near you.
                 </p>
-                <div className="mt-8 flex flex-wrap gap-3">
+                <div className="mt-5 sm:mt-8 flex flex-wrap items-center gap-2.5 sm:gap-3">
                   <Link to="/register">
-                    <Button className="group bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95 hover:-translate-y-0.5 transition-all">
+                    <Button className="group bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95 hover:-translate-y-0.5 transition-all text-xs sm:text-sm h-10 sm:h-11 px-4 sm:px-5">
                       Host an Event <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"/>
                     </Button>
                   </Link>
                   <Link to="/services">
-                    <Button variant="outline" className="text-white border-white/30 hover:bg-white/10 hover:-translate-y-0.5 transition-all">Browse Services</Button>
+                    <Button variant="outline" className="text-white border-white/40 bg-black/25 backdrop-blur-sm hover:bg-white/20 hover:-translate-y-0.5 transition-all text-xs sm:text-sm h-10 sm:h-11 px-4 sm:px-5">Browse Services</Button>
                   </Link>
                 </div>
               </motion.div>

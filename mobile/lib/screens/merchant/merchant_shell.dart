@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../services/auth_service.dart';
@@ -55,9 +56,13 @@ class MerchantShell extends StatelessWidget {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
+          color: Colors.white,
+          border: const Border(
+            top: BorderSide(color: Color(0xFFF1F5F9), width: 1),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -70,34 +75,73 @@ class MerchantShell extends StatelessWidget {
           backgroundColor: Colors.white,
           selectedItemColor: AppTheme.primaryColor,
           unselectedItemColor: const Color(0xFF94A3B8),
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+          selectedFontSize: 11.5,
+          unselectedFontSize: 11.5,
+          selectedLabelStyle: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            fontSize: 11.5,
+            letterSpacing: -0.1,
+          ),
+          unselectedLabelStyle: GoogleFonts.poppins(
+            fontWeight: FontWeight.w500,
+            fontSize: 11.5,
+            letterSpacing: -0.1,
+          ),
           elevation: 0,
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard_rounded),
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 3),
+                child: Icon(Icons.grid_view_outlined, size: 23),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 3),
+                child: Icon(Icons.grid_view_rounded, size: 23),
+              ),
               label: 'Dashboard',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.event_outlined),
-              activeIcon: Icon(Icons.event_rounded),
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 3),
+                child: Icon(Icons.event_outlined, size: 23),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 3),
+                child: Icon(Icons.event_rounded, size: 23),
+              ),
               label: 'Events',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.design_services_outlined),
-              activeIcon: Icon(Icons.design_services_rounded),
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 3),
+                child: Icon(Icons.storefront_outlined, size: 23),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 3),
+                child: Icon(Icons.storefront_rounded, size: 23),
+              ),
               label: 'Services',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.confirmation_number_outlined),
-              activeIcon: Icon(Icons.confirmation_number_rounded),
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 3),
+                child: Icon(Icons.receipt_long_outlined, size: 23),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 3),
+                child: Icon(Icons.receipt_long_rounded, size: 23),
+              ),
               label: 'Bookings',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              activeIcon: Icon(Icons.person_rounded),
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 3),
+                child: Icon(Icons.person_outline_rounded, size: 23),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 3),
+                child: Icon(Icons.person_rounded, size: 23),
+              ),
               label: 'Profile',
             ),
           ],

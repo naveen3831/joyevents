@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../config/api_config.dart';
 import '../../config/app_theme.dart';
 import '../../models/event_model.dart';
 import '../../services/auth_service.dart';

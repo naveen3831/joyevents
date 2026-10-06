@@ -214,6 +214,13 @@ class _BrowseEventsScreenState extends State<BrowseEventsScreen> {
               right: 12,
               bottom: 24,
             ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.tune_rounded, color: Colors.white),
+                tooltip: 'Filter Events',
+                onPressed: _openFilterBottomSheet,
+              ),
+            ],
           ),
 
           const SizedBox(height: 18),

@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Mobile (NX659J)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "cwd": "mobile",
+      "args": [
+        "--android-skip-build-dependency-validation"
+      ]
+    }
+  ]
+}

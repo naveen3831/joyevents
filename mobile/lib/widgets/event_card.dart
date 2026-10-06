@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../config/api_config.dart';
 import '../config/app_theme.dart';
 import '../models/event_model.dart';
 import 'app_network_image.dart';

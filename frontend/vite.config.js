@@ -4,6 +4,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 // Fix for __dirname in ES modules
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Backend target for dev proxy (defaults to live cloud server, or override via VITE_BACKEND_URL)
+const BACKEND_URL = (process.env.VITE_BACKEND_URL || 'https://joyevents.speshway.site').replace(/\/+$/, '');
+const WS_BACKEND_URL = BACKEND_URL.replace(/^http(s?):/, 'ws$1:');
+
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [react()],
@@ -45,13 +49,20 @@ export default defineConfig({
         // Vite dev server natively handles SPA routing
         proxy: {
             '/api': {
-                target: 'http://localhost:5000',
+                target: BACKEND_URL,
                 changeOrigin: true,
+                secure: false,
+            },
+            '/uploads': {
+                target: BACKEND_URL,
+                changeOrigin: true,
+                secure: false,
             },
             '/ws': {
-                target: 'ws://localhost:5000',
+                target: WS_BACKEND_URL,
                 ws: true,
                 changeOrigin: true,
+                secure: false,
                 configure: (proxy) => {
                     proxy.on('error', (err) => {
                         if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED' || err.message?.includes('socket hang up')) {

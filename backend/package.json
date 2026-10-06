@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "build": "echo Backend is ready (no build step required)",
     "build:frontend": "cd ../frontend && npm run build",
     "start:prod": "npm run build:frontend && npm start"
   },

@@ -145,7 +145,7 @@ const queryClient = new QueryClient();
 const PageLoader = () => {
   return (<div className="flex flex-col items-center justify-center min-h-screen bg-gradient-dark relative overflow-hidden">
       {/* Background Glowing Ambient Orbs */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-primary/10 blur-[100px] pointer-events-none animate-pulse duration-[4000ms]"/>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-primary/10 blur-[100px] pointer-events-none animate-pulse [animation-duration:4000ms]"/>
       
       {/* Top Loading Progress Line */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-secondary overflow-hidden">

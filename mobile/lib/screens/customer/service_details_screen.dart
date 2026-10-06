@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../config/api_config.dart';
 import '../../config/app_theme.dart';
 import '../../models/cart_model.dart';
 import '../../models/service_model.dart';
@@ -35,8 +34,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   final MessageService _messageService = MessageService();
 
   ServiceModel? _service;
-  bool _isLoading = false;
-  String? _errorMessage;
+  final bool _isLoading = false;
+  final String? _errorMessage = null;
 
   @override
   void initState() {

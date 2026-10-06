@@ -66,10 +66,26 @@ const ServiceGridCard = ({ svc, imgSrc, navigate, openBook, handleContactService
             className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col shadow-card will-change-transform w-full h-full cursor-pointer"
         >
             <div className="relative overflow-hidden bg-secondary shrink-0 w-full h-48 sm:h-52">
-                {imgSrc(svc.image) ? (<img src={imgSrc(svc.image)} alt={svc.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="flex h-full w-full items-center justify-center bg-gradient-mesh text-primary/30">
+                {imgSrc(svc.image) ? (
+                    <img 
+                        src={imgSrc(svc.image)} 
+                        alt={svc.name} 
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            if (e.currentTarget.nextElementSibling) {
+                                e.currentTarget.nextElementSibling.style.display = 'flex';
+                            }
+                        }}
+                    />
+                ) : null}
+                <div 
+                    style={{ display: imgSrc(svc.image) ? 'none' : 'flex' }}
+                    className="h-full w-full items-center justify-center bg-gradient-mesh text-primary/30"
+                >
                     <Briefcase className="h-10 w-10 opacity-30"/>
-                  </div>)}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"/>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent pointer-events-none"/>
                 <span className="absolute bottom-3 left-3 rounded-full bg-gradient-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow-glow">
                     From {formatCurrency(svc.price)}
                 </span>
@@ -423,31 +439,47 @@ const Services = () => {
     const handlePaymentError = (_error) => {
         // Keep payment modal open so user can retry
     };
-    const imgSrc = (image) => image?.startsWith("http") ? image : image ? `${API_URL}${image}` : "";
+    const imgSrc = (image) => {
+      if (!image) return "";
+      if (image.startsWith("http://") || image.startsWith("https://")) return image;
+      return image.startsWith("/") ? image : `/${image}`;
+    };
     return (<Layout>
       {/* ── Hero ─────────────────────────────────────── */}
       <section className="relative isolate overflow-hidden">
         <FloatingBalloons count={8} />
-        <img src={settings.servicesImage || STATIC_IMAGES.servicesHero} alt="Our Services" className="h-[50vh] min-h-[320px] w-full object-cover sm:h-[55vh] md:h-[60vh] lg:h-[65vh]" loading="eager"/>
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent"/>
-        <div className="absolute inset-0 flex items-center pt-20">
+        <img 
+          src={settings.servicesImage || STATIC_IMAGES.servicesHero} 
+          alt="Our Services" 
+          className="h-[55vh] min-h-[460px] sm:min-h-[480px] md:min-h-[520px] lg:min-h-[580px] w-full object-cover object-[center_35%]" 
+          loading="eager"
+          onError={(e) => {
+            if (e.currentTarget.src !== STATIC_IMAGES.servicesHero) {
+              e.currentTarget.src = STATIC_IMAGES.servicesHero;
+            }
+          }}
+        />
+        {/* Balanced cinematic overlay: keeps the banner image vibrant & visible while ensuring crisp text readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-black/10"/>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20"/>
+        <div className="absolute inset-0 flex items-center py-8 sm:py-12">
           <div className="container mx-auto px-4 sm:px-6">
-            <motion.div initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }} className="max-w-3xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Our Services</p>
-              <h1 className="mt-4 font-display text-2xl font-bold leading-tight text-white sm:text-4xl md:text-5xl lg:text-6xl">
-                Full-service planning for <span className="text-primary">every</span> kind of event
+            <motion.div initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }} className="max-w-3xl drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
+              <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-violet-300">Our Services</p>
+              <h1 className="mt-2 sm:mt-4 font-display text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-white drop-shadow-md">
+                Full-service planning for <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-fuchsia-300 to-amber-200 font-extrabold">every</span> kind of event
               </h1>
-              <p className="mt-5 text-lg text-white/75">
+              <p className="mt-3 sm:mt-5 text-sm sm:text-base md:text-lg text-white/90 drop-shadow line-clamp-3 sm:line-clamp-none max-w-2xl">
                 From intimate gatherings to large productions, we manage the details that turn complex logistics into seamless, unforgettable experiences.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-5 sm:mt-8 flex flex-wrap items-center gap-2.5 sm:gap-3">
                 <Link to="/contact">
-                  <Button className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90">
+                  <Button className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90 hover:-translate-y-0.5 transition-all text-xs sm:text-sm h-10 sm:h-11 px-4 sm:px-5">
                     Contact Us <ArrowRight className="ml-2 h-4 w-4"/>
                   </Button>
                 </Link>
                 <Link to="/events">
-                  <Button variant="outline">Browse Events</Button>
+                  <Button variant="outline" className="text-white border-white/40 bg-black/25 backdrop-blur-sm hover:bg-white/20 hover:-translate-y-0.5 transition-all text-xs sm:text-sm h-10 sm:h-11 px-4 sm:px-5">Browse Events</Button>
                 </Link>
               </div>
             </motion.div>
@@ -477,40 +509,40 @@ const Services = () => {
       </section>
 
       {/* ── Service Cards ─────────────────────────────── */}
-      <section className="py-20">
-        <div className="container mx-auto">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-12">
+      <section className="py-14 sm:py-20">
+        <div className="container mx-auto px-4 sm:px-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-8 sm:mb-12">
             <p className="text-sm font-semibold uppercase tracking-widest text-primary">What We Offer</p>
-            <h2 className="font-display mt-3 text-4xl font-bold">
+            <h2 className="font-display mt-2 sm:mt-3 text-3xl sm:text-4xl font-bold">
               Services built for <span className="text-primary">every occasion</span>
             </h2>
-            <p className="mt-3 text-muted-foreground">Click "Book Now" on any service to get started</p>
+            <p className="mt-2 sm:mt-3 text-muted-foreground text-sm sm:text-base">Click "Book Now" on any service to get started</p>
           </motion.div>
 
           {/* Search & Filter */}
-          <div className="mt-8 space-y-4">
-            {/* Search Bar - Extra Large */}
+          <div className="mt-6 sm:mt-8 space-y-4">
+            {/* Search Bar */}
             <div className="relative w-full">
-              <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"/>
-              <Input placeholder="Search services by name or description..." value={search} maxLength={30} onChange={(e) => setSearch(e.target.value)} className="pl-14 pr-4 py-7 h-14 bg-card border-border text-lg rounded-xl focus:ring-2 focus:ring-primary shadow-md"/>
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"/>
+              <Input placeholder="Search services by name or description..." value={search} maxLength={30} onChange={(e) => setSearch(e.target.value)} className="pl-12 pr-4 h-12 sm:h-14 bg-card border-border text-sm sm:text-base rounded-xl focus:ring-2 focus:ring-primary shadow-sm"/>
             </div>
 
             {/* Category Pills */}
-            <div className="flex flex-wrap items-center gap-3">
-              {role === "admin" && (<Button variant="outline" size="sm" onClick={() => setShowCatModal(true)} className="gap-1 rounded-md">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+              {role === "admin" && (<Button variant="outline" size="sm" onClick={() => setShowCatModal(true)} className="gap-1 rounded-full shrink-0 whitespace-nowrap">
                   Manage Categories
                 </Button>)}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 {categories.map((cat) => {
                   const isActive = (normalizeCategory(activeCategory) || "all") === cat.value;
                   return (
                     <button
                       key={cat.value}
                       onClick={() => handleCategoryChange(cat.value)}
-                      className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                      className={`whitespace-nowrap rounded-full px-4 py-2 text-xs sm:text-sm font-semibold transition-all ${
                         isActive
-                          ? "bg-gradient-primary text-primary-foreground shadow-md scale-105"
-                          : "bg-secondary text-muted-foreground hover:text-foreground"
+                          ? "bg-gradient-primary text-primary-foreground shadow-glow scale-102"
+                          : "bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80"
                       }`}
                     >
                       {cat.label}
@@ -535,13 +567,13 @@ const Services = () => {
 
 
       {/* ── Why Choose Us + Second Image ─────────────── */}
-      <section className="bg-secondary/20 py-20">
-        <div className="container mx-auto">
-          <div className="grid items-center gap-14 lg:grid-cols-2">
+      <section className="bg-secondary/20 py-16 sm:py-20">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="grid items-center gap-10 sm:gap-14 lg:grid-cols-2">
             {/* Second image */}
             <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="relative">
               <div className="overflow-hidden rounded-3xl shadow-2xl">
-                <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=900&q=80" alt="Our team planning an event" className="h-[460px] w-full object-cover"/>
+                <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=900&q=80" alt="Our team planning an event" className="h-[380px] sm:h-[460px] w-full object-cover"/>
                 <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-black/40 to-transparent"/>
               </div>
               <div className="absolute -bottom-5 -right-5 rounded-2xl border border-border bg-card p-4 shadow-xl">
@@ -553,11 +585,11 @@ const Services = () => {
             {/* Why us content */}
             <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
               <p className="text-sm font-semibold uppercase tracking-widest text-primary">Why Choose Us</p>
-              <h2 className="font-display mt-3 text-4xl font-bold leading-tight">
+              <h2 className="font-display mt-3 text-3xl sm:text-4xl font-bold leading-tight">
                 Everything you need, <span className="text-primary">all in one place</span>
               </h2>
-              <p className="mt-4 text-muted-foreground leading-relaxed">
-                EventFlow brings together the best event professionals under one platform. Whether you need a full wedding package or just a caterer for a corporate lunch, we make the booking process effortless and transparent.
+              <p className="mt-4 text-muted-foreground leading-relaxed text-sm sm:text-base">
+                JoyEvents brings together the best event professionals under one platform. Whether you need a full wedding package or just a caterer for a corporate lunch, we make the booking process effortless and transparent.
               </p>
               <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2">
                 {WHY_US.map((item) => (<div key={item.title} className="rounded-xl border border-border bg-card p-4">
@@ -574,7 +606,7 @@ const Services = () => {
       </section>
 
       {/* ── How It Works ──────────────────────────────── */}
-      <section className="container mx-auto py-20">
+      <section className="container mx-auto px-4 sm:px-6 py-16 sm:py-20">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-12 text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">How It Works</p>
           <h2 className="font-display mt-3 text-4xl font-bold">Book a service in 4 simple steps</h2>

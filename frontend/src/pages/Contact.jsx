@@ -74,16 +74,23 @@ const Contact = () => {
         {/* ── Hero ─────────────────────────────────────── */}
         <section className="relative isolate overflow-hidden">
           <FloatingBalloons count={6} />
-          <img src={STATIC_IMAGES.contactHero} alt="Event planning consultation" className="h-[50vh] min-h-[320px] w-full object-cover sm:h-[55vh] md:h-[60vh] lg:h-[65vh]" loading="eager"/>
-          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-transparent"/>
-          <div className="absolute inset-0 flex items-center pt-20">
+          <img 
+            src={STATIC_IMAGES.contactHero} 
+            alt="Event planning consultation" 
+            className="h-[52vh] min-h-[380px] w-full object-cover object-[center_35%] sm:h-[58vh] md:h-[62vh] lg:h-[68vh]" 
+            loading="eager"
+          />
+          {/* Balanced cinematic overlay: keeps the banner image vibrant & visible while ensuring crisp text readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-black/10"/>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/20"/>
+          <div className="absolute inset-0 flex items-center">
             <div className="container mx-auto px-4 sm:px-6">
-              <motion.div initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} className="max-w-xl">
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Contact Us</p>
-                <h1 className="mt-4 font-display text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-white">
-                  Let's plan your next event with <span className="text-primary">clarity</span>
+              <motion.div initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} className="max-w-xl drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-300">Contact Us</p>
+                <h1 className="mt-4 font-display text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-white drop-shadow-md">
+                  Let's plan your next event with <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-fuchsia-300 to-amber-200 font-extrabold">clarity</span>
                 </h1>
-                <p className="mt-5 text-base sm:text-lg text-white/80">
+                <p className="mt-5 text-base sm:text-lg text-white/90 drop-shadow">
                   Tell us what you're planning and we'll help shape the right event workflow, service package, and execution path.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-3">
@@ -93,7 +100,7 @@ const Contact = () => {
                     </Button>
                   </Link>
                   <Link to="/events">
-                    <Button variant="outline" className="text-white border-white/30 hover:bg-white/10 hover:-translate-y-0.5 transition-all">Browse Events</Button>
+                    <Button variant="outline" className="text-white border-white/40 bg-black/25 backdrop-blur-sm hover:bg-white/20 hover:-translate-y-0.5 transition-all">Browse Events</Button>
                   </Link>
                 </div>
               </motion.div>
