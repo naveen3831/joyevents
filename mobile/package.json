@@ -1,0 +1,14 @@
+{
+  "name": "joyevents-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "JoyEvents Flutter Mobile Application",
+  "scripts": {
+    "build": "flutter build apk --debug",
+    "build:apk": "flutter build apk",
+    "build:release": "flutter build apk --release",
+    "build:appbundle": "flutter build appbundle",
+    "analyze": "flutter analyze",
+    "clean": "flutter clean"
+  }
+}
